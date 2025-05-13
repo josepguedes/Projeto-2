@@ -24,9 +24,6 @@ app.use((req, res, next) => {
 // use route middleware for /posts requests
 app.use('/posts', require('./routes/posts.routes.js'));
 
-// use route middleware for /tags requests
-app.use('/tags', require('./routes/tags.routes.js'));
-
 // use route middleware for /users requests
 app.use('/users', require('./routes/users.routes.js'));
 
