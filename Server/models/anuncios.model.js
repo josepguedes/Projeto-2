@@ -8,17 +8,9 @@ module.exports = (sequelize, DataTypes) => {
       IdUtilizadorAnuncio: {
          type: DataTypes.INTEGER,
          allowNull: false,
-         references: {
-            model: 'Utilizador',
-            key: 'id'
-         }
       },
       IdUtilizadorReserva: {
          type: DataTypes.INTEGER,
-         references: {
-            model: 'Utilizador',
-            key: 'id'
-         }
       },
       DataAnuncio: {
          type: DataTypes.DATE,
@@ -43,10 +35,6 @@ module.exports = (sequelize, DataTypes) => {
       IdEstadoAnuncio: {
          type: DataTypes.INTEGER,
          allowNull: false,
-         references: {
-            model: 'EstadoAnuncio',
-            key: 'id'
-         }
       },
       Nome: {
          type: DataTypes.STRING,
@@ -63,13 +51,9 @@ module.exports = (sequelize, DataTypes) => {
          type: DataTypes.INTEGER,
          allowNull: false
       },
-      IdProdutoCat: {  // This is defined as IdProdutoCat
+      IdProdutoCategoria: {  // This is defined as IdProdutoCat
          type: DataTypes.INTEGER,
-         allowNull: false,
-         references: {
-            model: 'ProdutoCategoria',
-            key: 'id'
-         }
+         allowNull: false
       },
       DataReserva: {
          type: DataTypes.DATE
@@ -84,23 +68,5 @@ module.exports = (sequelize, DataTypes) => {
       tableName: 'anuncio',
       timestamps: false // se não precisar de createdAt e updatedAt
    });
-
-   Anuncio.associate = (models) => {
-      // Definir as relações aqui
-      Anuncio.belongsTo(models.Utilizador, {
-         as: 'Anunciante',
-         foreignKey: 'IdUtilizadorAnuncio'  
-      });
-      Anuncio.belongsTo(models.Utilizador, {
-         as: 'Recolhedor',
-         foreignKey: 'IdUtilizadorReserva' 
-      });
-      Anuncio.belongsTo(models.EstadoAnuncio, {
-         foreignKey: 'IdEstadoAnuncio'
-      });
-      Anuncio.belongsTo(models.ProdutoCategoria, {
-         foreignKey: 'IdProdutoCategoria'  
-      });
-   };
    return Anuncio;
 };
