@@ -6,12 +6,8 @@ const anunciosController = require('../controllers/anuncios.controllers.js');
 
 // Rotas básicas CRUD
 router.get('/', anunciosController.getAllAnuncios);
-router.get('/:id', anunciosController.getAnuncioById);
 router.post('/', anunciosController.createAnuncio);
 router.put('/:id', anunciosController.updateAnuncio);
 router.delete('/:id', anunciosController.deleteAnuncio);
-
-// Rota específica para reserva
-router.post('/:id/reservar', anunciosController.reservarAnuncio);
 
 module.exports = router;

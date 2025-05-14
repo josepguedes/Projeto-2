@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 
 // read environment variables from .env file
 require('dotenv').config();
@@ -8,6 +9,7 @@ const port = process.env.PORT;	// use environment variables
 const host = process.env.HOST;
 
 
+app.use(cors());
 app.use(express.json());
 
 // middleware for ALL routes
@@ -24,8 +26,7 @@ app.use((req, res, next) => {
 // middleware for CORS (Cross-Origin Resource Sharing)
 app.use('/anuncios', require('./routes/anuncios.routes.js'));
 
-// use route middleware for /users requests
-app.use('/users', require('./routes/users.routes.js'));
+
 
 //handle invalid routes (404)    
 app.use((req, res, next) => {

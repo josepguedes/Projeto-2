@@ -6,7 +6,12 @@ const { ErrorHandler } = require("../utils/error.js");
 // Listar todos os anúncios com paginação e filtros
 const getAllAnuncios = async (req, res, next) => {
     try {
-        const { nome, localRecolha, page = 1, limit = 10 } = req.query;
+        const { 
+            nome,
+            localRecolha, 
+            page = 1, 
+            limit = 10 
+        } = req.query;
         const where = {};
 
         // Filtros
@@ -30,21 +35,6 @@ const getAllAnuncios = async (req, res, next) => {
             order: [['DataAnuncio', 'DESC']],
             limit: +limit,
             offset: (+page - 1) * +limit,
-            include: [
-                {
-                    model: db.Utilizador,
-                    as: 'Anunciante',
-                    attributes: ['id', 'nome']
-                },
-                {
-                    model: db.EstadoAnuncio,
-                    attributes: ['id', 'nome']
-                },
-                {
-                    model: db.ProdutoCategoria,
-                    attributes: ['id', 'nome']
-                }
-            ]
         });
 
         // Links HATEOAS para cada anúncio
@@ -67,45 +57,6 @@ const getAllAnuncios = async (req, res, next) => {
                 ...(anuncios.count > page * limit ? [{ rel: "proxima-pagina", href: `/anuncios?limit=${limit}&page=${+page + 1}`, method: "GET" }] : [])
             ]
         });
-    } catch (err) {
-        next(err);
-    }
-};
-
-// Obter um anúncio específico
-const getAnuncioById = async (req, res, next) => {
-    try {
-        const anuncio = await Anuncio.findByPk(req.params.id, {
-            include: [
-                {
-                    model: db.Utilizador,
-                    as: 'Anunciante',
-                    attributes: ['id', 'nome']
-                },
-                {
-                    model: db.EstadoAnuncio,
-                    attributes: ['id', 'nome']
-                },
-                {
-                    model: db.ProdutoCategoria,
-                    attributes: ['id', 'nome']
-                }
-            ]
-        });
-
-        if (!anuncio) {
-            throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
-        }
-
-        const anuncioJson = anuncio.toJSON();
-        anuncioJson.links = [
-            { rel: "self", href: `/anuncios/${anuncio.IdAnuncio}`, method: "GET" },
-            { rel: "delete", href: `/anuncios/${anuncio.IdAnuncio}`, method: "DELETE" },
-            { rel: "modify", href: `/anuncios/${anuncio.IdAnuncio}`, method: "PUT" },
-            { rel: "reservar", href: `/anuncios/${anuncio.IdAnuncio}/reservar`, method: "POST" }
-        ];
-
-        res.status(200).json(anuncioJson);
     } catch (err) {
         next(err);
     }
@@ -188,34 +139,6 @@ const updateAnuncio = async (req, res, next) => {
     }
 };
 
-// Reservar anúncio
-const reservarAnuncio = async (req, res, next) => {
-    try {
-        const anuncio = await Anuncio.findByPk(req.params.id);
-
-        if (!anuncio) {
-            throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
-        }
-
-        if (anuncio.IdEstadoAnuncio !== 1) { // 1 = Disponível
-            throw new ErrorHandler(400, 'Este anúncio não está disponível para reserva');
-        }
-
-        await anuncio.update({
-            IdUtilizadorReserva: req.body.IdUtilizadorReserva,
-            IdEstadoAnuncio: 2, // 2 = Reservado
-            DataReserva: new Date()
-        });
-
-        res.status(200).json({
-            message: 'Anúncio reservado com sucesso',
-            data: anuncio
-        });
-    } catch (err) {
-        next(err);
-    }
-};
-
 // Deletar anúncio
 const deleteAnuncio = async (req, res, next) => {
     try {
@@ -233,11 +156,11 @@ const deleteAnuncio = async (req, res, next) => {
     }
 };
 
+
+
 module.exports = {
     getAllAnuncios,
-    getAnuncioById,
     createAnuncio,
     updateAnuncio,
-    reservarAnuncio,
     deleteAnuncio
-};
+}
