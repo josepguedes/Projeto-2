@@ -21,8 +21,8 @@ app.use((req, res, next) => {
 })
 
 
-// use route middleware for /posts requests
-app.use('/posts', require('./routes/posts.routes.js'));
+// middleware for CORS (Cross-Origin Resource Sharing)
+app.use('/anuncios', require('./routes/anuncios.routes.js'));
 
 // use route middleware for /users requests
 app.use('/users', require('./routes/users.routes.js'));

@@ -1,19 +1,17 @@
-// routes for /posts requests
 const express = require('express');
 const router = express.Router();
 
 // include controller functions
-const postsController = require('../controllers/posts.controller.js');
+const anunciosController = require('../controllers/anuncios.controllers.js');
 
-router.get('/', postsController.getAllPosts);
-router.get('/:id', postsController.getPostById);
+// Rotas básicas CRUD
+router.get('/', anunciosController.getAllAnuncios);
+router.get('/:id', anunciosController.getAnuncioById);
+router.post('/', anunciosController.createAnuncio);
+router.put('/:id', anunciosController.updateAnuncio);
+router.delete('/:id', anunciosController.deleteAnuncio);
 
-router.post('/',  postsController.addPost);
-router.put('/:id', postsController.updatePost);
-router.delete('/:id', postsController.deletePost);
+// Rota específica para reserva
+router.post('/:id/reservar', anunciosController.reservarAnuncio);
 
-// NEW ROUTES FOR TAGS IN POSTS
-router.put('/:id/tags/:tag', postsController.addTagToPost); // add a tag to a post
-router.delete('/:id/tags/:tag', postsController.deleteTagFromPost); // delete a tag from a post
-
-module.exports = router;    
+module.exports = router;

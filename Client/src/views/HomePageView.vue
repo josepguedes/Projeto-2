@@ -1,6 +1,5 @@
 <template>
     <div class="landing-page">
-
         <!-- Header and Search Section -->
         <header class="text-center py-4">
             <h1 class="display-4 font-weight-bold text-primary">FoodShare</h1>
@@ -12,7 +11,7 @@
                     <div class="col-md-6">
                         <div class="input-group mb-3">
                             <input type="text" class="form-control" placeholder="Procurar alimentos..."
-                                v-model="searchTerm" @input="filterItems">
+                                v-model="searchTerm" @input="handleSearch">
                             <button class="btn btn-primary" type="button">
                                 Procurar
                             </button>
@@ -24,108 +23,119 @@
 
         <!-- Main Content -->
         <main class="container mt-4">
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
-                <div v-for="(item, index) in filteredFoodItems" :key="index" class="col">
-                    <div class="food-item card h-100">
-                        <div class="card-img-container">
-                            <img :src="item.image" class="card-img-top food-image" :alt="item.name">
-                        </div>
-                        <div class="card-body d-flex flex-column">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <h3 class="h5 card-title font-weight-bold mb-2">{{ item.name }}</h3>
-                                <span class="price-badge badge text-white">
-                                    {{ item.price }}
-                                </span>
-                            </div>
-                            <p class="card-text mb-1 text-muted">
-                                <i class="bi bi-geo-alt-fill me-1"></i>
-                                {{ item.location }}
-                            </p>
-                            <p class="card-text text-muted mt-auto">
-                                <i class="bi bi-calendar me-1"></i>
-                                Recolha - {{ item.date }}
-                            </p>
-                        </div>
-                    </div>
+            <!-- Loading State -->
+            <div v-if="loading" class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
                 </div>
+            </div>
+
+            <!-- Error State -->
+            <div v-else-if="error" class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+
+            <!-- Content -->
+            <div v-else class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+                <div v-for="anuncio in anuncios" :key="anuncio.IdAnuncio" class="col">
+                    <FoodCard :food="{
+                        name: anuncio.Nome,
+                        location: anuncio.LocalRecolha,
+                        date: formatDate(anuncio.DataRecolha),
+                        price: formatPrice(anuncio.Preco),
+                        image: anuncio.ImagemAnuncio || 'https://via.placeholder.com/500'
+                    }" />
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div v-if="totalPages > 1" class="d-flex justify-content-center mt-4">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                            <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">Anterior</a>
+                        </li>
+                        <li v-for="page in totalPages" :key="page" class="page-item" :class="{ active: page === currentPage }">
+                            <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
+                        </li>
+                        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                            <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">Próxima</a>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </main>
     </div>
 </template>
 
 <script>
+import FoodCard from '@/components/FoodCard.vue'
+import { anunciosService } from '@/api/anuncio'
+
 export default {
     name: 'LandingPage',
+    components: {
+        FoodCard
+    },
     data() {
         return {
             searchTerm: '',
-            foodItems: [
-                {
-                    name: 'Tomates Frescos',
-                    location: 'Porto, Portugal',
-                    date: '27 abril',
-                    price: '0,75€',
-                    image: 'https://images.unsplash.com/photo-1546470427-f5c9464d39c4?w=500&q=80'
-                },
-                {
-                    name: 'Pepino Biológico',
-                    location: 'Porto, Portugal',
-                    date: '27 abril',
-                    price: '0,25€',
-                    image: 'https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?w=500&q=80'
-                },
-                {
-                    name: 'Curgetes Frescas',
-                    location: 'Porto, Portugal',
-                    date: '27 abril',
-                    price: '1€',
-                    image: 'https://images.unsplash.com/photo-1599725826499-f2a65a321758?w=500&q=80'
-                },
-                {
-                    name: 'Carne Picada',
-                    location: 'Porto, Portugal',
-                    date: '27 abril',
-                    price: '2€',
-                    image: 'https://images.unsplash.com/photo-1609162759379-eae1b49e04e7?w=500&q=80'
-                },
-                {
-                    name: 'Cenouras',
-                    location: 'Porto, Portugal',
-                    date: '27 abril',
-                    price: '0,50€',
-                    image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=500&q=80'
-                },
-                {
-                    name: 'Batatas',
-                    location: 'Porto, Portugal',
-                    date: '27 abril',
-                    price: '1,25€',
-                    image: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=500&q=80'
-                },
-                {
-                    name: 'Alface',
-                    location: 'Porto, Portugal',
-                    date: '27 abril',
-                    price: '0,80€',
-                    image: 'https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=500&q=80'
-                },
-                {
-                    name: 'Cebolas',
-                    location: 'Porto, Portugal',
-                    date: '27 abril',
-                    price: '0,60€',
-                    image: 'https://images.unsplash.com/photo-1518977822534-7049a61ee0c2?w=500&q=80'
-                }
-            ]
+            anuncios: [],
+            loading: true,
+            error: null,
+            currentPage: 1,
+            totalPages: 1,
+            itemsPerPage: 12
         }
     },
-    computed: {
-        filteredFoodItems() {
-            return this.foodItems.filter(item =>
-                item.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                item.location.toLowerCase().includes(this.searchTerm.toLowerCase())
-            )
+    methods: {
+        async fetchAnuncios() {
+            try {
+                this.loading = true;
+                this.error = null;
+                const filters = this.searchTerm ? { nome: this.searchTerm } : {};
+                const response = await anunciosService.getAllAnuncios(
+                    this.currentPage,
+                    this.itemsPerPage,
+                    filters
+                );
+                this.anuncios = response.data;
+                this.totalPages = response.totalPages;
+                this.currentPage = response.currentPage;
+            } catch (err) {
+                this.error = 'Erro ao carregar os anúncios. Por favor, tente novamente.';
+                console.error('Erro:', err);
+            } finally {
+                this.loading = false;
+            }
+        },
+        formatDate(date) {
+            if (!date) return '';
+            return new Date(date).toLocaleDateString('pt-BR', {
+                day: 'numeric',
+                month: 'long'
+            });
+        },
+        formatPrice(price) {
+            if (!price) return '0,00€';
+            return Number(price).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'EUR'
+            });
+        },
+        async handleSearch() {
+            this.currentPage = 1;
+            await this.fetchAnuncios();
+        },
+        async changePage(page) {
+            if (page < 1 || page > this.totalPages) return;
+            this.currentPage = page;
+            await this.fetchAnuncios();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+    },
+    async created() {
+        await this.fetchAnuncios();
     }
 }
 </script>
@@ -140,47 +150,6 @@ export default {
     flex-direction: column;
 }
 
-.food-item {
-    border-radius: 12px;
-    border: 1px solid #e9ecef;
-    transition: all 0.3s ease;
-    overflow: hidden;
-}
-
-.card-img-container {
-    height: 200px;
-    overflow: hidden;
-}
-
-.food-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.food-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-}
-
-.food-item:hover .food-image {
-    transform: scale(1.05);
-}
-
-.card-body {
-    padding: 1.25rem;
-    background-color: white;
-}
-
-.price-badge {
-    font-size: 0.9rem;
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
-    background-color: #007bff;
-    white-space: nowrap;
-}
-
 .nav-link {
     font-weight: 500;
     transition: color 0.2s ease;
@@ -190,20 +159,12 @@ export default {
     color: #007bff !important;
 }
 
-.card-title {
-    color: #2c3e50;
-    margin-right: 0.5rem;
+.pagination {
+    margin-bottom: 0;
 }
 
-.text-muted {
-    color: #6c757d !important;
-    font-size: 0.9rem;
-}
-
-
-@media (max-width: 768px) {
-    .card-img-container {
-        height: 180px;
-    }
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
 }
 </style>
