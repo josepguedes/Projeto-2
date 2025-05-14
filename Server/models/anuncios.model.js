@@ -1,45 +1,106 @@
 module.exports = (sequelize, DataTypes) => {
-   const Post = sequelize.define('Post', {
-      title: {
-         type: DataTypes.STRING,
+   const Anuncio = sequelize.define("Anuncio", {
+      IdAnuncio: {
+         type: DataTypes.INTEGER,
+         primaryKey: true,
+         autoIncrement: true
+      },
+      IdUtilizadorAnuncio: {
+         type: DataTypes.INTEGER,
          allowNull: false,
-         validate: {
-            len: { args: [5, 50], msg: "Title must have between 5 to 50 characters."}
+         references: {
+            model: 'Utilizador',
+            key: 'id'
          }
       },
-      description: {
-         type: DataTypes.TEXT,
+      IdUtilizadorReserva: {
+         type: DataTypes.INTEGER,
+         references: {
+            model: 'Utilizador',
+            key: 'id'
+         }
+      },
+      DataAnuncio: {
+         type: DataTypes.DATE,
+         allowNull: false,
+         defaultValue: DataTypes.NOW
+      },
+      LocalRecolha: {
+         type: DataTypes.STRING,
          allowNull: false
       },
-      published: {
-         type: DataTypes.BOOLEAN,
-         defaultValue: false,
-         // validate if is boolean
-         validate: {
-            isBoolean: function(value) {
-               if (typeof value !== 'boolean') {
-                  throw new Error('Published must be a boolean value.');
-               }
-            }
+      HorarioRecolha: {
+         type: DataTypes.STRING,
+         allowNull: false
+      },
+      Preco: {
+         type: DataTypes.DECIMAL(10, 2),
+         allowNull: false
+      },
+      DataRecolha: {
+         type: DataTypes.DATE
+      },
+      IdEstadoAnuncio: {
+         type: DataTypes.INTEGER,
+         allowNull: false,
+         references: {
+            model: 'EstadoAnuncio',
+            key: 'id'
          }
       },
-      views: {
-         type: DataTypes.INTEGER.UNSIGNED,
-         defaultValue: 0,
-         validate: {
-            min: {
-               args: [0],
-               msg: "Views must be a non-negative integer."
-            }
-         }
+      Nome: {
+         type: DataTypes.STRING,
+         allowNull: false
       },
-      publishedAt: {
+      Descricao: {
+         type: DataTypes.TEXT
+      },
+      DataValidade: {
          type: DataTypes.DATE,
-         defaultValue: DataTypes.NOW
+         allowNull: false
+      },
+      Quantidade: {
+         type: DataTypes.INTEGER,
+         allowNull: false
+      },
+      IdProdutoCat: {  // This is defined as IdProdutoCat
+         type: DataTypes.INTEGER,
+         allowNull: false,
+         references: {
+            model: 'ProdutoCategoria',
+            key: 'id'
+         }
+      },
+      DataReserva: {
+         type: DataTypes.DATE
+      },
+      ImagemAnuncio: {
+         type: DataTypes.STRING
+      },
+      CodigoVerificacao: {
+         type: DataTypes.STRING
       }
    }, {
-      timestamps: false // Do not add createdAt and updatedAt fields
+      tableName: 'anuncio',
+      timestamps: false // se não precisar de createdAt e updatedAt
    });
 
-   return Post;
-}
+   Anuncio.associate = (models) => {
+      // Definir as relações aqui
+      Anuncio.belongsTo(models.Utilizador, {
+         as: 'Anunciante',
+         foreignKey: 'IdUtilizadorAnuncio'  
+      });
+      Anuncio.belongsTo(models.Utilizador, {
+         as: 'Recolhedor',
+         foreignKey: 'IdUtilizadorReserva' 
+      });
+      Anuncio.belongsTo(models.EstadoAnuncio, {
+         foreignKey: 'IdEstadoAnuncio'
+      });
+      Anuncio.belongsTo(models.ProdutoCategoria, {
+         foreignKey: 'IdProdutoCategoria'  
+      });
+   };
+   return Anuncio;
+};
