@@ -45,7 +45,7 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: 0
         },
         Funcao: {
-            type: DataTypes.ENUM('user', 'admin'),
+            type: DataTypes.STRING,
             allowNull: false,
             defaultValue: 'user'
         },
