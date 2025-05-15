@@ -1,23 +1,25 @@
 <template>
     <div class="register-page">
-        <form class="register-form">
+        <form class="register-form" @submit.prevent="registerUser">
             <h1>Register</h1>
             <div class="form-group">
                 <label for="name">Nome</label>
-                <input type="text" id="name" placeholder="Digite seu nome" />
+                <input type="text" id="name" v-model="nome" placeholder="Digite seu nome" required />
             </div>
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" placeholder="Digite seu email" />
+                <input type="email" id="email" v-model="email" placeholder="Digite seu email" required />
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" placeholder="Digite sua senha" />
+                <input type="password" id="password" v-model="password" placeholder="Digite sua senha" required />
             </div>
             <button type="submit">Registrar</button>
             <p class="login-text">
                 Já possui uma conta? <router-link to="/login">Faça login aqui</router-link>
             </p>
+            <p v-if="error" style="color: red;">{{ error }}</p>
+            <p v-if="success" style="color: green;">{{ success }}</p>
         </form>
     </div>
 </template>
@@ -25,6 +27,44 @@
 <script>
 export default {
     name: "RegisterPageView",
+    data() {
+        return {
+            nome: "",
+            email: "",
+            password: "",
+            error: "",
+            success: ""
+        };
+    },
+    methods: {
+        async registerUser() {
+            this.error = "";
+            this.success = "";
+            try {
+                const response = await fetch("http://localhost:3000/utilizadores/register", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        Nome: this.nome,
+                        Email: this.email,
+                        Password: this.password
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    this.error = data.message || data.error || "Erro ao registrar.";
+                } else {
+                    this.success = "Registro realizado com sucesso!";
+                    // Opcional: redirecionar para login após alguns segundos
+                    // setTimeout(() => this.$router.push('/login'), 1500);
+                }
+            } catch (err) {
+                this.error = "Erro de conexão com o servidor.";
+            }
+        }
+    }
 };
 </script>
 

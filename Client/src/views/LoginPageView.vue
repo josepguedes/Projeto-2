@@ -23,6 +23,7 @@
                 />
             </div>
             <button type="submit">Login</button>
+            <p v-if="error" style="color: red;">{{ error }}</p>
         </form>
         <p class="register-text">
             Não tem uma conta? <router-link to="/register">Registre-se aqui</router-link>
@@ -37,19 +38,41 @@ export default {
         return {
             email: "",
             password: "",
+            error: ""
         };
     },
     methods: {
-        handleLogin() {
-            if (this.email && this.password) {
-                console.log("Email:", this.email);
-                console.log("Password:", this.password);
-                // Add your login logic here
-            } else {
-                alert("Please fill in all fields.");
+        async handleLogin() {
+            this.error = "";
+            if (!this.email || !this.password) {
+                this.error = "Por favor, preencha todos os campos.";
+                return;
             }
-        },
-    },
+            try {
+                const response = await fetch("http://localhost:3000/utilizadores/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        Email: this.email,
+                        Password: this.password
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    this.error = data.message || data.error || "Falha no login.";
+                } else {
+                    // Salva o token JWT no localStorage
+                    localStorage.setItem("token", data.token);
+                    // Redireciona para a home ou dashboard
+                    this.$router.push("/");
+                }
+            } catch (err) {
+                this.error = "Erro de conexão com o servidor.";
+            }
+        }
+    }
 };
 </script>
 
