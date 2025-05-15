@@ -179,12 +179,34 @@ const deleteAnuncio = async (req, res, next) => {
     }
 };
 
+// Obter anúncio por ID
+const getAnuncioById = async (req, res, next) => {
+    try {
+        const anuncio = await Anuncio.findByPk(req.params.id);
+        
+        if (!anuncio) {
+            throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
+        }
 
+        res.status(200).json({
+            data: anuncio,
+            links: [
+                { rel: "self", href: `/anuncios/${anuncio.IdAnuncio}`, method: "GET" },
+                { rel: "delete", href: `/anuncios/${anuncio.IdAnuncio}`, method: "DELETE" },
+                { rel: "modify", href: `/anuncios/${anuncio.IdAnuncio}`, method: "PUT" },
+                { rel: "all", href: "/anuncios", method: "GET" }
+            ]
+        });
+    } catch (err) {
+        next(err);
+    }
+};
 
 module.exports = {
     getAllAnuncios,
     getAnuncioById,
     createAnuncio,
     updateAnuncio,
-    deleteAnuncio
+    deleteAnuncio,
+    getAnuncioById
 }
