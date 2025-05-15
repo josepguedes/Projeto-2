@@ -34,5 +34,6 @@ db.sequelize = sequelize;
 
 db.Anuncio = require('./anuncios.model.js')(sequelize, Sequelize.DataTypes); 
 db.Denuncia = require('./denuncias.models.js')(sequelize, Sequelize.DataTypes);
+db.Avaliacao = require('./avaliaçoes.models')(sequelize, Sequelize.DataTypes);
 
 module.exports = db;
