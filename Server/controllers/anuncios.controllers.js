@@ -62,27 +62,6 @@ const getAllAnuncios = async (req, res, next) => {
     }
 };
 
-// Listar um anúncio específico
-const getAnuncioById = async (req, res, next) => {
-    try {
-        const anuncio = await Anuncio.findByPk(req.params.id);
-
-        if (!anuncio) {
-            throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
-        }
-
-        // Links HATEOAS
-        anuncio.links = [
-            { rel: "self", href: `/anuncios/${anuncio.IdAnuncio}`, method: "GET" },
-            { rel: "delete", href: `/anuncios/${anuncio.IdAnuncio}`, method: "DELETE" },
-            { rel: "modify", href: `/anuncios/${anuncio.IdAnuncio}`, method: "PUT" }
-        ];
-
-        res.status(200).json(anuncio);
-    } catch (err) {
-        next(err);
-    }
-};
 
 // Criar novo anúncio
 const createAnuncio = async (req, res, next) => {
