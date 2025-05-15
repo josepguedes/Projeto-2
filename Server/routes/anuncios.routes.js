@@ -10,4 +10,6 @@ router.post('/', anunciosController.createAnuncio);
 router.put('/:id', anunciosController.updateAnuncio);
 router.delete('/:id', anunciosController.deleteAnuncio);
 
+router.get('/:id', anunciosController.getAnuncioById);
+
 module.exports = router;

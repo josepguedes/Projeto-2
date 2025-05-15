@@ -1,25 +1,27 @@
 <template>
-    <div class="food-item card h-100">
-        <div class="card-img-container">
-            <img :src="food.image" class="card-img-top food-image" :alt="food.name">
-        </div>
-        <div class="card-body d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-start">
-                <h3 class="h5 card-title font-weight-bold mb-2">{{ food.name }}</h3>
-                <span class="price-badge badge text-white">
-                    {{ food.price }}
-                </span>
+    <router-link :to="{ name: 'anuncio-detail', params: { id: food.id }}" class="text-decoration-none">
+        <div class="food-item card h-100">
+            <div class="card-img-container">
+                <img :src="food.image" class="card-img-top food-image" :alt="food.name">
             </div>
-            <p class="card-text mb-1 text-muted">
-                <i class="bi bi-geo-alt-fill me-1"></i>
-                {{ food.location }}
-            </p>
-            <p class="card-text text-muted mt-auto">
-                <i class="bi bi-calendar me-1"></i>
-                Recolha - {{ food.date }}
-            </p>
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h3 class="h5 card-title font-weight-bold mb-2">{{ food.name }}</h3>
+                    <span class="price-badge badge text-white">
+                        {{ food.price }}
+                    </span>
+                </div>
+                <p class="card-text mb-1 text-muted">
+                    <i class="bi bi-geo-alt-fill me-1"></i>
+                    {{ food.location }}
+                </p>
+                <p class="card-text text-muted mt-auto">
+                    <i class="bi bi-calendar me-1"></i>
+                    Recolha - {{ food.date }}
+                </p>
+            </div>
         </div>
-    </div>
+    </router-link>
 </template>
 
 <script>
@@ -28,7 +30,10 @@ export default {
     props: {
         food: {
             type: Object,
-            required: true
+            required: true,
+            validator(value) {
+                return value.id !== undefined; // Validate that id exists
+            }
         }
     }
 }
