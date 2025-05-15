@@ -187,5 +187,4 @@ module.exports = {
     createAnuncio,
     updateAnuncio,
     deleteAnuncio,
-    getAnuncioById
 }
