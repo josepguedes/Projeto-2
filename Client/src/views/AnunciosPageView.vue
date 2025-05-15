@@ -217,8 +217,7 @@ export default {
             try {
                 if (!this.anuncio) return;
                 const response = await anunciosService.getAllAnuncios(1, 4, {
-                    categoria: this.anuncio.IdProdutoCategoria,
-                    exclude: this.anuncio.IdAnuncio
+                    exclude: this.anuncio.IdAnuncio // Pass the current ad ID to exclude
                 });
                 this.similarAnuncios = response.data;
             } catch (error) {
@@ -226,18 +225,7 @@ export default {
             }
         },
         async handleReservar() {
-            try {
-                await anunciosService.updateAnuncio(this.anuncio.IdAnuncio, {
-                    IdEstadoAnuncio: 2, // Estado reservado
-                    IdUtilizadorReserva: 1, // Substituir pelo ID do usuário logado
-                    DataReserva: new Date()
-                });
-                await this.fetchAnuncio(); // Recarrega os dados
-                alert('Produto reservado com sucesso!');
-            } catch (error) {
-                alert('Erro ao reservar o produto. Por favor, tente novamente.');
-                console.error('Error:', error);
-            }
+            alert('Função de reserva a ser implementada!');
         },
         handleReport() {
             // Implementar lógica de denúncia

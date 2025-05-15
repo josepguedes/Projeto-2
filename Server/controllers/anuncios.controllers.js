@@ -8,7 +8,8 @@ const getAllAnuncios = async (req, res, next) => {
     try {
         const { 
             nome,
-            localRecolha, 
+            localRecolha,
+            exclude, // Add this parameter
             page = 1, 
             limit = 10 
         } = req.query;
@@ -20,6 +21,10 @@ const getAllAnuncios = async (req, res, next) => {
         }
         if (localRecolha) {
             where.LocalRecolha = { [Op.like]: `%${localRecolha}%` };
+        }
+        // Add exclusion filter
+        if (exclude) {
+            where.IdAnuncio = { [Op.ne]: exclude }; // Not Equal operator
         }
 
         // Validar página e limite
