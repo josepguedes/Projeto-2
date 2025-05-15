@@ -1,16 +1,11 @@
 <template>
-    <div class="anuncio-detail-page bg-light">
+    <div class="anuncio-detail-page bg-light min-vh-100 pt-5">
         <div class="container py-4">
             <!-- Header -->
-            <div class="card mb-4 border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <router-link to="/" class="btn btn-outline-secondary d-flex align-items-center gap-2">
-                        <i class="bi bi-arrow-left"></i>
-                        Voltar
-                    </router-link>
-                    <h1 class="h3 mb-0">Detalhes do Anúncio</h1>
-                </div>
-            </div>
+            <router-link to="/" class="btn btn-link text-decoration-none mb-4 d-inline-flex align-items-center">
+                <i class="bi bi-arrow-left me-2"></i>
+                Voltar ao Menu Principal
+            </router-link>
 
             <!-- Loading State -->
             <div v-if="loading" class="text-center py-5">
@@ -25,15 +20,15 @@
             </div>
 
             <!-- Content -->
-            <div v-else class="row g-4">
+            <div v-else class="row">
                 <!-- Main Content -->
-                <div class="col-lg-9">
+                <div class="col-lg-8 mb-4">
                     <div class="card border-0 shadow-sm">
                         <div class="position-relative">
-                            <img :src="anuncio.ImagemAnuncio || 'https://via.placeholder.com/500'" 
-                                 :alt="anuncio.Nome"
-                                 class="card-img-top product-image">
-                            <span class="position-absolute top-0 end-0 m-3 badge bg-primary px-3 py-2 rounded-pill">
+                            <img :src="anuncio.ImagemAnuncio || 'https://via.placeholder.com/500'" :alt="anuncio.Nome"
+                                class="card-img-top product-image object-fit-cover">
+                            <span
+                                class="position-absolute top-0 end-0 m-3 badge bg-primary px-3 py-2 rounded-pill fs-5">
                                 {{ formatPrice(anuncio.Preco) }}
                             </span>
                         </div>
@@ -42,7 +37,7 @@
                             <!-- Title and User Info -->
                             <div class="mb-4">
                                 <h2 class="h3 mb-3 text-primary">{{ anuncio.Nome }}</h2>
-                                <div class="d-flex align-items-center gap-3">
+                                <div class="d-flex align-items-center gap-3 bg-light p-3 rounded">
                                     <i class="bi bi-person-circle fs-1 text-secondary"></i>
                                     <div>
                                         <h3 class="h6 mb-1">Anunciante #{{ anuncio.IdUtilizadorAnuncio }}</h3>
@@ -57,8 +52,8 @@
                             <!-- Details Grid -->
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6" v-for="(detail, index) in details" :key="index">
-                                    <div class="p-3 bg-light rounded">
-                                        <i :class="detail.icon + ' text-primary me-2'"></i>
+                                    <div class="p-3 bg-light rounded d-flex align-items-center">
+                                        <i :class="detail.icon + ' text-primary me-2 fs-5'"></i>
                                         <span>{{ detail.label }}: {{ detail.value }}</span>
                                     </div>
                                 </div>
@@ -67,20 +62,22 @@
                             <!-- Description -->
                             <div class="mb-4">
                                 <h5 class="mb-3">Descrição</h5>
-                                <p class="bg-light p-3 rounded">
+                                <p class="bg-light p-3 rounded mb-0">
                                     {{ anuncio.Descricao || 'Sem descrição disponível.' }}
                                 </p>
                             </div>
 
                             <!-- Action Buttons -->
                             <div class="d-flex gap-3">
-                                <button class="btn btn-primary flex-grow-1 py-2"
-                                        @click="handleReservar"
-                                        :disabled="anuncio.IdEstadoAnuncio !== 1">
+                                <button
+                                    class="btn btn-primary btn-lg flex-grow-1 d-flex align-items-center justify-content-center"
+                                    @click="handleReservar" :disabled="anuncio.IdEstadoAnuncio !== 1">
                                     <i class="bi bi-bag-check me-2"></i>
                                     {{ getReserveButtonText() }}
                                 </button>
-                                <button class="btn btn-outline-danger" @click="handleReport">
+                                <button
+                                    class="btn btn-outline-danger btn-lg d-flex align-items-center justify-content-center"
+                                    @click="handleReport">
                                     <i class="bi bi-exclamation-triangle me-2"></i>
                                     Denunciar
                                 </button>
@@ -90,20 +87,18 @@
                 </div>
 
                 <!-- Similar Items Sidebar -->
-                <div class="col-lg-3">
+                <div class="col-lg-4">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body">
                             <h2 class="h5 mb-3">Outros Anúncios Similares</h2>
                             <div class="d-flex flex-column gap-3">
-                                <router-link v-for="item in similarAnuncios" 
-                                           :key="item.IdAnuncio"
-                                           :to="{ name: 'anuncio-detail', params: { id: item.IdAnuncio }}"
-                                           class="text-decoration-none">
-                                    <div class="card similar-card h-100">
+                                <router-link v-for="item in similarAnuncios" :key="item.IdAnuncio"
+                                    :to="{ name: 'anuncio-detail', params: { id: item.IdAnuncio } }"
+                                    class="text-decoration-none">
+                                    <div class="card border-0 shadow-sm hover-lift">
                                         <div class="position-relative">
                                             <img :src="item.ImagemAnuncio || 'https://via.placeholder.com/500'"
-                                                 :alt="item.Nome"
-                                                 class="card-img-top similar-image">
+                                                :alt="item.Nome" class="card-img-top similar-image object-fit-cover">
                                             <span class="position-absolute top-0 end-0 m-2 badge bg-primary">
                                                 {{ formatPrice(item.Preco) }}
                                             </span>
@@ -139,6 +134,19 @@ export default {
             error: null
         }
     },
+    watch: {
+        // Add this watch section
+        '$route.params.id': {
+            handler(newId) {
+                if (newId) {
+                    this.loading = true;
+                    this.fetchAnuncio();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            },
+            immediate: true
+        }
+    },
     computed: {
         details() {
             if (!this.anuncio) return [];
@@ -171,71 +179,71 @@ export default {
             ];
         }
     },
-methods: {
-    formatPrice(price) {
-        return Number(price).toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'EUR'
-        });
-    },
-    formatDate(date) {
-        if (!date) return 'Data não definida';
-        return new Date(date).toLocaleDateString('pt-BR', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        });
-    },
-    getReserveButtonText() {
-        if (!this.anuncio) return 'Carregando...';
-        if (this.anuncio.IdEstadoAnuncio === 2) return 'Já Reservado';
-        if (this.anuncio.IdEstadoAnuncio === 3) return 'Expirado';
-        return 'Reservar Produto';
-    },
-    async fetchAnuncio() {
-        try {
-            this.loading = true;
-            const response = await anunciosService.getAnuncioById(this.$route.params.id);
-            this.anuncio = response.data;
-            await this.fetchSimilarAnuncios();
-        } catch (error) {
-            this.error = 'Erro ao carregar o anúncio. Por favor, tente novamente.';
-            console.error('Error:', error);
-        } finally {
-            this.loading = false;
-        }
-    },
-    async fetchSimilarAnuncios() {
-        try {
-            if (!this.anuncio) return;
-            const response = await anunciosService.getAllAnuncios(1, 4, {
-                categoria: this.anuncio.IdProdutoCategoria,
-                exclude: this.anuncio.IdAnuncio
+    methods: {
+        formatPrice(price) {
+            return Number(price).toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'EUR'
             });
-            this.similarAnuncios = response.data;
-        } catch (error) {
-            console.error('Error fetching similar items:', error);
-        }
-    },
-    async handleReservar() {
-        try {
-            await anunciosService.updateAnuncio(this.anuncio.IdAnuncio, {
-                IdEstadoAnuncio: 2, // Estado reservado
-                IdUtilizadorReserva: 1, // Substituir pelo ID do usuário logado
-                DataReserva: new Date()
+        },
+        formatDate(date) {
+            if (!date) return 'Data não definida';
+            return new Date(date).toLocaleDateString('pt-BR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
             });
-            await this.fetchAnuncio(); // Recarrega os dados
-            alert('Produto reservado com sucesso!');
-        } catch (error) {
-            alert('Erro ao reservar o produto. Por favor, tente novamente.');
-            console.error('Error:', error);
+        },
+        getReserveButtonText() {
+            if (!this.anuncio) return 'Carregando...';
+            if (this.anuncio.IdEstadoAnuncio === 2) return 'Já Reservado';
+            if (this.anuncio.IdEstadoAnuncio === 3) return 'Expirado';
+            return 'Reservar Produto';
+        },
+        async fetchAnuncio() {
+            try {
+                this.loading = true;
+                const response = await anunciosService.getAnuncioById(this.$route.params.id);
+                this.anuncio = response.data;
+                await this.fetchSimilarAnuncios();
+            } catch (error) {
+                this.error = 'Erro ao carregar o anúncio. Por favor, tente novamente.';
+                console.error('Error:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        async fetchSimilarAnuncios() {
+            try {
+                if (!this.anuncio) return;
+                const response = await anunciosService.getAllAnuncios(1, 4, {
+                    categoria: this.anuncio.IdProdutoCategoria,
+                    exclude: this.anuncio.IdAnuncio
+                });
+                this.similarAnuncios = response.data;
+            } catch (error) {
+                console.error('Error fetching similar items:', error);
+            }
+        },
+        async handleReservar() {
+            try {
+                await anunciosService.updateAnuncio(this.anuncio.IdAnuncio, {
+                    IdEstadoAnuncio: 2, // Estado reservado
+                    IdUtilizadorReserva: 1, // Substituir pelo ID do usuário logado
+                    DataReserva: new Date()
+                });
+                await this.fetchAnuncio(); // Recarrega os dados
+                alert('Produto reservado com sucesso!');
+            } catch (error) {
+                alert('Erro ao reservar o produto. Por favor, tente novamente.');
+                console.error('Error:', error);
+            }
+        },
+        handleReport() {
+            // Implementar lógica de denúncia
+            alert('Função de denúncia a ser implementada!');
         }
     },
-    handleReport() {
-        // Implementar lógica de denúncia
-        alert('Função de denúncia a ser implementada!');
-    }
-},
     created() {
         this.fetchAnuncio();
     }
@@ -243,27 +251,30 @@ methods: {
 </script>
 
 <style scoped>
-.anuncio-detail-page {
-    padding-top: 80px;
-    min-height: 100vh;
-}
-
 .product-image {
     height: 400px;
-    object-fit: cover;
 }
 
 .similar-image {
     height: 120px;
-    object-fit: cover;
 }
 
-.similar-card {
-    transition: transform 0.2s ease;
+.hover-lift {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
-.similar-card:hover {
+.hover-lift:hover {
     transform: translateY(-3px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.btn-primary {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-primary:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 123, 255, 0.15);
 }
 
 @media (max-width: 992px) {
