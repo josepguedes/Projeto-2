@@ -38,9 +38,11 @@
                             <div class="mb-4">
                                 <h2 class="h3 mb-3 text-primary">{{ anuncio.Nome }}</h2>
                                 <div class="d-flex align-items-center gap-3 bg-light p-3 rounded">
-                                    <i class="bi bi-person-circle fs-1 text-secondary"></i>
+                                    <img :src="anuncio.utilizador?.ImagemPerfil || 'https://via.placeholder.com/50'"
+                                        alt="Profile" class="rounded-circle profile-image">
                                     <div>
-                                        <h3 class="h6 mb-1">Anunciante #{{ anuncio.IdUtilizadorAnuncio }}</h3>
+                                        <h3 class="h6 mb-1">{{ anuncio.utilizador?.Nome || `Anunciante
+                                            #${anuncio.IdUtilizadorAnuncio}` }}</h3>
                                         <p class="mb-0 text-muted small">
                                             <i class="bi bi-geo-alt-fill me-1"></i>
                                             {{ anuncio.LocalRecolha }}
@@ -119,10 +121,42 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal de Denúncia -->
+    <div class="modal fade" id="reportModal" tabindex="-1" ref="reportModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Denunciar Anúncio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Utilizador Denunciado</label>
+                        <input type="text" class="form-control"
+                            :value="anuncio?.utilizador?.Nome || `Anunciante #${anuncio?.IdUtilizadorAnuncio}`"
+                            disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reportReason" class="form-label">Motivo da Denúncia</label>
+                        <textarea class="form-control" id="reportReason" v-model="reportReason" rows="3"
+                            placeholder="Descreva o motivo da denúncia"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @click="submitReport"
+                        :disabled="!reportReason">Confirmar Denúncia</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script>
 import { anunciosService } from '@/api/anuncio';
+import { denunciasService } from '@/api/denuncia';
+import { Modal } from 'bootstrap';
 
 export default {
     name: 'AnunciosPageView',
@@ -131,7 +165,9 @@ export default {
             anuncio: null,
             similarAnuncios: [],
             loading: true,
-            error: null
+            error: null,
+            reportReason: '',
+            reportModal: null
         }
     },
     watch: {
@@ -164,7 +200,7 @@ export default {
                 {
                     icon: 'bi bi-clock',
                     label: 'Horário de Recolha',
-                    value: this.anuncio.HorarioRecolha
+                    value: this.formatTime(this.anuncio.HorarioRecolha)
                 },
                 {
                     icon: 'bi bi-calendar2',
@@ -194,11 +230,35 @@ export default {
                 year: 'numeric'
             });
         },
+        formatTime(timeString) {
+            if (!timeString) return 'Horário não definido';
+            return timeString.substring(0, 5);
+        },
         getReserveButtonText() {
             if (!this.anuncio) return 'Carregando...';
             if (this.anuncio.IdEstadoAnuncio === 2) return 'Já Reservado';
             if (this.anuncio.IdEstadoAnuncio === 3) return 'Expirado';
             return 'Reservar Produto';
+        },
+        handleReport() {
+            this.reportReason = '';
+            this.reportModal.show();
+        },
+        async submitReport() {
+            try {
+                await denunciasService.createDenuncia({
+                    IdUtilizadorDenunciado: this.anuncio.IdUtilizadorAnuncio,
+                    Motivo: this.reportReason,
+                    IdAnuncio: this.anuncio.IdAnuncio
+                });
+
+                alert('Denúncia enviada com sucesso!');
+                this.reportModal.hide();
+                this.reportReason = ''; // Limpa o campo após enviar
+            } catch (error) {
+                console.error('Erro ao denunciar:', error);
+                alert('Erro ao enviar denúncia. Por favor, tente novamente.');
+            }
         },
         async fetchAnuncio() {
             try {
@@ -227,13 +287,13 @@ export default {
         async handleReservar() {
             alert('Função de reserva a ser implementada!');
         },
-        handleReport() {
-            // Implementar lógica de denúncia
-            alert('Função de denúncia a ser implementada!');
-        }
     },
     created() {
         this.fetchAnuncio();
+    },
+    mounted() {
+        // Inicializa o modal do Bootstrap
+        this.reportModal = new Modal(this.$refs.reportModal);
     }
 }
 </script>
@@ -262,7 +322,29 @@ export default {
 
 .btn-primary:not(:disabled):hover {
     transform: translateY(-2px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 123, 255, 0.15);
+    box-shadow: 0 0.5rem 1rem rgba(51, 165, 140, 0.15);
+}
+
+.profile-image {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+.form-control:disabled {
+    background-color: #e9ecef;
 }
 
 @media (max-width: 992px) {

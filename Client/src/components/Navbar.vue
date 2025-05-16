@@ -45,6 +45,6 @@ export default {
 }
 
 .nav-link:hover {
-    color: #007bff !important;
+    color: #33A58C !important;
 }
 </style>

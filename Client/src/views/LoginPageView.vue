@@ -109,15 +109,16 @@ input {
     box-sizing: border-box;
 }
 
-.register-text {
-    text-align: center;
-    margin-top: 15px;
-    font-size: 0.9rem;
+.register-text a {
+    color: #33A58C;
 }
 
-.register-text a {
-    color: #007bff;
-    text-decoration: none;
+button {
+    background-color: #33A58C;
+}
+
+button:hover {
+    background-color: #2a8873;
 }
 
 .register-text a:hover {
@@ -132,9 +133,5 @@ button {
     border: none;
     border-radius: 4px;
     cursor: pointer;
-}
-
-button:hover {
-    background-color: #0056b3;
 }
 </style>

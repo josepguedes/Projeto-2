@@ -60,13 +60,11 @@ import { RouterLink } from "vue-router";
 }
 
 .footer-link:hover {
-    color: #007bff;
-    text-decoration: none;
+    color: #33A58C;
 }
 
 .social-links a {
-    text-decoration: none;
-    transition: opacity 0.2s ease;
+    color: #33A58C !important;
 }
 
 .social-links a:hover {
