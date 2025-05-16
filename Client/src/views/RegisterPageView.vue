@@ -103,8 +103,15 @@ export default {
 }
 
 .login-text a {
-    color: #007bff;
-    text-decoration: none;
+    color: #33A58C;
+}
+
+button {
+    background-color: #33A58C;
+}
+
+button:hover {
+    background-color: #2a8873;
 }
 
 .login-text a:hover {
@@ -124,18 +131,4 @@ export default {
     border-radius: 4px;
 }
 
-button {
-    width: 100%;
-    padding: 0.75rem;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    cursor: pointer;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
 </style>

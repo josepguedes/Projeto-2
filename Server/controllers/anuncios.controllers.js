@@ -1,6 +1,6 @@
 const db = require('../models/db.js');
 const Anuncio = db.Anuncio;
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 const { ErrorHandler } = require("../utils/error.js");
 
 // Listar todos os anúncios com paginação e filtros
@@ -166,7 +166,16 @@ const deleteAnuncio = async (req, res, next) => {
 // Obter anúncio por ID
 const getAnuncioById = async (req, res, next) => {
     try {
-        const anuncio = await Anuncio.findByPk(req.params.id);
+        const anuncio = await Anuncio.findByPk(req.params.id, {
+            include: [{
+                model: db.Utilizador,
+                as: 'utilizador',
+                attributes: ['Nome', 'ImagemPerfil'],
+                where: {
+                    IdUtilizador: db.sequelize.col('Anuncio.IdUtilizadorAnuncio') // Use db.sequelize ao invés de sequelize
+                }
+            }]
+        });
         
         if (!anuncio) {
             throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);

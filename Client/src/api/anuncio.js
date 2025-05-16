@@ -25,3 +25,27 @@ export const anunciosService = {
 
     
 };
+
+export const denunciasService = {
+    async createDenuncia(denuncia) {
+        const response = await fetch(`${API_URL}/denuncias`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                IdUtilizadorDenunciante: 1, // Substituir pelo ID do utilizador logado
+                IdUtilizadorDenunciado: denuncia.IdUtilizadorDenunciado,
+                Motivo: denuncia.Motivo,
+                DataDenuncia: new Date().toISOString(),
+                IdAnuncio: denuncia.IdAnuncio
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao enviar denúncia');
+        }
+
+        return response.json();
+    }
+};

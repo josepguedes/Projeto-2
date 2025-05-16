@@ -29,6 +29,8 @@ const sequelize = new Sequelize(
     }
 })();
 
+
+
 const db = {};
 db.sequelize = sequelize;
 
@@ -36,5 +38,10 @@ db.Anuncio = require('./anuncios.model.js')(sequelize, Sequelize.DataTypes);
 db.Denuncia = require('./denuncias.models.js')(sequelize, Sequelize.DataTypes);
 db.Avaliacao = require('./avaliaçoes.models')(sequelize, Sequelize.DataTypes);
 db.Utilizador = require('./utilizador.models.js')(sequelize, Sequelize.DataTypes);
+
+db.Anuncio.belongsTo(db.Utilizador, {
+    foreignKey: 'IdUtilizadorAnuncio',
+    as: 'utilizador'
+});
 
 module.exports = db;
