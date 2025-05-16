@@ -16,7 +16,6 @@ module.exports = (sequelize, DataTypes) => {
         Nif: {
             type: DataTypes.INTEGER,
             allowNull: true,
-            unique: true,
         },
         DataNascimento: {
             type: DataTypes.DATE,
@@ -25,7 +24,6 @@ module.exports = (sequelize, DataTypes) => {
         Email: {
             type: DataTypes.STRING,
             allowNull: false,
-            unique: true,
             validate: {
                 isEmail: true
             }

@@ -57,8 +57,7 @@ export default {
                     this.error = data.message || data.error || "Erro ao registrar.";
                 } else {
                     this.success = "Registro realizado com sucesso!";
-                    // Opcional: redirecionar para login após alguns segundos
-                    // setTimeout(() => this.$router.push('/login'), 1500);
+                    setTimeout(() => this.$router.push('/login'), 1500);
                 }
             } catch (err) {
                 this.error = "Erro de conexão com o servidor.";
