@@ -4,23 +4,11 @@
         <form @submit.prevent="handleLogin">
             <div class="form-group">
                 <label for="email">Email:</label>
-                <input
-                    type="email"
-                    id="email"
-                    v-model="email"
-                    placeholder="Enter your email"
-                    required
-                />
+                <input type="email" id="email" v-model="email" placeholder="Enter your email" required />
             </div>
             <div class="form-group">
                 <label for="password">Password:</label>
-                <input
-                    type="password"
-                    id="password"
-                    v-model="password"
-                    placeholder="Enter your password"
-                    required
-                />
+                <input type="password" id="password" v-model="password" placeholder="Enter your password" required />
             </div>
             <button type="submit">Login</button>
             <p v-if="error" style="color: red;">{{ error }}</p>
@@ -64,9 +52,11 @@ export default {
                     this.error = data.message || data.error || "Falha no login.";
                 } else {
                     // Salva o token JWT no localStorage
-                    localStorage.setItem("token", data.token);
+                    sessionStorage.setItem("token", data.token);
                     // Redireciona para a home ou dashboard
-                    this.$router.push("/");
+                    this.$router.push("/").then(() => {
+                        window.location.reload();
+                    });
                 }
             } catch (err) {
                 this.error = "Erro de conexão com o servidor.";

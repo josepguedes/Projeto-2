@@ -88,7 +88,78 @@ const loginUser = async (req, res, next) => {
     }
 };
 
+const getUserDetails = async (req, res, next) => {
+    try {
+        const utilizador = await Utilizador.findByPk(req.params.id, {
+            attributes: ['IdUtilizador', 'Nome', 'ImagemPerfil', 'Email']
+        });
+
+        if (!utilizador) {
+            throw new ErrorHandler(404, 'Utilizador não encontrado');
+        }
+
+        res.json(utilizador);
+    } catch (err) {
+        next(err);
+    }
+};
+
+const getAllUsers = async (req, res, next) => {
+    try {
+        const utilizadores = await Utilizador.findAll({
+            attributes: ['IdUtilizador', 'Nome', 'ImagemPerfil', 'Email']
+        });
+
+        if (!utilizadores) {
+            throw new ErrorHandler(404, 'Nenhum utilizador encontrado');
+        }
+
+        res.json(utilizadores);
+    } catch (err) {
+        next(err);
+    }
+}
+
+
+const updateUser = async (req, res, next) => {
+    try {
+        const { Nome, Email, Password, ImagemPerfil} = req.body;
+        const utilizadorId = req.params.id;
+
+        // Verifica se o utilizador existe
+        const utilizador = await Utilizador.findByPk(utilizadorId);
+        if (!utilizador) {
+            throw new ErrorHandler(404, "Utilizador não encontrado.");
+        }
+
+        // Atualiza os campos do utilizador
+        utilizador.Nome = Nome || utilizador.Nome;
+        utilizador.Email = Email || utilizador.Email;
+        utilizador.ImagemPerfil = ImagemPerfil || utilizador.ImagemPerfil;
+        if (Password) {
+            utilizador.Password = await bcrypt.hash(Password, 10);
+        }
+
+        await utilizador.save();
+
+        res.status(200).json({
+            message: "Utilizador atualizado com sucesso.",
+            data: {
+                IdUtilizador: utilizador.IdUtilizador,
+                Nome: utilizador.Nome,
+                Email: utilizador.Email,
+                ImagemPerfil: utilizador.ImagemPerfil
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     createUser,
-    loginUser
+    loginUser,
+    getUserDetails,
+    updateUser,
+    getAllUsers
 };
