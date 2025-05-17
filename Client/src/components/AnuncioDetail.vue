@@ -15,8 +15,8 @@
                 <h2 class="h3 mb-4 text-primary fw-bold">{{ anuncio.Nome }}</h2>
                 <div class="d-flex align-items-center gap-3 bg-light p-4 rounded-4">
                     <div class="position-relative">
-                        <img :src="anuncio.utilizador?.ImagemPerfil || 'https://via.placeholder.com/50'"
-                            alt="Profile" class="rounded-circle profile-image">
+                        <img :src="anuncio.utilizador?.ImagemPerfil || 'https://via.placeholder.com/50'" alt="Profile"
+                            class="rounded-circle profile-image">
                         <div class="profile-border"></div>
                     </div>
                     <div class="flex-grow-1">
@@ -67,7 +67,7 @@
 
             <!-- Description -->
             <div class="mb-4">
-                <h5 class="mb-3 fw-bold">
+                <h5 class="mb-3 fw-bold text-primary">
                     <i class="bi bi-file-text me-2"></i>Descrição
                 </h5>
                 <div class="bg-light p-4 rounded-4">
@@ -77,12 +77,12 @@
 
             <!-- Action Buttons -->
             <div class="d-flex gap-3">
-                <button class="btn btn-primary btn-lg flex-grow-1 d-flex align-items-center justify-content-center action-button"
+                <button class="btn btn-primary flex-grow-1 d-flex align-items-center justify-content-center action-btn"
                     @click="$emit('reserve')" :disabled="anuncio.IdEstadoAnuncio !== 1">
                     <i class="bi bi-bag-check me-2"></i>
                     {{ getReserveButtonText() }}
                 </button>
-                <button class="btn btn-outline-danger btn-lg d-flex align-items-center justify-content-center action-button"
+                <button class="btn btn-outline-danger d-flex align-items-center justify-content-center action-btn"
                     @click="$emit('report')">
                     <i class="bi bi-exclamation-triangle me-2"></i>
                     Denunciar
@@ -174,7 +174,7 @@ export default {
     left: 0;
     right: 0;
     height: 100px;
-    background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.1));
+    background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1));
 }
 
 .profile-image {
@@ -183,7 +183,6 @@ export default {
     object-fit: cover;
     border: 3px solid #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease;
 }
 
 .profile-border {
@@ -204,43 +203,49 @@ export default {
 }
 
 .detail-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
     border: 1px solid rgba(0,0,0,0.05);
-}
-
-.detail-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 .5rem 1rem rgba(0,0,0,.08);
+    background-color: var(--bs-light);
 }
 
 .stars i {
     font-size: 0.875rem;
     margin-right: 2px;
-    transition: color 0.2s ease;
 }
 
 .stars i.text-warning {
     color: #ffc107 !important;
 }
 
-.action-button {
-    transition: all 0.2s ease;
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
+.rounded-4 {
+    border-radius: 1rem;
 }
 
-.action-button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.1);
+.action-btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
 .btn-primary {
-    background: linear-gradient(45deg, var(--bs-primary), #2196f3);
+    background-color: var(--bs-primary);
     border: none;
 }
 
-.rounded-4 {
-    border-radius: 1rem;
+.btn-primary:hover:not(:disabled) {
+    background-color: var(--bs-primary);
+    filter: brightness(1.1);
+}
+
+.btn-outline-danger {
+    border: 1.5px solid var(--bs-danger);
+    color: var(--bs-danger);
+    background: transparent;
+}
+
+.btn-outline-danger:hover {
+    background-color: var(--bs-danger);
+    color: white;
 }
 
 @media (max-width: 992px) {
@@ -253,9 +258,10 @@ export default {
     .product-image {
         height: 300px;
     }
-    
-    .action-button {
-        padding: 0.75rem 1rem;
+
+    .action-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
     }
 }
 </style>
