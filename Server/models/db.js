@@ -41,7 +41,13 @@ db.Utilizador = require('./utilizador.models.js')(sequelize, Sequelize.DataTypes
 
 db.Anuncio.belongsTo(db.Utilizador, {
     foreignKey: 'IdUtilizadorAnuncio',
-    as: 'utilizador'
+    as: 'utilizador',
+    attributes: ['Nome', 'ImagemPerfil', 'Classificacao']
+});
+
+db.Avaliacao.belongsTo(db.Utilizador, {
+    foreignKey: 'IdAutor',
+    as: 'autor'
 });
 
 module.exports = db;

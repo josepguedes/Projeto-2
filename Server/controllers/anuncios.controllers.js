@@ -170,9 +170,9 @@ const getAnuncioById = async (req, res, next) => {
             include: [{
                 model: db.Utilizador,
                 as: 'utilizador',
-                attributes: ['Nome', 'ImagemPerfil'],
+                attributes: ['Nome', 'ImagemPerfil', 'Classificacao'], // Adicionamos Classificacao aqui
                 where: {
-                    IdUtilizador: db.sequelize.col('Anuncio.IdUtilizadorAnuncio') // Use db.sequelize ao invés de sequelize
+                    IdUtilizador: db.sequelize.col('Anuncio.IdUtilizadorAnuncio')
                 }
             }]
         });

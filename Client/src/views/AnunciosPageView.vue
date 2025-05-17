@@ -20,102 +20,28 @@
             </div>
 
             <!-- Content -->
-            <div v-else class="row">
-                <!-- Main Content -->
-                <div class="col-lg-8 mb-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="position-relative">
-                            <img :src="anuncio.ImagemAnuncio || 'https://via.placeholder.com/500'" :alt="anuncio.Nome"
-                                class="card-img-top product-image object-fit-cover">
-                            <span
-                                class="position-absolute top-0 end-0 m-3 badge bg-primary px-3 py-2 rounded-pill fs-5">
-                                {{ formatPrice(anuncio.Preco) }}
-                            </span>
-                        </div>
+            <div v-else>
+                <div class="row g-4">
+                    <!-- Main Content -->
+                    <div class="col-lg-8">
+                        <AnuncioDetail 
+                            :anuncio="anuncio" 
+                            @reserve="handleReservar"
+                            @report="handleReport"
+                        />
+                    </div>
 
-                        <div class="card-body p-4">
-                            <!-- Title and User Info -->
-                            <div class="mb-4">
-                                <h2 class="h3 mb-3 text-primary">{{ anuncio.Nome }}</h2>
-                                <div class="d-flex align-items-center gap-3 bg-light p-3 rounded">
-                                    <img :src="anuncio.utilizador?.ImagemPerfil || 'https://via.placeholder.com/50'"
-                                        alt="Profile" class="rounded-circle profile-image">
-                                    <div>
-                                        <h3 class="h6 mb-1">{{ anuncio.utilizador?.Nome || `Anunciante
-                                            #${anuncio.IdUtilizadorAnuncio}` }}</h3>
-                                        <p class="mb-0 text-muted small">
-                                            <i class="bi bi-geo-alt-fill me-1"></i>
-                                            {{ anuncio.LocalRecolha }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Details Grid -->
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-6" v-for="(detail, index) in details" :key="index">
-                                    <div class="p-3 bg-light rounded d-flex align-items-center">
-                                        <i :class="detail.icon + ' text-primary me-2 fs-5'"></i>
-                                        <span>{{ detail.label }}: {{ detail.value }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Description -->
-                            <div class="mb-4">
-                                <h5 class="mb-3">Descrição</h5>
-                                <p class="bg-light p-3 rounded mb-0">
-                                    {{ anuncio.Descricao || 'Sem descrição disponível.' }}
-                                </p>
-                            </div>
-
-                            <!-- Action Buttons -->
-                            <div class="d-flex gap-3">
-                                <button
-                                    class="btn btn-primary btn-lg flex-grow-1 d-flex align-items-center justify-content-center"
-                                    @click="handleReservar" :disabled="anuncio.IdEstadoAnuncio !== 1">
-                                    <i class="bi bi-bag-check me-2"></i>
-                                    {{ getReserveButtonText() }}
-                                </button>
-                                <button
-                                    class="btn btn-outline-danger btn-lg d-flex align-items-center justify-content-center"
-                                    @click="handleReport">
-                                    <i class="bi bi-exclamation-triangle me-2"></i>
-                                    Denunciar
-                                </button>
-                            </div>
-                        </div>
+                    <!-- Similar Items Sidebar -->
+                    <div class="col-lg-4">
+                        <SimilarAds class="h-100" :currentAnuncioId="anuncio?.IdAnuncio" />
                     </div>
                 </div>
 
-                <!-- Similar Items Sidebar -->
-                <div class="col-lg-4">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h2 class="h5 mb-3">Outros Anúncios Similares</h2>
-                            <div class="d-flex flex-column gap-3">
-                                <router-link v-for="item in similarAnuncios" :key="item.IdAnuncio"
-                                    :to="{ name: 'anuncio-detail', params: { id: item.IdAnuncio } }"
-                                    class="text-decoration-none">
-                                    <div class="card border-0 shadow-sm hover-lift">
-                                        <div class="position-relative">
-                                            <img :src="item.ImagemAnuncio || 'https://via.placeholder.com/500'"
-                                                :alt="item.Nome" class="card-img-top similar-image object-fit-cover">
-                                            <span class="position-absolute top-0 end-0 m-2 badge bg-primary">
-                                                {{ formatPrice(item.Preco) }}
-                                            </span>
-                                        </div>
-                                        <div class="card-body">
-                                            <h6 class="mb-1 text-dark">{{ item.Nome }}</h6>
-                                            <p class="mb-0 text-muted small">
-                                                <i class="bi bi-geo-alt-fill me-1"></i>
-                                                {{ item.LocalRecolha }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </router-link>
-                            </div>
-                        </div>
+                <!-- Avaliations Section -->
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <h2 class="h4 mb-4">Avaliações do Vendedor</h2>
+                        <AvaliationsSection :userId="anuncio?.IdUtilizadorAnuncio" />
                     </div>
                 </div>
             </div>
@@ -146,7 +72,8 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-danger" @click="submitReport"
-                        :disabled="!reportReason">Confirmar Denúncia</button>
+                        :disabled="!reportReason">Confirmar
+                        Denúncia</button>
                 </div>
             </div>
         </div>
@@ -157,13 +84,20 @@
 import { anunciosService } from '@/api/anuncio';
 import { denunciasService } from '@/api/denuncia';
 import { Modal } from 'bootstrap';
+import AnuncioDetail from '@/components/AnuncioDetail.vue';
+import SimilarAds from '@/components/SimilarAds.vue';
+import AvaliationsSection from '@/components/AvaliationsSection.vue';
 
 export default {
     name: 'AnunciosPageView',
+    components: {
+        AnuncioDetail,
+        SimilarAds,
+        AvaliationsSection
+    },
     data() {
         return {
             anuncio: null,
-            similarAnuncios: [],
             loading: true,
             error: null,
             reportReason: '',
@@ -171,7 +105,6 @@ export default {
         }
     },
     watch: {
-        // Add this watch section
         '$route.params.id': {
             handler(newId) {
                 if (newId) {
@@ -213,6 +146,9 @@ export default {
                     value: this.formatDate(this.anuncio.DataAnuncio)
                 }
             ];
+        },
+        userRating() {
+            return this.anuncio?.utilizador?.Classificacao || 0;
         }
     },
     methods: {
@@ -254,7 +190,7 @@ export default {
 
                 alert('Denúncia enviada com sucesso!');
                 this.reportModal.hide();
-                this.reportReason = ''; // Limpa o campo após enviar
+                this.reportReason = '';
             } catch (error) {
                 console.error('Erro ao denunciar:', error);
                 alert('Erro ao enviar denúncia. Por favor, tente novamente.');
@@ -265,23 +201,11 @@ export default {
                 this.loading = true;
                 const response = await anunciosService.getAnuncioById(this.$route.params.id);
                 this.anuncio = response.data;
-                await this.fetchSimilarAnuncios();
             } catch (error) {
                 this.error = 'Erro ao carregar o anúncio. Por favor, tente novamente.';
                 console.error('Error:', error);
             } finally {
                 this.loading = false;
-            }
-        },
-        async fetchSimilarAnuncios() {
-            try {
-                if (!this.anuncio) return;
-                const response = await anunciosService.getAllAnuncios(1, 4, {
-                    exclude: this.anuncio.IdAnuncio // Pass the current ad ID to exclude
-                });
-                this.similarAnuncios = response.data;
-            } catch (error) {
-                console.error('Error fetching similar items:', error);
             }
         },
         async handleReservar() {
@@ -292,47 +216,12 @@ export default {
         this.fetchAnuncio();
     },
     mounted() {
-        // Inicializa o modal do Bootstrap
         this.reportModal = new Modal(this.$refs.reportModal);
     }
 }
 </script>
 
 <style scoped>
-.product-image {
-    height: 400px;
-}
-
-.similar-image {
-    height: 120px;
-}
-
-.hover-lift {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.hover-lift:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-}
-
-.btn-primary {
-    transition: all 0.2s ease-in-out;
-}
-
-.btn-primary:not(:disabled):hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.5rem 1rem rgba(51, 165, 140, 0.15);
-}
-
-.profile-image {
-    width: 50px;
-    height: 50px;
-    object-fit: cover;
-    border: 2px solid #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
 .modal-header {
     border-bottom: 1px solid #dee2e6;
     background-color: #f8f9fa;
@@ -345,17 +234,5 @@ export default {
 
 .form-control:disabled {
     background-color: #e9ecef;
-}
-
-@media (max-width: 992px) {
-    .product-image {
-        height: 300px;
-    }
-}
-
-@media (max-width: 576px) {
-    .product-image {
-        height: 200px;
-    }
 }
 </style>
