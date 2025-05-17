@@ -93,7 +93,17 @@ export default {
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
                                 <router-link class="dropdown-item" :to="{ name: 'profile' }">
-                                    <i class="bi bi-person me-2"></i>Perfil
+                                    <i class="bi bi-person me-2"></i>Meu Perfil
+                                </router-link>
+                            </li>
+                            <li>
+                                <router-link class="dropdown-item" :to="{ name: 'user-anuncios' }">
+                                    <i class="bi bi-cart3 me-2"></i>Meus Anúncios
+                                </router-link>
+                            </li>
+                            <li>
+                                <router-link class="dropdown-item" :to="{ name: 'user-reservas' }">
+                                    <i class="bi bi-bookmark-check me-2"></i>Minhas Reservas
                                 </router-link>
                             </li>
                             <li>
@@ -101,7 +111,7 @@ export default {
                             </li>
                             <li>
                                 <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
-                                    <i class="bi bi-box-arrow-right me-2"></i>Sair
+                                    <i class="bi bi-box-arrow-right me-2"></i>Terminar Sessão
                                 </a>
                             </li>
                         </ul>

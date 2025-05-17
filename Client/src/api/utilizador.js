@@ -38,5 +38,24 @@ export const utilizadorService = {
         }
 
         return response.json();
+    },
+
+    async updateUser(userId, utilizador) {
+        const token = sessionStorage.getItem('token');
+        const response = await fetch(`${API_URL}/utilizadores/${userId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(utilizador)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Erro ao atualizar utilizador');
+        }
+
+        return response.json();
     }
 };
