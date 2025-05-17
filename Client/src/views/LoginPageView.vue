@@ -51,12 +51,10 @@ export default {
                 if (!response.ok) {
                     this.error = data.message || data.error || "Falha no login.";
                 } else {
-                    // Salva o token JWT no localStorage
                     sessionStorage.setItem("token", data.token);
-                    // Redireciona para a home ou dashboard
-                    this.$router.push("/").then(() => {
-                        window.location.reload();
-                    });
+                    // Disparar o evento auth-changed antes do redirecionamento
+                    window.dispatchEvent(new Event('auth-changed'));
+                    this.$router.push("/");
                 }
             } catch (err) {
                 this.error = "Erro de conexão com o servidor.";
