@@ -55,6 +55,7 @@ export default {
 .card-img-top-container {
     height: 200px;
     overflow: hidden;
+    object-fit: fill;
 }
 
 .card-img-top {

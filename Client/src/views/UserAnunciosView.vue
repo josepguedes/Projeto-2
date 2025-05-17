@@ -1,18 +1,16 @@
 <template>
-    <div class="profile-page">
+    <div class="anuncios-page">
         <div class="container py-5 forms">
-            <div class="row justify-content-center">
+            <div class="row">
                 <!-- Sidebar -->
                 <div class="col-lg-3 mb-4 sidebar">
                     <UserSidebar :userDetails="userDetails" />
                 </div>
 
-                <!-- Formulário de edição -->
+                <!-- Conteúdo principal -->
                 <div class="col-lg-8">
-                    <ProfileForm 
-                        :userDetails="userDetails"
-                        @profile-updated="fetchUserDetails"
-                    />
+                    <h2 class="mb-4">Meus Anúncios</h2>
+                    <!-- Adicione aqui o conteúdo das reservas -->
                 </div>
             </div>
         </div>
@@ -22,12 +20,10 @@
 <script>
 import { utilizadorService } from '@/api/utilizador';
 import UserSidebar from '@/components/UserSidebar.vue';
-import ProfileForm from '@/components/ProfileForm.vue';
 
 export default {
-    name: 'ProfilePageView',
+    name: 'UserAnunciosView',
     components: {
-        ProfileForm,
         UserSidebar
     },
     data() {
@@ -59,9 +55,18 @@ export default {
 </script>
 
 <style scoped>
-.profile-page {
+.anuncios-page {
     padding-top: 80px;
     min-height: 100vh;
     background-color: #f8f9fa;
+}
+
+.forms {
+    margin-top: 20px;
+}
+
+h2 {
+    color: #333;
+    font-weight: 600;
 }
 </style>
