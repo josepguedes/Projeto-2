@@ -11,14 +11,6 @@ export default {
             userDetails: null
         }
     },
-    watch: {
-        '$route': {
-            immediate: true,
-            handler() {
-                this.checkAuth();
-            }
-        }
-    },
     methods: {
         async checkAuth() {
             const token = sessionStorage.getItem('token');
@@ -32,13 +24,7 @@ export default {
 
                     this.user = JSON.parse(jsonPayload);
                     this.isAuthenticated = true;
-
-                    try {
-                        const details = await utilizadorService.getUserDetails(this.user.IdUtilizador);
-                        this.userDetails = details;
-                    } catch (error) {
-                        console.error('Error fetching user details:', error);
-                    }
+                    await this.fetchUserDetails();
                 } catch (error) {
                     console.error('Error decoding token:', error);
                     this.logout();
@@ -49,16 +35,40 @@ export default {
                 this.userDetails = null;
             }
         },
+        async fetchUserDetails() {
+            try {
+                if (this.user?.IdUtilizador) {
+                    const details = await utilizadorService.getUserDetails(this.user.IdUtilizador);
+                    this.userDetails = details;
+                }
+            } catch (error) {
+                console.error('Error fetching user details:', error);
+            }
+        },
         logout() {
             sessionStorage.removeItem('token');
             this.isAuthenticated = false;
             this.user = null;
             this.userDetails = null;
+            window.dispatchEvent(new CustomEvent('auth-changed')); // Emitir evento no logout
             this.$router.push('/login');
         }
     },
     created() {
-        this.checkAuth();
+        this.checkAuth(); // Verificação inicial
+        
+        // Listener para mudanças de autenticação
+        window.addEventListener('auth-changed', () => {
+            this.checkAuth();
+        });
+        
+        // Listener para atualizações do perfil
+        window.addEventListener('profile-updated', this.fetchUserDetails);
+    },
+    beforeUnmount() {
+        // Remover todos os listeners
+        window.removeEventListener('auth-changed', this.checkAuth);
+        window.removeEventListener('profile-updated', this.fetchUserDetails);
     }
 }
 </script>
