@@ -6,18 +6,13 @@
             <!-- Profile Image Section -->
             <div class="text-center mb-4">
                 <div class="profile-image-container">
-                    <img :src="imagePreview || formData.ImagemPerfil || 'https://via.placeholder.com/150'" 
-                         alt="Profile" 
-                         class="rounded-circle profile-image">
+                    <img :src="imagePreview || formData.ImagemPerfil || 'https://via.placeholder.com/150'" alt="Profile"
+                        class="rounded-circle profile-image">
                     <div class="image-upload-overlay">
                         <label for="imageUpload" class="mb-0">
                             <i class="bi bi-camera"></i>
                         </label>
-                        <input type="file" 
-                               id="imageUpload" 
-                               accept="image/*" 
-                               @change="handleImageChange" 
-                               class="d-none">
+                        <input type="file" id="imageUpload" accept="image/*" @change="handleImageChange" class="d-none">
                     </div>
                 </div>
             </div>
@@ -27,37 +22,27 @@
                     <div class="col-12">
                         <div class="form-group">
                             <label>Nome Completo</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   v-model="formData.Nome" 
-                                   required>
+                            <input type="text" class="form-control" v-model="formData.Nome" required>
                         </div>
                     </div>
 
                     <div class="col-12">
                         <div class="form-group">
                             <label>Email</label>
-                            <input type="email" 
-                                   class="form-control" 
-                                   v-model="formData.Email" 
-                                   required>
+                            <input type="email" class="form-control" v-model="formData.Email" required>
                         </div>
                     </div>
 
                     <div class="col-12">
                         <div class="form-group">
                             <label>Nova Senha</label>
-                            <input type="password" 
-                                   class="form-control" 
-                                   v-model="formData.Password" 
-                                   placeholder="********">
+                            <input type="password" class="form-control" v-model="formData.Password"
+                                placeholder="********">
                         </div>
                     </div>
 
                     <div class="col-12">
-                        <button type="submit" 
-                                class="btn btn-primary"
-                                :disabled="loading">
+                        <button type="submit" class="btn btn-primary" :disabled="loading">
                             <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
                             Salvar Alterações
                         </button>
@@ -65,7 +50,8 @@
                 </div>
             </form>
 
-            <div v-if="message" :class="['alert', message.type === 'success' ? 'alert-success' : 'alert-danger', 'mt-3']">
+            <div v-if="message"
+                :class="['alert', message.type === 'success' ? 'alert-success' : 'alert-danger', 'mt-3']">
                 {{ message.text }}
             </div>
         </div>
@@ -130,6 +116,9 @@ export default {
                     type: 'success',
                     text: 'Perfil atualizado com sucesso!'
                 };
+
+                // Emitir evento global
+                window.dispatchEvent(new CustomEvent('profile-updated'));
 
                 this.$emit('profile-updated');
             } catch (error) {
