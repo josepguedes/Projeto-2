@@ -5,25 +5,24 @@ const { ErrorHandler } = require("../utils/error.js");
 // Listar todas as avaliações com paginação e filtros
 const getAllAvaliacoes = async (req, res, next) => {
     try {
-        const { 
-            idAnuncio,
-            idAvaliado,
-            page = 1, 
-            limit = 10 
-        } = req.query;
+        const { idAvaliado, page = 1, limit = 10 } = req.query;
         const where = {};
 
-        // Filtros
-        if (idAnuncio) {
-            where.IdAnuncio = idAnuncio;
-        }
         if (idAvaliado) {
-            where.idAvaliado = idAvaliado;
+            where.IdAvaliado = idAvaliado;
         }
 
         const avaliacoes = await Avaliacao.findAndCountAll({
             where,
-            order: [['DataAvaliacao', 'DESC']], // Corrigido de DataDenuncia
+            include: [{
+                model: db.Utilizador,
+                as: 'autor',
+                attributes: ['Nome', 'ImagemPerfil'],
+                where: {
+                    IdUtilizador: db.sequelize.col('Avaliacao.IdAutor')
+                }
+            }],
+            order: [['DataAvaliacao', 'DESC']],
             limit: +limit,
             offset: (+page - 1) * +limit,
         });
