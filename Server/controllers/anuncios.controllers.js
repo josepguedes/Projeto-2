@@ -6,12 +6,12 @@ const { ErrorHandler } = require("../utils/error.js");
 // Listar todos os anúncios com paginação e filtros
 const getAllAnuncios = async (req, res, next) => {
     try {
-        const { 
+        const {
             nome,
             localRecolha,
-            exclude, // Add this parameter
-            page = 1, 
-            limit = 10 
+            exclude,
+            page = 1,
+            limit = 10
         } = req.query;
         const where = {};
 
@@ -22,9 +22,8 @@ const getAllAnuncios = async (req, res, next) => {
         if (localRecolha) {
             where.LocalRecolha = { [Op.like]: `%${localRecolha}%` };
         }
-        // Add exclusion filter
         if (exclude) {
-            where.IdAnuncio = { [Op.ne]: exclude }; // Not Equal operator
+            where.IdAnuncio = { [Op.ne]: exclude };
         }
 
         // Validar página e limite
@@ -37,18 +36,21 @@ const getAllAnuncios = async (req, res, next) => {
 
         const anuncios = await Anuncio.findAndCountAll({
             where,
-            order: [['DataAnuncio', 'DESC']],
+            include: [
+                {
+                    model: db.Utilizador,
+                    as: 'utilizador',
+                    attributes: ['Nome', 'ImagemPerfil', 'Classificacao']
+                },
+                {
+                    model: db.EstadoAnuncio,
+                    as: 'estado',
+                    attributes: ['EstadoAnuncio']
+                }
+            ],
+            order: [['DataAnuncio', 'ASC']],
             limit: +limit,
             offset: (+page - 1) * +limit,
-        });
-
-        // Links HATEOAS para cada anúncio
-        anuncios.rows.forEach(anuncio => {
-            anuncio.links = [
-                { rel: "self", href: `/anuncios/${anuncio.IdAnuncio}`, method: "GET" },
-                { rel: "delete", href: `/anuncios/${anuncio.IdAnuncio}`, method: "DELETE" },
-                { rel: "modify", href: `/anuncios/${anuncio.IdAnuncio}`, method: "PUT" }
-            ];
         });
 
         return res.status(200).json({
@@ -176,7 +178,7 @@ const getAnuncioById = async (req, res, next) => {
                 }
             }]
         });
-        
+
         if (!anuncio) {
             throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
         }

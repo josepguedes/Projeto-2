@@ -28,6 +28,7 @@ app.use('/anuncios', require('./routes/anuncios.routes.js'));
 app.use('/denuncias', require('./routes/denuncias.routes.js'));
 app.use('/avaliacoes', require('./routes/avaliaçoes.routes.js'));
 app.use('/utilizadores', require('./routes/utilizadores.routes.js'));
+app.use('/notificacoes', require('./routes/notificacoes.routes.js'));
 
 
 

@@ -57,5 +57,20 @@ export const utilizadorService = {
         }
 
         return response.json();
+    },
+    
+    async getAllUsers() {
+        const token = sessionStorage.getItem('token');
+        const response = await fetch(`${API_URL}/utilizadores`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch users');
+        }
+
+        return response.json();
     }
 };
