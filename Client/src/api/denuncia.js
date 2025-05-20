@@ -22,5 +22,53 @@ export const denunciasService = {
         }
 
         return response.json();
+    },
+
+    async getAllDenuncias(page = 1, limit = 10) {
+        const response = await fetch(`${API_URL}/denuncias?page=${page}&limit=${limit}`, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao buscar denúncias');
+        }
+
+        const data = await response.json();
+        
+        // Buscar detalhes dos anúncios e utilizadores para cada denúncia
+        const denunciasComDetalhes = await Promise.all(
+            data.data.map(async (denuncia) => {
+                const [anuncioResponse, utilizadorResponse] = await Promise.all([
+                    fetch(`${API_URL}/anuncios/${denuncia.IdAnuncio}`),
+                    fetch(`${API_URL}/utilizadores/${denuncia.IdUtilizadorDenunciado}`)
+                ]);
+
+                const anuncio = await anuncioResponse.json();
+                const utilizador = await utilizadorResponse.json();
+
+                return {
+                    ...denuncia,
+                    anuncio: anuncio.data,
+                    utilizadorDenunciado: utilizador
+                };
+            })
+        );
+
+        return {
+            ...data,
+            data: denunciasComDetalhes
+        };
+    },
+
+    async deleteDenuncia(id) {
+        const response = await fetch(`${API_URL}/denuncias/${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) {
+            throw new Error('Erro ao eliminar denúncia');
+        }
+        return response;
     }
 };

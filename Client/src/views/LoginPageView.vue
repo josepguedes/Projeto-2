@@ -14,7 +14,7 @@
             <p v-if="error" style="color: red;">{{ error }}</p>
         </form>
         <p class="register-text">
-            Não tem uma conta? <router-link to="/register">Registre-se aqui</router-link>
+            Não tem uma conta? <router-link to="/register">Registe-se aqui</router-link>
         </p>
     </div>
 </template>

@@ -91,7 +91,16 @@ const loginUser = async (req, res, next) => {
 const getUserDetails = async (req, res, next) => {
     try {
         const utilizador = await Utilizador.findByPk(req.params.id, {
-            attributes: ['IdUtilizador', 'Nome', 'ImagemPerfil', 'Email']
+            attributes: [
+                'IdUtilizador', 
+                'Nome', 
+                'ImagemPerfil', 
+                'Email', 
+                'Funcao',
+                'Nif',
+                'DataNascimento',
+                'DataRegisto'
+            ]
         });
 
         if (!utilizador) {
@@ -103,11 +112,11 @@ const getUserDetails = async (req, res, next) => {
         next(err);
     }
 };
-
 const getAllUsers = async (req, res, next) => {
     try {
         const utilizadores = await Utilizador.findAll({
-            attributes: ['IdUtilizador', 'Nome', 'ImagemPerfil', 'Email']
+            attributes: [
+                'IdUtilizador', 'IdEndereco', 'Nome', 'Nif', 'DataNascimento', 'DataRegisto', 'Funcao', 'ImagemPerfil', 'Email']
         });
 
         if (!utilizadores) {
@@ -123,7 +132,7 @@ const getAllUsers = async (req, res, next) => {
 
 const updateUser = async (req, res, next) => {
     try {
-        const { Nome, Email, Password, ImagemPerfil} = req.body;
+        const { Nome, Email, Password, ImagemPerfil, Funcao} = req.body;
         const utilizadorId = req.params.id;
 
         // Verifica se o utilizador existe
@@ -136,6 +145,7 @@ const updateUser = async (req, res, next) => {
         utilizador.Nome = Nome || utilizador.Nome;
         utilizador.Email = Email || utilizador.Email;
         utilizador.ImagemPerfil = ImagemPerfil || utilizador.ImagemPerfil;
+        utilizador.Funcao = Funcao || utilizador.Funcao;
         if (Password) {
             utilizador.Password = await bcrypt.hash(Password, 10);
         }
@@ -148,6 +158,7 @@ const updateUser = async (req, res, next) => {
                 IdUtilizador: utilizador.IdUtilizador,
                 Nome: utilizador.Nome,
                 Email: utilizador.Email,
+                Funcao: utilizador.Funcao,
                 ImagemPerfil: utilizador.ImagemPerfil
             }
         });

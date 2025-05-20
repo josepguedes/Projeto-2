@@ -22,7 +22,7 @@ const getAllAvaliacoes = async (req, res, next) => {
                     IdUtilizador: db.sequelize.col('Avaliacao.IdAutor')
                 }
             }],
-            order: [['DataAvaliacao', 'DESC']],
+            order: [['DataAvaliacao', 'ASC']],
             limit: +limit,
             offset: (+page - 1) * +limit,
         });

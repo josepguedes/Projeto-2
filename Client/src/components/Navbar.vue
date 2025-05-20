@@ -40,6 +40,7 @@ export default {
                 if (this.user?.IdUtilizador) {
                     const details = await utilizadorService.getUserDetails(this.user.IdUtilizador);
                     this.userDetails = details;
+                    this.isAdmin = this.userDetails?.Funcao === 'admin'; // Verifica se o utilizador é admin
                 }
             } catch (error) {
                 console.error('Error fetching user details:', error);
@@ -56,12 +57,12 @@ export default {
     },
     created() {
         this.checkAuth(); // Verificação inicial
-        
+
         // Listener para mudanças de autenticação
         window.addEventListener('auth-changed', () => {
             this.checkAuth();
         });
-        
+
         // Listener para atualizações do perfil
         window.addEventListener('profile-updated', this.fetchUserDetails);
     },
@@ -101,29 +102,52 @@ export default {
                         </div>
 
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li>
-                                <router-link class="dropdown-item" :to="{ name: 'profile' }">
-                                    <i class="bi bi-person me-2"></i>Meu Perfil
-                                </router-link>
-                            </li>
-                            <li>
-                                <router-link class="dropdown-item" :to="{ name: 'user-anuncios' }">
-                                    <i class="bi bi-cart3 me-2"></i>Meus Anúncios
-                                </router-link>
-                            </li>
-                            <li>
-                                <router-link class="dropdown-item" :to="{ name: 'user-reservas' }">
-                                    <i class="bi bi-bookmark-check me-2"></i>Minhas Reservas
-                                </router-link>
-                            </li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li>
-                                <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
-                                    <i class="bi bi-box-arrow-right me-2"></i>Terminar Sessão
-                                </a>
-                            </li>
+                            <!-- Admin Menu -->
+                            <template v-if="isAdmin">
+                                <li>
+                                    <router-link class="dropdown-item" :to="{ name: 'profile' }">
+                                        <i class="bi bi-person me-2"></i>Meu Perfil
+                                    </router-link>
+                                </li>
+                                <li>
+                                    <router-link class="dropdown-item" :to="{ name: 'admin-utilizadores' }">
+                                        <i class="bi bi-people me-2"></i>Painel Admin
+                                    </router-link>
+                                </li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Terminar Sessão
+                                    </a>
+                                </li>
+                            </template>
+                            <template v-else>
+                                <li>
+                                    <router-link class="dropdown-item" :to="{ name: 'profile' }">
+                                        <i class="bi bi-person me-2"></i>Meu Perfil
+                                    </router-link>
+                                </li>
+                                <li>
+                                    <router-link class="dropdown-item" :to="{ name: 'user-anuncios' }">
+                                        <i class="bi bi-cart3 me-2"></i>Meus Anúncios
+                                    </router-link>
+                                </li>
+                                <li>
+                                    <router-link class="dropdown-item" :to="{ name: 'user-reservas' }">
+                                        <i class="bi bi-bookmark-check me-2"></i>Minhas Reservas
+                                    </router-link>
+                                </li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Terminar Sessão
+                                    </a>
+                                </li>
+                            </template>
                         </ul>
                     </li>
                 </ul>

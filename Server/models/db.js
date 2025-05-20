@@ -38,6 +38,7 @@ db.Anuncio = require('./anuncios.model.js')(sequelize, Sequelize.DataTypes);
 db.Denuncia = require('./denuncias.models.js')(sequelize, Sequelize.DataTypes);
 db.Avaliacao = require('./avaliaçoes.models')(sequelize, Sequelize.DataTypes);
 db.Utilizador = require('./utilizador.models.js')(sequelize, Sequelize.DataTypes);
+db.EstadoAnuncio = require('./estadoAnuncio.models.js')(sequelize, Sequelize.DataTypes);
 
 db.Anuncio.belongsTo(db.Utilizador, {
     foreignKey: 'IdUtilizadorAnuncio',
@@ -48,6 +49,11 @@ db.Anuncio.belongsTo(db.Utilizador, {
 db.Avaliacao.belongsTo(db.Utilizador, {
     foreignKey: 'IdAutor',
     as: 'autor'
+});
+
+db.Anuncio.belongsTo(db.EstadoAnuncio, {
+    foreignKey: 'IdEstadoAnuncio',
+    as: 'estado'
 });
 
 module.exports = db;

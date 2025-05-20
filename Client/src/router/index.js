@@ -6,6 +6,13 @@ import AnunciosPageView from '../views/AnunciosPageView.vue'
 import ProfilePageView from '../views/ProfilePageView.vue'
 import UserAnunciosView from '../views/UserAnunciosView.vue'
 import UserReservasView from '../views/UserReservasView.vue'
+import AdminAnuncios from '../views/admin/AdminAnunciosView.vue'
+import AdminUtilizadores from '../views/admin/AdminUsersView.vue'
+import AdminAvaliaçoes from '../views/admin/AdminAvaliaçoesView.vue'
+import AdminReservas from '../views/admin/AdminReservasView.vue'
+import AdminNotificaçoes from '../views/admin/AdminNotificaçoesView.vue'
+import AdminDenuncias from '../views/admin/AdminDenunciasView.vue'
+import AdminCategorias from '../views/admin/AdminCategoriasView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -45,6 +52,41 @@ const router = createRouter({
       name: 'user-reservas',
       component: UserReservasView
     },
+    {
+      path: '/admin/anuncios',
+      name: 'admin-anuncios',
+      component: AdminAnuncios
+    },
+    {
+      path: '/admin/utilizadores',
+      name: 'admin-utilizadores',
+      component: AdminUtilizadores
+    },
+    {
+      path: '/admin/avaliacoes',
+      name: 'admin-avaliacoes',
+      component: AdminAvaliaçoes
+    },
+    {
+      path: '/admin/reservas',
+      name: 'admin-reservas',
+      component: AdminReservas
+    },
+    {
+      path: '/admin/notificacoes',
+      name: 'admin-notificacoes',
+      component: AdminNotificaçoes
+    },
+    {
+      path: '/admin/denuncias',
+      name: 'admin-denuncias',
+      component: AdminDenuncias
+    },
+    {
+      path: '/admin/categorias',
+      name: 'admin-categorias',
+      component: AdminCategorias
+    }
   ]
 })
 
