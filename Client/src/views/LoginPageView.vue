@@ -101,10 +101,6 @@ input {
     color: #33A58C;
 }
 
-button {
-    background-color: #33A58C;
-}
-
 button:hover {
     background-color: #2a8873;
 }
@@ -116,7 +112,7 @@ button:hover {
 button {
     width: 100%;
     padding: 10px;
-    background-color: #007bff;
+    background-color: #33A58C ;
     color: white;
     border: none;
     border-radius: 4px;
