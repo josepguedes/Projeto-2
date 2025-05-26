@@ -13,7 +13,7 @@ const getMensagensChat = async (req, res, next) => {
         }
 
         const where = {
-            [Op.or]: [ // Now Op will be defined
+            [Op.or]: [
                 {
                     IdRemetente: idRemetente,
                     IdDestinatario: idDestinatario
