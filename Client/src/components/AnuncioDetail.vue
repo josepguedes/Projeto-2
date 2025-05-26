@@ -127,7 +127,7 @@ export default {
                 },
                 {
                     icon: 'bi bi-calendar-plus',
-                    label: 'Publicado em',
+                    label: 'Publicado',
                     value: this.formatDate(this.anuncio.DataAnuncio)
                 }
             ];

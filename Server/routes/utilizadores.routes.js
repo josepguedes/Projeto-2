@@ -5,7 +5,7 @@ const router = express.Router();
 const utilizadoresController = require('../controllers/utilizadores.controllers.js');
 
 // Rota para registar novo utilizador
-router.post('/register', utilizadoresController.createUser);
+router.post('/', utilizadoresController.createUser);
 
 // Rota para login de utilizador
 router.post('/login', utilizadoresController.loginUser);
