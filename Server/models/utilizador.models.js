@@ -38,7 +38,7 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: DataTypes.NOW
         },
         Classificacao: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.FLOAT(3, 1),
             allowNull: true,
             defaultValue: 0
         },

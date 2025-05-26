@@ -39,6 +39,17 @@ db.Denuncia = require('./denuncias.models.js')(sequelize, Sequelize.DataTypes);
 db.Avaliacao = require('./avaliaçoes.models')(sequelize, Sequelize.DataTypes);
 db.Utilizador = require('./utilizador.models.js')(sequelize, Sequelize.DataTypes);
 db.EstadoAnuncio = require('./estadoAnuncio.models.js')(sequelize, Sequelize.DataTypes);
+db.Mensagem = require('./mensagens.models.js')(sequelize, Sequelize.DataTypes);
+
+db.Mensagem.belongsTo(db.Utilizador, {
+    foreignKey: 'IdRemetente',
+    as: 'remetente'
+});
+
+db.Mensagem.belongsTo(db.Utilizador, {
+    foreignKey: 'IdDestinatario',
+    as: 'destinatario'
+});
 
 db.Anuncio.belongsTo(db.Utilizador, {
     foreignKey: 'IdUtilizadorAnuncio',
