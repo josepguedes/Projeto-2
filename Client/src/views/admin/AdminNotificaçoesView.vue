@@ -115,8 +115,12 @@ export default {
         },
         async deleteNotificacao(id) {
             try {
-                await notificacoesService.deleteNotificacao(id);
-                await this.fetchNotificacoes();
+                const confirmacao = confirm('Tem certeza que deseja eliminar esta notificação?\nClique OK para confirmar ou Cancelar para desistir.');
+
+                if (confirmacao) {
+                    await notificacoesService.deleteNotificacao(id);
+                    await this.fetchNotificacoes();
+                }
             } catch (err) {
                 this.error = 'Erro ao deletar notificação';
                 console.error('Error:', err);
