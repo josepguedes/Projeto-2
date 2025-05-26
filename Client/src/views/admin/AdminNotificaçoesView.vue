@@ -25,39 +25,33 @@
                     <thead class="table-light">
                         <tr>
                             <th>ID</th>
-                            <th>Destinatário</th>
+                            <th>ID Recipiente</th>
                             <th>Mensagem</th>
-                            <th>Data</th>
-                            <th>Hora</th>
-                            <th>Estado</th>
+                            <th>Data Notificação</th>
+                            <th>Hora Notificação</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="notificacoes.length === 0">
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="5" class="text-center text-muted py-4">
                                 <i class="bi bi-bell-slash fs-3 d-block mb-2"></i>
                                 Sem notificações encontradas
                             </td>
                         </tr>
                         <tr v-for="notificacao in notificacoes" :key="notificacao.IdNotificacao">
                             <td>{{ notificacao.IdNotificacao }}</td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <img :src="notificacao.recipiente?.ImagemPerfil || 'https://via.placeholder.com/32'" 
-                                         alt="Recipiente" 
-                                         class="rounded-circle" 
-                                         width="32" 
-                                         height="32">
-                                    <span>{{ notificacao.recipiente?.Nome || 'Usuário Desconhecido' }}</span>
-                                </div>
-                            </td>
+                            <td>{{ notificacao.IdRecipiente }}</td>
                             <td>{{ notificacao.Mensagem }}</td>
                             <td>{{ formatDate(notificacao.DataNotificacao) }}</td>
                             <td>{{ formatTime(notificacao.HoraNotificacao) }}</td>
                             <td>
-                                <span :class="getStatusBadgeClass(notificacao.Estado)">
-                                    {{ notificacao.Estado }}
-                                </span>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-danger"
+                                        @click="deleteNotificacao(notificacao.IdNotificacao)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -89,11 +83,12 @@ export default {
         async fetchNotificacoes() {
             try {
                 this.loading = true;
+                this.error = null;
                 const response = await notificacoesService.getAllNotificacoes();
                 this.notificacoes = response.data;
             } catch (err) {
                 this.error = 'Erro ao carregar notificações';
-                console.error('Error:', err);
+                console.error('Erro ao buscar notificações:', err);
             } finally {
                 this.loading = false;
             }
@@ -118,12 +113,14 @@ export default {
             if (!time) return 'Hora não definida';
             return time.substring(0, 5);
         },
-        getStatusBadgeClass(status) {
-            return {
-                'badge rounded-pill': true,
-                'bg-warning': status === 'não lida',
-                'bg-success': status === 'lida'
-            };
+        async deleteNotificacao(id) {
+            try {
+                await notificacoesService.deleteNotificacao(id);
+                await this.fetchNotificacoes();
+            } catch (err) {
+                this.error = 'Erro ao deletar notificação';
+                console.error('Error:', err);
+            }
         }
     },
     created() {

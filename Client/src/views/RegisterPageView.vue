@@ -41,7 +41,7 @@ export default {
             this.error = "";
             this.success = "";
             try {
-                const response = await fetch("http://localhost:3000/utilizadores/register", {
+                const response = await fetch("http://localhost:3000/utilizadores/", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
