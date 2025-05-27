@@ -41,7 +41,7 @@ db.Utilizador = require('./utilizador.models.js')(sequelize, Sequelize.DataTypes
 db.EstadoAnuncio = require('./estadoAnuncio.models.js')(sequelize, Sequelize.DataTypes);
 db.Notificacao = require('./notificacoes.models.js')(sequelize, Sequelize.DataTypes);
 db.ProdutoCategoria = require('./produtoCategoria.models.js')(sequelize, Sequelize.DataTypes);
-
+db.Mensagem = require('./mensagens.models.js')(sequelize, Sequelize.DataTypes);
 
 db.Anuncio.belongsTo(db.Utilizador, {
     foreignKey: 'IdUtilizadorAnuncio',
@@ -75,7 +75,17 @@ db.ProdutoCategoria.belongsToMany(db.Anuncio, {
     through: 'AnuncioProdutoCategoria',
     foreignKey: 'IdProdutoCategoria',
     otherKey: 'IdAnuncio',
-    as: 'anuncios'
+    as: 'anuncio'
+});
+
+db.Mensagem.belongsTo(db.Utilizador, {
+    foreignKey: 'IdRemetente',
+    as: 'remetente'
+});
+
+db.Mensagem.belongsTo(db.Utilizador, {
+    foreignKey: 'IdDestinatario',
+    as: 'destinatario'
 });
 
 module.exports = db;

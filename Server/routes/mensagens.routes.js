@@ -11,4 +11,6 @@ router.post('/', mensagensController.createMensagem);
 // Delete message
 router.delete('/:id', mensagensController.deleteMensagem);
 
+router.get('/conversations/:userId', mensagensController.getUserConversations);
+
 module.exports = router;

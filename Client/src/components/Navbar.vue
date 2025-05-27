@@ -1,14 +1,20 @@
 <script>
 import { RouterLink } from "vue-router";
 import { utilizadorService } from "@/api/utilizador";
+import MessagesSidebar from './messages/MessagesSidebar.vue';
 
 export default {
     name: 'Navbar',
+    components: {
+        MessagesSidebar
+    },
     data() {
         return {
             isAuthenticated: false,
             user: null,
-            userDetails: null
+            userDetails: null,
+            isMessageSidebarOpen: false,
+            unreadMessages: 0
         }
     },
     methods: {
@@ -53,6 +59,9 @@ export default {
             this.userDetails = null;
             window.dispatchEvent(new CustomEvent('auth-changed')); // Emitir evento no logout
             this.$router.push('/login');
+        },
+        toggleMessagesSidebar() {
+            this.isMessageSidebarOpen = !this.isMessageSidebarOpen;
         }
     },
     created() {
@@ -93,67 +102,78 @@ export default {
                     </li>
 
                     <!-- Show this when user is authenticated -->
-                    <li class="nav-item dropdown" v-else>
-                        <div class="d-flex align-items-center cursor-pointer" data-bs-toggle="dropdown" role="button">
-                            <img :src="userDetails?.ImagemPerfil || 'https://via.placeholder.com/40'" alt="Profile"
-                                class="rounded-circle me-2" width="40" height="40">
-                            <span class="me-2">{{ userDetails?.Nome || user?.Nome || 'Utilizador' }}</span>
-                            <i class="bi bi-chevron-down"></i>
-                        </div>
+                    <template v-else>
+                        <li class="nav-item dropdown">
+                            <div class="d-flex align-items-center">
+                                <button class="btn btn-link nav-link me-3" @click="toggleMessagesSidebar">
+                                    <i class="bi bi-chat-dots fs-5"></i>
+                                </button>
+                                <div class="d-flex align-items-center cursor-pointer" data-bs-toggle="dropdown" role="button">
+                                    <img :src="userDetails?.ImagemPerfil || 'https://via.placeholder.com/40'" 
+                                         alt="Profile"
+                                         class="rounded-circle me-2" 
+                                         width="40" 
+                                         height="40">
+                                    <span class="me-2">{{ userDetails?.Nome || user?.Nome || 'Utilizador' }}</span>
+                                    <i class="bi bi-chevron-down"></i>
+                                </div>
 
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <!-- Admin Menu -->
-                            <template v-if="isAdmin">
-                                <li>
-                                    <router-link class="dropdown-item" :to="{ name: 'profile' }">
-                                        <i class="bi bi-person me-2"></i>Meu Perfil
-                                    </router-link>
-                                </li>
-                                <li>
-                                    <router-link class="dropdown-item" :to="{ name: 'admin-utilizadores' }">
-                                        <i class="bi bi-people me-2"></i>Painel Admin
-                                    </router-link>
-                                </li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li>
-                                    <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
-                                        <i class="bi bi-box-arrow-right me-2"></i>Terminar Sessão
-                                    </a>
-                                </li>
-                            </template>
-                            <template v-else>
-                                <li>
-                                    <router-link class="dropdown-item" :to="{ name: 'profile' }">
-                                        <i class="bi bi-person me-2"></i>Meu Perfil
-                                    </router-link>
-                                </li>
-                                <li>
-                                    <router-link class="dropdown-item" :to="{ name: 'user-anuncios' }">
-                                        <i class="bi bi-cart3 me-2"></i>Meus Anúncios
-                                    </router-link>
-                                </li>
-                                <li>
-                                    <router-link class="dropdown-item" :to="{ name: 'user-reservas' }">
-                                        <i class="bi bi-bookmark-check me-2"></i>Minhas Reservas
-                                    </router-link>
-                                </li>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li>
-                                    <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
-                                        <i class="bi bi-box-arrow-right me-2"></i>Terminar Sessão
-                                    </a>
-                                </li>
-                            </template>
-                        </ul>
-                    </li>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <!-- Admin Menu -->
+                                    <template v-if="isAdmin">
+                                        <li>
+                                            <router-link class="dropdown-item" :to="{ name: 'profile' }">
+                                                <i class="bi bi-person me-2"></i>Meu Perfil
+                                            </router-link>
+                                        </li>
+                                        <li>
+                                            <router-link class="dropdown-item" :to="{ name: 'admin-utilizadores' }">
+                                                <i class="bi bi-people me-2"></i>Painel Admin
+                                            </router-link>
+                                        </li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
+                                                <i class="bi bi-box-arrow-right me-2"></i>Terminar Sessão
+                                            </a>
+                                        </li>
+                                    </template>
+                                    <template v-else>
+                                        <li>
+                                            <router-link class="dropdown-item" :to="{ name: 'profile' }">
+                                                <i class="bi bi-person me-2"></i>Meu Perfil
+                                            </router-link>
+                                        </li>
+                                        <li>
+                                            <router-link class="dropdown-item" :to="{ name: 'user-anuncios' }">
+                                                <i class="bi bi-cart3 me-2"></i>Meus Anúncios
+                                            </router-link>
+                                        </li>
+                                        <li>
+                                            <router-link class="dropdown-item" :to="{ name: 'user-reservas' }">
+                                                <i class="bi bi-bookmark-check me-2"></i>Minhas Reservas
+                                            </router-link>
+                                        </li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
+                                                <i class="bi bi-box-arrow-right me-2"></i>Terminar Sessão
+                                            </a>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </li>
+                    </template>
                 </ul>
             </div>
         </div>
     </nav>
+    <MessagesSidebar :isOpen="isMessageSidebarOpen" @close="isMessageSidebarOpen = false" />
 </template>
 
 <style scoped>
