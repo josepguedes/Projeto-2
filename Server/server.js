@@ -30,6 +30,7 @@ app.use('/avaliacoes', require('./routes/avaliacoes.routes.js'));
 app.use('/utilizadores', require('./routes/utilizadores.routes.js'));
 app.use('/notificacoes', require('./routes/notificacoes.routes.js'));
 app.use('/mensagens', require('./routes/mensagens.routes.js'));
+app.use('/categorias', require('./routes/produtoCategoria.routes.js'));
 
 
 //handle invalid routes (404)    

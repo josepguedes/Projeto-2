@@ -21,6 +21,19 @@ export const anunciosService = {
             throw new Error('Erro ao buscar anúncio');
         }
         return response.json();
+    },
+
+    async getUserAnuncios(userId, page = 1, limit = 10) {
+        const queryParams = new URLSearchParams({
+            page,
+            limit
+        });
+
+        const response = await fetch(`${API_URL}/anuncios/utilizador/${userId}?${queryParams}`);
+        if (!response.ok) {
+            throw new Error('Erro ao buscar anúncios do utilizador');
+        }
+        return response.json();
     }
 
     

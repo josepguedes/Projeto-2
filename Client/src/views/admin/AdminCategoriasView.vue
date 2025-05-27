@@ -1,17 +1,31 @@
 <template>
     <div class="admin-categorias-page d-flex">
-        <!-- Admin Sidebar -->
         <AdminSidebar active="admin-categorias" :userDetails="userDetails" />
 
-        <!-- Main Content -->
         <div class="flex-grow-1 p-4 content">
             <h2 class="mb-4 fw-bold text-primary">Gestão de Categorias</h2>
 
-            <div class="table-responsive bg-white rounded shadow-sm p-3">
+            <div v-if="loading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+            </div>
+
+            <div v-else-if="error" class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+
+            <div v-else class="table-responsive bg-white rounded shadow-sm p-3">
+                <div class="d-flex justify-content-end mb-3">
+                    <button class="btn btn-primary" @click="showAddModal">
+                        <i class="bi bi-plus-circle me-2"></i>Nova Categoria
+                    </button>
+                </div>
+
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>ID Categoria</th>
+                            <th>ID</th>
                             <th>Nome</th>
                             <th>Ações</th>
                         </tr>
@@ -19,12 +33,44 @@
                     <tbody>
                         <tr v-if="categorias.length === 0">
                             <td colspan="3" class="text-center text-muted py-4">
-                                <i class="bi bi-folder fs-3 d-block mb-2"></i>
-                                Nenhuma categoria encontrada.
+                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                Nenhuma categoria encontrada
+                            </td>
+                        </tr>
+                        <tr v-for="categoria in categorias" :key="categoria.IdProdutoCategoria">
+                            <td>{{ categoria.IdProdutoCategoria }}</td>
+                            <td>{{ categoria.NomeCategoria }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger"
+                                    @click="deleteCategoria(categoria.IdProdutoCategoria)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Modal para adicionar categoria -->
+        <div class="modal fade" id="addCategoriaModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Nova Categoria</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nome da Categoria</label>
+                            <input type="text" class="form-control" v-model="novaCategoria.NomeCategoria">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" @click="createCategoria">Adicionar</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -33,6 +79,9 @@
 <script>
 import AdminSidebar from '@/components/AdminSidebar.vue';
 import { utilizadorService } from '@/api/utilizador';
+import { produtoCategoriaService } from '@/api/produtoCategoria';
+import { Modal } from 'bootstrap';
+
 
 export default {
     name: 'AdminCategoriasView',
@@ -42,27 +91,26 @@ export default {
     data() {
         return {
             categorias: [],
-            userDetails: null
+            loading: true,
+            error: null,
+            modal: null,
+            userDetails: null,
+            novaCategoria: {
+                NomeCategoria: ''
+            }
         };
     },
     methods: {
         async fetchCategorias() {
             try {
-                // TODO: Implement categorias service
-                this.categorias = [];
+                this.loading = true;
+                const response = await produtoCategoriaService.getAllCategorias();
+                this.categorias = response.data;
             } catch (err) {
-                console.error('Erro ao buscar categorias:', err);
-                this.categorias = [];
-            }
-        },
-        async handleDelete(categoria) {
-            if (confirm(`Tem certeza que deseja eliminar a categoria "${categoria.Nome}"?`)) {
-                try {
-                    // TODO: Implement delete categoria
-                    this.fetchCategorias();
-                } catch (err) {
-                    alert('Erro ao eliminar categoria.');
-                }
+                this.error = 'Erro ao carregar categorias';
+                console.error('Erro:', err);
+            } finally {
+                this.loading = false;
             }
         },
         async fetchLoggedUserDetails() {
@@ -76,7 +124,35 @@ export default {
             } catch (err) {
                 console.error('Error fetching logged user details:', err);
             }
+        },
+        showAddModal() {
+            this.novaCategoria.NomeCategoria = '';
+            this.modal.show();
+        },
+        async createCategoria() {
+            try {
+                await produtoCategoriaService.createCategoria(this.novaCategoria);
+                this.modal.hide();
+                await this.fetchCategorias();
+            } catch (err) {
+                alert('Erro ao criar categoria');
+                console.error('Erro:', err);
+            }
+        },
+        async deleteCategoria(id) {
+            if (confirm('Tem certeza que deseja eliminar esta categoria?')) {
+                try {
+                    await produtoCategoriaService.deleteCategoria(id);
+                    await this.fetchCategorias();
+                } catch (err) {
+                    alert('Erro ao eliminar categoria');
+                    console.error('Erro:', err);
+                }
+            }
         }
+    },
+    mounted() {
+        this.modal = new Modal(document.getElementById('addCategoriaModal'));
     },
     created() {
         this.fetchCategorias();
@@ -89,15 +165,10 @@ export default {
 .admin-categorias-page {
     min-height: 100vh;
     background: #f8f9fa;
-    padding-bottom: 100px;
 }
 
 .content {
     margin-top: 100px;
-}
-
-.table th,
-.table td {
-    vertical-align: middle;
+    padding-bottom: 100px;
 }
 </style>
