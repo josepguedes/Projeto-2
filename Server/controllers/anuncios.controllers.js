@@ -197,10 +197,52 @@ const getAnuncioById = async (req, res, next) => {
     }
 };
 
+const getAnunciosByUser = async (req, res, next) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            throw new ErrorHandler(400, 'ID do utilizador é obrigatório');
+        }
+
+        const anuncios = await Anuncio.findAll({
+            where: { IdUtilizadorAnuncio: userId },
+            include: [
+                {
+                    model: db.Utilizador,
+                    as: 'utilizador',
+                    attributes: ['Nome', 'ImagemPerfil', 'Classificacao']
+                },
+                {
+                    model: db.EstadoAnuncio,
+                    as: 'estado',
+                    attributes: ['EstadoAnuncio']
+                }
+            ],
+            order: [['DataAnuncio', 'DESC']]
+        });
+
+        if (anuncios.length === 0) {
+            return res.status(404).json({ message: 'Nenhum anúncio encontrado para este utilizador' });
+        }
+
+        res.status(200).json({
+            data: anuncios,
+            links: [
+                { rel: "self", href: `/anuncios/user/${userId}`, method: "GET" },
+                { rel: "all", href: "/anuncios", method: "GET" }
+            ]
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     getAllAnuncios,
     getAnuncioById,
     createAnuncio,
     updateAnuncio,
     deleteAnuncio,
+    getAnunciosByUser
 }
