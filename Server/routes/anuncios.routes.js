@@ -6,11 +6,10 @@ const anunciosController = require('../controllers/anuncios.controllers.js');
 
 // Rotas básicas CRUD
 router.get('/', anunciosController.getAllAnuncios);
+router.get('/utilizador/:userId', anunciosController.getAnunciosByUser); // Changed to match controller function name
 router.get('/:id', anunciosController.getAnuncioById);
 router.post('/', anunciosController.createAnuncio);
 router.put('/:id', anunciosController.updateAnuncio);
 router.delete('/:id', anunciosController.deleteAnuncio);
-
-router.get('/:id', anunciosController.getAnuncioById);
 
 module.exports = router;
