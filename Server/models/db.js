@@ -39,9 +39,16 @@ db.Denuncia = require('./denuncias.models.js')(sequelize, Sequelize.DataTypes);
 db.Avaliacao = require('./avaliaçoes.models')(sequelize, Sequelize.DataTypes);
 db.Utilizador = require('./utilizador.models.js')(sequelize, Sequelize.DataTypes);
 db.EstadoAnuncio = require('./estadoAnuncio.models.js')(sequelize, Sequelize.DataTypes);
-db.Notificacao = require('./notificacoes.models.js')(sequelize, Sequelize.DataTypes);
-db.ProdutoCategoria = require('./produtoCategoria.models.js')(sequelize, Sequelize.DataTypes);
 
+db.Mensagem.belongsTo(db.Utilizador, {
+    foreignKey: 'IdRemetente',
+    as: 'remetente'
+});
+
+db.Mensagem.belongsTo(db.Utilizador, {
+    foreignKey: 'IdDestinatario',
+    as: 'destinatario'
+});
 
 db.Anuncio.belongsTo(db.Utilizador, {
     foreignKey: 'IdUtilizadorAnuncio',
@@ -59,23 +66,10 @@ db.Anuncio.belongsTo(db.EstadoAnuncio, {
     as: 'estado'
 });
 
+
 db.Denuncia.belongsTo(db.Anuncio, {
     foreignKey: 'IdAnuncio',
     as: 'anuncio'
-});
-
-// Add this association
-db.Notificacao.belongsTo(db.Utilizador, {
-    foreignKey: 'IdRecipiente',
-    as: 'recipiente',
-    attributes: ['Nome', 'ImagemPerfil']
-});
-
-db.ProdutoCategoria.belongsToMany(db.Anuncio, {
-    through: 'AnuncioProdutoCategoria',
-    foreignKey: 'IdProdutoCategoria',
-    otherKey: 'IdAnuncio',
-    as: 'anuncios'
 });
 
 module.exports = db;
