@@ -51,6 +51,16 @@ export default {
 
 <style scoped>
 .user-sidebar {
+    padding-top: 100px !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 270px;
+    border-radius: 0 1rem 1rem 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
     background: white;
     border-radius: 1rem;
     padding: 2rem;
