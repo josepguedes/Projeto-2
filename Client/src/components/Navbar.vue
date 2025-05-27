@@ -106,7 +106,7 @@ export default {
                         <li class="nav-item dropdown">
                             <div class="d-flex align-items-center">
                                 <button class="btn btn-link nav-link me-3" @click="toggleMessagesSidebar">
-                                    <i class="bi bi-chat-dots fs-5"></i>
+                                    <i class="bi bi-chat-left fs-5"></i>
                                 </button>
                                 <div class="d-flex align-items-center cursor-pointer" data-bs-toggle="dropdown" role="button">
                                     <img :src="userDetails?.ImagemPerfil || 'https://via.placeholder.com/40'" 
