@@ -20,30 +20,37 @@
                         <div class="profile-border"></div>
                     </div>
                     <div class="flex-grow-1">
-                        <div class="d-flex align-items-center flex-wrap gap-2">
-                            <h3 class="h6 mb-0 fw-semibold">
-                                {{ anuncio.utilizador?.Nome || `Anunciante #${anuncio.IdUtilizadorAnuncio}` }}
-                            </h3>
-                            <div class="d-flex align-items-center">
-                                <div class="stars">
-                                    <template v-for="i in 5" :key="i">
-                                        <i :class="[
-                                            'bi',
-                                            i <= Math.round(anuncio.utilizador?.Classificacao || 0)
-                                                ? 'bi-star-fill text-warning'
-                                                : 'bi-star text-muted'
-                                        ]"></i>
-                                    </template>
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div>
+                                <h3 class="h6 mb-0 fw-semibold">
+                                    {{ anuncio.utilizador?.Nome || `Anunciante #${anuncio.IdUtilizadorAnuncio}` }}
+                                </h3>
+                                <div class="d-flex align-items-center">
+                                    <div class="stars">
+                                        <template v-for="i in 5" :key="i">
+                                            <i :class="[
+                                                'bi',
+                                                i <= Math.round(anuncio.utilizador?.Classificacao || 0)
+                                                    ? 'bi-star-fill text-warning'
+                                                    : 'bi-star text-muted'
+                                            ]"></i>
+                                        </template>
+                                    </div>
+                                    <small class="text-muted ms-1 fw-medium">
+                                        ({{ anuncio.utilizador?.Classificacao?.toFixed(1) || '0.0' }})
+                                    </small>
                                 </div>
-                                <small class="text-muted ms-1 fw-medium">
-                                    ({{ anuncio.utilizador?.Classificacao?.toFixed(1) || '0.0' }})
-                                </small>
+                                <p class="mb-0 text-muted small mt-1">
+                                    <i class="bi bi-geo-alt-fill me-1"></i>
+                                    {{ anuncio.LocalRecolha }}
+                                </p>
                             </div>
+                            <button v-if="showMessageButton" @click="startConversation"
+                                class="btn btn-outline-primary btn-sm message-btn">
+                                <i class="bi bi-chat-dots me-1"></i>
+                                Enviar Mensagem
+                            </button>
                         </div>
-                        <p class="mb-0 text-muted small mt-1">
-                            <i class="bi bi-geo-alt-fill me-1"></i>
-                            {{ anuncio.LocalRecolha }}
-                        </p>
                     </div>
                 </div>
             </div>
@@ -131,6 +138,13 @@ export default {
                     value: this.formatDate(this.anuncio.DataAnuncio)
                 }
             ];
+        },
+        showMessageButton() {
+            const token = sessionStorage.getItem('token');
+            if (!token) return false;
+
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.IdUtilizador !== this.anuncio.IdUtilizadorAnuncio;
         }
     },
     methods: {
@@ -157,6 +171,31 @@ export default {
             if (this.anuncio.IdEstadoAnuncio === 2) return 'Já Reservado';
             if (this.anuncio.IdEstadoAnuncio === 3) return 'Expirado';
             return 'Reservar Produto';
+        },
+        async startConversation() {
+            try {
+                const token = sessionStorage.getItem('token');
+                if (!token) {
+                    alert('Por favor, faça login para enviar mensagens');
+                    return;
+                }
+
+                // Create custom event with user data to open specific conversation
+                const customEvent = new CustomEvent('open-messages', {
+                    detail: {
+                        otherUser: {
+                            id: this.anuncio.IdUtilizadorAnuncio,
+                            nome: this.anuncio.utilizador?.Nome,
+                            imagemPerfil: this.anuncio.utilizador?.ImagemPerfil
+                        }
+                    }
+                });
+
+                window.dispatchEvent(customEvent);
+            } catch (err) {
+                console.error('Erro ao abrir conversa:', err);
+                alert('Erro ao abrir conversa. Por favor, tente novamente.');
+            }
         }
     }
 }
@@ -203,7 +242,7 @@ export default {
 }
 
 .detail-card {
-    border: 1px solid rgba(0,0,0,0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     background-color: var(--bs-light);
 }
 
@@ -246,6 +285,49 @@ export default {
 .btn-outline-danger:hover {
     background-color: var(--bs-danger);
     color: white;
+}
+
+.message-btn {
+    padding: 0.6rem 1.2rem;
+    font-weight: 500;
+    border: 2px solid var(--bs-primary);
+    background-color: transparent;
+    color: var(--bs-primary);
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.message-btn:hover {
+    background-color: var(--bs-primary);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.3);
+}
+
+.message-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(var(--bs-primary-rgb), 0.2);
+}
+
+.message-btn i {
+    font-size: 1.1em;
+    vertical-align: middle;
+    margin-right: 0.4rem;
+    transition: transform 0.3s ease;
+}
+
+.message-btn:hover i {
+    transform: translateX(-2px);
+}
+
+@media (max-width: 576px) {
+    .message-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
 }
 
 @media (max-width: 992px) {

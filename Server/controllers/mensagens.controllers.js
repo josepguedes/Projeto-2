@@ -1,6 +1,6 @@
 const db = require("../models/db.js");
 const Mensagem = db.Mensagem;
-const { Op } = require('sequelize'); // Add this import
+const { Op } = require('sequelize');
 const { ErrorHandler } = require("../utils/error.js");
 
 // Get all messages for a chat between two users
@@ -68,12 +68,16 @@ const createMensagem = async (req, res, next) => {
             throw new ErrorHandler(400, 'Remetente, destinatário e conteúdo são obrigatórios');
         }
 
+        const now = new Date();
+        const portugalOffset = 60;
+        const date = new Date(now.getTime() + (portugalOffset * 60000));
+
         const mensagem = await Mensagem.create({
             IdRemetente,
             IdDestinatario,
             Conteudo,
-            DataEnvio: new Date(),
-            HoraEnvio: new Date()
+            DataEnvio: date,
+            HoraEnvio: date
         });
 
         return res.status(201).json({
@@ -81,6 +85,7 @@ const createMensagem = async (req, res, next) => {
             data: mensagem
         });
     } catch (err) {
+        console.error('Erro ao criar mensagem:', err);
         next(err);
     }
 };
