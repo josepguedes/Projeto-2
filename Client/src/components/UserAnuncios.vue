@@ -19,7 +19,7 @@
             </router-link>
         </div>
 
-        <div v-else class="row g-4 justify-content-center">
+        <div v-else class="row g-4 justify-content-start">
             <div v-for="anuncio in anuncios" :key="anuncio.IdAnuncio" class="col-md-6 announcement-card">
                 <div class="card h-100 border-0 shadow-sm">
                     <div class="card-img-wrapper">
