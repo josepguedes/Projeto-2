@@ -1,7 +1,7 @@
 <script>
 import { RouterLink } from "vue-router";
 import { utilizadorService } from "@/api/utilizador";
-import MessagesSidebar from './messages/MessagesSidebar.vue';
+import MessagesSidebar from './MessagesSidebar.vue';
 
 export default {
     name: 'Navbar',

@@ -3,19 +3,37 @@ import { RouterLink } from 'vue-router';
 import HomePageView from './views/HomePageView.vue'
 import footerComp from '@/components/Footer.vue'
 import navbar from '@/components/Navbar.vue';
+import MessagesSidebar from '@/components/MessagesSidebar.vue';
 
 export default {
-    components: {
-        footerComp,
-        navbar
+  components: {
+    footerComp,
+    navbar,
+    MessagesSidebar
+  },
+  data() {
+    return {
+      isMessagesSidebarOpen: false
     }
+  },
+  mounted() {
+    window.addEventListener('open-messages', () => {
+      this.isMessagesSidebarOpen = true;
+    });
+  },
+  beforeUnmount() {
+    window.removeEventListener('open-messages', () => {
+      this.isMessagesSidebarOpen = true;
+    });
+  }
 }
 </script>
 
 <template>
-    <navbar />
-    <RouterView />
-    <footerComp />
+  <navbar />
+  <RouterView />
+  <footerComp />
+  <MessagesSidebar :isOpen="isMessagesSidebarOpen" @close="isMessagesSidebarOpen = false" />
 </template>
 
 <style>

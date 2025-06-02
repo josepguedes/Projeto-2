@@ -16,7 +16,9 @@ export default {
             messages: [],
             newMessage: '',
             currentUserId: null,
-            currentPage: 1
+            currentPage: 1,
+            pollingInterval: null,
+            pollTime: 2500
         }
     },
     methods: {
@@ -29,7 +31,18 @@ export default {
 
                 const response = await fetch(`http://localhost:3000/mensagens/conversations/${this.currentUserId}`);
                 const data = await response.json();
-                this.conversations = data.data;
+
+                // Sort conversations by the most recent message in ascending order (oldest first)
+                this.conversations = data.data.sort((a, b) => {
+                    if (!a.ultimaMensagem || !b.ultimaMensagem) return 0;
+
+                    // Create complete date objects for both messages
+                    const dateTimeA = new Date(`${a.ultimaMensagem.DataEnvio} ${a.ultimaMensagem.HoraEnvio}`);
+                    const dateTimeB = new Date(`${b.ultimaMensagem.DataEnvio} ${b.ultimaMensagem.HoraEnvio}`);
+
+                    // Compare full datetime in milliseconds (changed to ascending order)
+                    return dateTimeA.getTime() - dateTimeB.getTime();
+                });
             } catch (err) {
                 this.error = 'Erro ao carregar conversas';
                 console.error(err);
@@ -40,6 +53,23 @@ export default {
         async selectConversation(conversation) {
             this.activeConversation = conversation;
             await this.fetchMessages();
+            this.startPolling();
+        },
+        startPolling() {
+            if (this.pollingInterval) {
+                clearInterval(this.pollingInterval);
+            }
+            this.pollingInterval = setInterval(async () => {
+                if (this.activeConversation) {
+                    await this.fetchMessages();
+                }
+            }, this.pollTime);
+        },
+        stopPolling() {
+            if (this.pollingInterval) {
+                clearInterval(this.pollingInterval);
+                this.pollingInterval = null;
+            }
         },
         async fetchMessages() {
             try {
@@ -48,12 +78,16 @@ export default {
                     throw new Error('Erro ao carregar mensagens');
                 }
                 const data = await response.json();
-                // Ordenar mensagens por data e hora
+
                 this.messages = data.data.sort((a, b) => {
                     const dateA = new Date(a.DataEnvio + ' ' + a.HoraEnvio);
                     const dateB = new Date(b.DataEnvio + ' ' + b.HoraEnvio);
                     return dateA - dateB;
-                });
+                }).map(msg => ({
+                    ...msg,
+                    showDelete: false
+                }));
+
                 this.$nextTick(() => {
                     this.scrollToBottom();
                 });
@@ -81,12 +115,27 @@ export default {
                     throw new Error('Erro ao enviar mensagem');
                 }
 
-                // Limpar mensagem e atualizar chat
                 this.newMessage = '';
                 await this.fetchMessages();
-                await this.fetchConversations(); // Atualizar lista de conversas também
+                await this.fetchConversations();
             } catch (err) {
                 console.error('Erro ao enviar mensagem:', err);
+            }
+        },
+        async deleteMessage(messageId) {
+            try {
+                const response = await fetch(`http://localhost:3000/mensagens/${messageId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao apagar mensagem');
+                }
+
+                await this.fetchMessages();
+                await this.fetchConversations();
+            } catch (err) {
+                console.error('Erro ao apagar mensagem:', err);
             }
         },
         scrollToBottom() {
@@ -97,15 +146,63 @@ export default {
         },
         formatTime(time) {
             return time ? time.substring(0, 5) : '';
+        },
+        groupMessagesByDate(messages) {
+            const groups = {};
+            messages.forEach(message => {
+                const date = new Date(message.DataEnvio);
+                const dateKey = this.formatMessageDate(date);
+                if (!groups[dateKey]) {
+                    groups[dateKey] = [];
+                }
+                groups[dateKey].push(message);
+            });
+            return groups;
+        },
+        formatMessageDate(date) {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            if (date.toDateString() === today.toDateString()) {
+                return 'Hoje';
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                return 'Ontem';
+            } else {
+                return date.toLocaleDateString('pt-BR');
+            }
         }
     },
     created() {
         this.fetchConversations();
     },
+    mounted() {
+        window.addEventListener('open-messages', (event) => {
+            this.isMessagesSidebarOpen = true;
+
+            if (event.detail?.otherUser) {
+                // Create conversation object with the other user's data
+                const conversation = {
+                    otherUser: event.detail.otherUser
+                };
+                this.selectConversation(conversation);
+            }
+        });
+    },
+    beforeDestroy() {
+        this.stopPolling();
+    },
     watch: {
         isOpen(newVal) {
             if (newVal) {
                 this.fetchConversations();
+            } else {
+                this.stopPolling();
+            }
+        },
+        activeConversation(newVal) {
+            if (!newVal) {
+                this.stopPolling();
             }
         }
     }
@@ -126,7 +223,8 @@ export default {
             <div v-if="activeConversation" class="chat-container">
                 <div class="chat-header border-bottom p-3">
                     <div class="d-flex align-items-center">
-                        <button class="btn btn-link p-0 me-3" @click="activeConversation = null">
+                        <button class="btn btn-link p-0 me-3"
+                            @click="() => { activeConversation = null; stopPolling(); }">
                             <i class="bi bi-arrow-left"></i>
                         </button>
                         <img :src="activeConversation.otherUser.imagemPerfil || 'https://via.placeholder.com/40'"
@@ -136,13 +234,27 @@ export default {
                 </div>
 
                 <div class="chat-messages p-3" ref="messagesContainer">
-                    <div v-for="message in messages" :key="message.IdMensagem" class="message-wrapper"
-                        :class="{ 'message-sent': message.IdRemetente === currentUserId }">
-                        <div class="message-bubble">
-                            {{ message.Conteudo }}
-                            <small class="message-time">{{ formatTime(message.HoraEnvio) }}</small>
+                    <template v-for="(messages, date) in groupMessagesByDate(messages)" :key="date">
+                        <div class="date-divider">
+                            <span class="date-label">{{ date }}</span>
                         </div>
-                    </div>
+                        <div v-for="message in messages" :key="message.IdMensagem" class="message-wrapper"
+                            :class="{ 'message-sent': message.IdRemetente === currentUserId }">
+                            <div class="message-bubble-container" @mouseover="message.showDelete = true"
+                                @mouseleave="message.showDelete = false">
+                                <div class="message-bubble">
+                                    {{ message.Conteudo }}
+                                    <div class="message-time">
+                                        <span>{{ formatTime(message.HoraEnvio) }}</span>
+                                        <button v-if="message.IdRemetente === currentUserId" class="delete-message-btn"
+                                            @click.stop="deleteMessage(message.IdMensagem)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
 
                 <div class="chat-input border-top p-3">
@@ -202,6 +314,10 @@ export default {
     flex-direction: column;
 }
 
+.messages-header .messages-content {
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 15);
+}
+
 .chat-container {
     display: flex;
     flex-direction: column;
@@ -226,13 +342,27 @@ export default {
     justify-content: flex-end;
 }
 
-.message-bubble {
+.message-bubble-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
     max-width: 75%;
+}
+
+.message-sent .message-bubble-container {
+    flex-direction: row-reverse;
+}
+
+.message-bubble {
     padding: 0.75rem 1rem;
     border-radius: 1rem;
     background: white;
     position: relative;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    max-width: 100%;
 }
 
 .message-sent .message-bubble {
@@ -240,16 +370,130 @@ export default {
     color: white;
 }
 
+.delete-message-btn {
+    background: rgba(220, 53, 69, 0.1);
+    /* Light red background */
+    border: none;
+    color: #dadada;
+    padding: 4px 8px;
+    /* Increased padding */
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    opacity: 1;
+    /* Always visible */
+    visibility: visible;
+    /* Always visible */
+    transition: background-color 0.2s ease;
+}
+
+.delete-message-btn:hover {
+    background-color: rgba(220, 53, 69, 0.2);
+    /* Darker on hover */
+    color: #dc3545;
+}
+
+
+.message-sent .delete-message-btn {
+    left: -40px;
+    /* Posiciona à esquerda da mensagem */
+}
+
+.message-received .delete-message-btn {
+    right: -40px;
+    /* Posiciona à direita da mensagem */
+}
+
+.message-bubble-container:hover .delete-message-btn {
+    opacity: 1;
+    visibility: visible;
+}
+
 .message-time {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 0.75rem;
     margin-top: 0.25rem;
     opacity: 0.8;
+    justify-content: space-between;
+    /* Changed from flex-end */
+}
+
+.date-divider {
+    text-align: center;
+    margin: 1rem 0;
+    position: relative;
+}
+
+.date-label {
+    background: #f8f9fa;
+    padding: 0.25rem 1rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    color: #6c757d;
+    display: inline-block;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.delete-message {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #dc3545;
+    padding: 0.25rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    display: none;
+}
+
+.message-sent .delete-message {
+    left: -2rem;
+}
+
+.message-received .delete-message {
+    right: -2rem;
+}
+
+.message-bubble:hover .delete-message {
+    display: block;
+}
+
+.delete-message:hover {
+    opacity: 1;
 }
 
 .conversation-item {
     cursor: pointer;
     transition: background-color 0.2s ease;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.flex-grow-1.min-width-0 {
+    overflow: hidden;
+    width: 100%;
+}
+
+.text-truncate {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.conversation-item p {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 0;
 }
 
 .conversation-item:hover {
