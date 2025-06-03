@@ -47,7 +47,7 @@ export const anunciosService = {
             const payload = JSON.parse(atob(token.split('.')[1]));
             const userId = payload.IdUtilizador;
 
-            // Format the data before sending
+            // Format the data before sending test
             const formattedData = {
                 IdUtilizadorAnuncio: userId, 
                 Nome: anuncioData.Nome,
