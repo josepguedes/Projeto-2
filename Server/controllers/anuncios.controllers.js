@@ -2,6 +2,7 @@ const db = require('../models/db.js');
 const Anuncio = db.Anuncio;
 const { Op, Sequelize } = require('sequelize');
 const { ErrorHandler } = require("../utils/error.js");
+const { cloudinary, uploadToCloudinary } = require('../config/cloudinaryConfig');
 
 // Listar todos os anúncios com paginação e filtros
 const getAllAnuncios = async (req, res, next) => {
@@ -15,24 +16,19 @@ const getAllAnuncios = async (req, res, next) => {
         } = req.query;
         const where = {};
 
-        // Filtros
-        if (nome) {
+        // Improved filters with null checks
+        if (nome && typeof nome === 'string') {
             where.Nome = { [Op.like]: `%${nome}%` };
         }
-        if (localRecolha) {
+        if (localRecolha && typeof localRecolha === 'string') {
             where.LocalRecolha = { [Op.like]: `%${localRecolha}%` };
         }
-        if (exclude) {
+        if (exclude && !isNaN(exclude)) {
             where.IdAnuncio = { [Op.ne]: exclude };
         }
 
-        // Validar página e limite
-        if (isNaN(page) || page < 1) {
-            throw new ErrorHandler(400, 'Página inválida');
-        }
-        if (isNaN(limit) || limit < 1) {
-            throw new ErrorHandler(400, 'Limite inválido');
-        }
+        // Add status filter to only show active listings
+        where.IdEstadoAnuncio = 1; // Active status
 
         const anuncios = await Anuncio.findAndCountAll({
             where,
@@ -40,32 +36,36 @@ const getAllAnuncios = async (req, res, next) => {
                 {
                     model: db.Utilizador,
                     as: 'utilizador',
-                    attributes: ['Nome', 'ImagemPerfil', 'Classificacao']
+                    attributes: ['Nome', 'ImagemPerfil', 'Classificacao'],
+                    required: false // Make join optional
                 },
                 {
                     model: db.EstadoAnuncio,
                     as: 'estado',
-                    attributes: ['EstadoAnuncio']
+                    attributes: ['EstadoAnuncio'],
+                    required: false // Make join optional
                 }
             ],
-            order: [['DataAnuncio', 'ASC']],
-            limit: +limit,
-            offset: (+page - 1) * +limit,
+            order: [['DataAnuncio', 'DESC']],
+            limit: Math.min(+limit || 10, 100), // Prevent large limit values
+            offset: Math.max((+page - 1) || 0, 0) * (+limit || 10), // Prevent negative offset
         });
 
+        // Return empty array instead of error if no announcements found
         return res.status(200).json({
-            totalPages: Math.ceil(anuncios.count / limit),
-            currentPage: +page,
-            total: anuncios.count,
-            data: anuncios.rows,
+            totalPages: Math.ceil((anuncios?.count || 0) / (+limit || 10)),
+            currentPage: +page || 1,
+            total: anuncios?.count || 0,
+            data: anuncios?.rows || [],
             links: [
                 { rel: "criar-anuncio", href: `/anuncios`, method: "POST" },
                 ...(page > 1 ? [{ rel: "pagina-anterior", href: `/anuncios?limit=${limit}&page=${page - 1}`, method: "GET" }] : []),
-                ...(anuncios.count > page * limit ? [{ rel: "proxima-pagina", href: `/anuncios?limit=${limit}&page=${+page + 1}`, method: "GET" }] : [])
+                ...(anuncios?.count > page * limit ? [{ rel: "proxima-pagina", href: `/anuncios?limit=${limit}&page=${+page + 1}`, method: "GET" }] : [])
             ]
         });
     } catch (err) {
-        next(err);
+        console.error('Error in getAllAnuncios:', err);
+        next(new ErrorHandler(500, 'Erro ao buscar anúncios'));
     }
 };
 
@@ -83,19 +83,37 @@ const createAnuncio = async (req, res, next) => {
             'Preco',
             'DataValidade',
             'Quantidade',
-            'IdProdutoCategoria',
-            'ImagemAnuncio'
+            'IdProdutoCategoria'
         ];
 
+        // Verify required fields
         const missingFields = requiredFields.filter(field => !req.body[field]);
         if (missingFields.length > 0) {
             throw new ErrorHandler(400, `Campos obrigatórios ausentes: ${missingFields.join(', ')}`);
         }
 
+        let imagemAnuncioUrl = null;
+        let cloudinaryId = null;
+
+        // Handle image upload if exists
+        if (req.file) {
+            try {
+                const result = await uploadToCloudinary(req.file); // CORRETO: passa o objeto file
+                imagemAnuncioUrl = result.secure_url;
+                cloudinaryId = result.public_id;
+            } catch (error) {
+                console.error('Cloudinary upload error:', error);
+                throw new ErrorHandler(500, "Erro ao fazer upload da imagem");
+            }
+        }
+
+        // Create announcement
         const anuncio = await Anuncio.create({
             ...req.body,
             DataAnuncio: new Date(),
-            IdEstadoAnuncio: 1 // Estado inicial (Disponível)
+            IdEstadoAnuncio: 1,
+            ImagemAnuncio: imagemAnuncioUrl,
+            CloudinaryId: cloudinaryId
         });
 
         res.status(201).json({
@@ -108,6 +126,7 @@ const createAnuncio = async (req, res, next) => {
             ]
         });
     } catch (err) {
+        console.error('Create anuncio error:', err);
         next(err);
     }
 };
@@ -121,6 +140,22 @@ const updateAnuncio = async (req, res, next) => {
             throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
         }
 
+        if (req.file) {
+            try {
+                // Delete old image if exists
+                if (anuncio.CloudinaryId) {
+                    await cloudinary.uploader.destroy(anuncio.CloudinaryId);
+                }
+
+                // Upload new image
+                const result = await uploadToCloudinary(req.file);
+                anuncio.ImagemAnuncio = result.secure_url;
+                anuncio.CloudinaryId = result.public_id;
+            } catch (error) {
+                throw new ErrorHandler(500, "Erro ao fazer upload da imagem");
+            }
+        }
+
         // Permitir apenas atualização de campos específicos
         const allowedUpdates = [
             'Nome',
@@ -130,8 +165,7 @@ const updateAnuncio = async (req, res, next) => {
             'Preco',
             'DataValidade',
             'Quantidade',
-            'IdProdutoCategoria',
-            'ImagemAnuncio'
+            'IdProdutoCategoria'
         ];
 
         const updateData = {};
@@ -141,7 +175,12 @@ const updateAnuncio = async (req, res, next) => {
             }
         });
 
-        await anuncio.update(updateData);
+        await anuncio.update({
+            ...updateData,
+            ImagemAnuncio: anuncio.ImagemAnuncio,
+            CloudinaryId: anuncio.CloudinaryId
+        });
+
         res.status(200).json({
             message: 'Anúncio atualizado com sucesso',
             data: anuncio

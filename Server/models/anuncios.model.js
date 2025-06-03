@@ -63,6 +63,10 @@ module.exports = (sequelize, DataTypes) => {
       },
       CodigoVerificacao: {
          type: DataTypes.STRING
+      },
+      CloudinaryId: {
+         type: DataTypes.STRING,
+         allowNull: true
       }
    }, {
       tableName: 'anuncio',
