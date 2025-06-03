@@ -8,35 +8,30 @@
                 <div class="col-lg-8">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2>Meus Anúncios</h2>
-                        <router-link class="btn btn-primary">
+                        <button class="btn btn-primary" @click="openCreateModal">
                             <i class="bi bi-plus-lg me-2"></i>Criar Anúncio
-                        </router-link>
+                        </button>
                     </div>
 
-                    <AnuncioList 
-                        :anuncios="anuncios" 
-                        :loading="loading" 
-                        :error="error" 
-                        @delete="deleteAnuncio"
-                        @view-details="openDetails"
-                    />
+                    <AnuncioList :anuncios="anuncios" :loading="loading" :error="error" @delete="deleteAnuncio"
+                        @view-details="openDetails" />
                 </div>
             </div>
         </div>
 
         <!-- Modal de Detalhes -->
-        <UserAnuncioDetails 
-            v-if="selectedAnuncio"
-            :anuncio="selectedAnuncio"
-            :show="showDetails"
-            @close="closeDetails"
-        />
+        <UserAnuncioDetails v-if="selectedAnuncio" :anuncio="selectedAnuncio" :show="showDetails"
+            @close="closeDetails" />
+
+        <!-- Modal Criar Anúncio -->
+        <CreateAnuncio v-if="showCreate" @close="closeCreate" @created="handleAnuncioCriado" />
     </div>
 </template>
 
 <script>
 import UserSidebar from '@/components/UserSidebar.vue';
 import UserAnuncioDetails from '@/components/UserAnuncioDetails.vue';
+import CreateAnuncio from '@/components/CreateAnuncio.vue';
 import AnuncioList from '@/components/UserAnuncios.vue';
 import { utilizadorService } from '@/api/utilizador';
 import { anunciosService } from '@/api/anuncio';
@@ -46,7 +41,8 @@ export default {
     components: {
         UserSidebar,
         AnuncioList,
-        UserAnuncioDetails
+        UserAnuncioDetails,
+        CreateAnuncio
     },
     data() {
         return {
@@ -55,7 +51,8 @@ export default {
             loading: true,
             error: null,
             selectedAnuncio: null,
-            showDetails: false
+            showDetails: false,
+            showCreate: false
         }
     },
     methods: {
@@ -101,6 +98,17 @@ export default {
         closeDetails() {
             this.selectedAnuncio = null;
             this.showDetails = false;
+        },
+        openCreateModal() {
+            this.showCreate = true;
+        },
+
+        closeCreate() {
+            this.showCreate = false;
+        },
+        async handleAnuncioCriado() {
+            this.closeCreate();
+            await this.fetchAnuncios(this.userDetails.IdUtilizador);
         }
     },
     created() {

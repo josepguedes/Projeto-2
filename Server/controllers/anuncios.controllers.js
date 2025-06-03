@@ -78,10 +78,13 @@ const createAnuncio = async (req, res, next) => {
             'Nome',
             'LocalRecolha',
             'HorarioRecolha',
+            'DataRecolha',
+            'Descricao',
             'Preco',
             'DataValidade',
             'Quantidade',
-            'IdProdutoCategoria'
+            'IdProdutoCategoria',
+            'ImagemAnuncio'
         ];
 
         const missingFields = requiredFields.filter(field => !req.body[field]);
