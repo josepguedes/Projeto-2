@@ -24,11 +24,7 @@
                 <div class="row g-4">
                     <!-- Main Content -->
                     <div class="col-lg-8">
-                        <AnuncioDetail 
-                            :anuncio="anuncio" 
-                            @reserve="handleReservar"
-                            @report="handleReport"
-                        />
+                        <AnuncioDetail :anuncio="anuncio" @reserve="handleReservar" @report="handleReport" />
                     </div>
 
                     <!-- Similar Items Sidebar -->
@@ -209,7 +205,26 @@ export default {
             }
         },
         async handleReservar() {
-            alert('Função de reserva a ser implementada!');
+            try {
+                const token = sessionStorage.getItem('token');
+                if (!token) {
+                    alert('Por favor, faça login para reservar este produto');
+                    return;
+                }
+
+                const confirmacao = confirm('Tem certeza que deseja reservar este produto?');
+                if (!confirmacao) return;
+
+                const response = await anunciosService.reserveAnuncio(this.anuncio.IdAnuncio);
+
+                // Update local state with the complete updated anuncio
+                this.anuncio = response.data;
+
+                alert(`Produto reservado com sucesso! \nO código de verificação é: ${response.data.CodigoVerificacao}\nGuarde este código, pois será necessário para a recolha do produto.`);
+            } catch (error) {
+                console.error('Erro ao reservar:', error);
+                alert('Erro ao reservar o produto. Por favor, tente novamente.');
+            }
         },
     },
     created() {

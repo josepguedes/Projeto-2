@@ -118,7 +118,7 @@ const updateAnuncio = async (req, res, next) => {
             throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
         }
 
-        // Permitir apenas atualização de campos específicos
+        // Lista de campos permitidos para atualização
         const allowedUpdates = [
             'Nome',
             'Descricao',
@@ -128,7 +128,11 @@ const updateAnuncio = async (req, res, next) => {
             'DataValidade',
             'Quantidade',
             'IdProdutoCategoria',
-            'ImagemAnuncio'
+            'ImagemAnuncio',
+            'IdEstadoAnuncio',
+            'IdUtilizadorReserva',
+            'DataReserva',
+            'CodigoVerificacao'
         ];
 
         const updateData = {};
@@ -139,9 +143,19 @@ const updateAnuncio = async (req, res, next) => {
         });
 
         await anuncio.update(updateData);
+        
+        // Buscar o anúncio atualizado com os relacionamentos
+        const anuncioAtualizado = await Anuncio.findByPk(req.params.id, {
+            include: [{
+                model: db.Utilizador,
+                as: 'utilizador',
+                attributes: ['Nome', 'ImagemPerfil', 'Classificacao']
+            }]
+        });
+
         res.status(200).json({
             message: 'Anúncio atualizado com sucesso',
-            data: anuncio
+            data: anuncioAtualizado
         });
     } catch (err) {
         next(err);
