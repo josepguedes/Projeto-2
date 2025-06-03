@@ -116,32 +116,33 @@ const createAnuncio = async (req, res, next) => {
 const updateAnuncio = async (req, res, next) => {
     try {
         const anuncio = await Anuncio.findByPk(req.params.id);
-
+        
         if (!anuncio) {
             throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
         }
 
-        // Permitir apenas atualização de campos específicos
+        // Permitir atualização de campos específicos
         const allowedUpdates = [
-            'Nome',
-            'Descricao',
-            'LocalRecolha',
-            'HorarioRecolha',
-            'Preco',
-            'DataValidade',
-            'Quantidade',
-            'IdProdutoCategoria',
-            'ImagemAnuncio'
+            'IdEstadoAnuncio',
+            'CodigoVerificacao',
+            'IdUtilizadorReserva',
+            'DataReserva'
         ];
 
         const updateData = {};
         Object.keys(req.body).forEach(key => {
             if (allowedUpdates.includes(key)) {
-                updateData[key] = req.body[key];
+                if (key === 'DataReserva') {
+                    // Garantir que a data está no formato correto
+                    updateData[key] = new Date(req.body[key]);
+                } else {
+                    updateData[key] = req.body[key];
+                }
             }
         });
 
         await anuncio.update(updateData);
+
         res.status(200).json({
             message: 'Anúncio atualizado com sucesso',
             data: anuncio

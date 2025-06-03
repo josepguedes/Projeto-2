@@ -24,11 +24,7 @@
                 <div class="row g-4">
                     <!-- Main Content -->
                     <div class="col-lg-8">
-                        <AnuncioDetail 
-                            :anuncio="anuncio" 
-                            @reserve="handleReservar"
-                            @report="handleReport"
-                        />
+                        <AnuncioDetail :anuncio="anuncio" @reserve="handleReservar" @report="handleReport" />
                     </div>
 
                     <!-- Similar Items Sidebar -->
@@ -209,8 +205,40 @@ export default {
             }
         },
         async handleReservar() {
-            alert('Função de reserva a ser implementada!');
-        },
+            try {
+                const token = sessionStorage.getItem('token');
+                if (!token) {
+                    alert('Por favor, faça login para reservar o produto');
+                    this.$router.push('/login');
+                    return;
+                }
+
+                // Verifica se o anúncio já está reservado
+                if (this.anuncio.IdEstadoAnuncio === 2) {
+                    alert('Este produto já está reservado.');
+                    return;
+                }
+
+                // Verifica se o anúncio está expirado
+                if (this.anuncio.IdEstadoAnuncio === 3) {
+                    alert('Este produto está expirado.');
+                    return;
+                }
+
+                const confirmacao = confirm('Tem certeza que deseja reservar este produto?');
+                if (!confirmacao) return;
+
+                const response = await anunciosService.reservarAnuncio(this.anuncio.IdAnuncio);
+
+                if (response.data) {
+                    alert(`Produto reservado com sucesso!\nSeu código de verificação é: ${response.data.CodigoVerificacao}`);
+                    await this.fetchAnuncio(); // Atualiza os dados do anúncio
+                }
+            } catch (error) {
+                console.error('Erro ao reservar:', error);
+                alert(error.message || 'Erro ao reservar o produto. Por favor, tente novamente.');
+            }
+        }
     },
     created() {
         this.fetchAnuncio();
