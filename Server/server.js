@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const multerErrorHandler = require('./middleware/multerErrorHandler');
 
 // read environment variables from .env file
 require('dotenv').config();
@@ -24,6 +25,7 @@ app.use((req, res, next) => {
 
 
 // middleware for CORS (Cross-Origin Resource Sharing)
+app.use(multerErrorHandler);
 app.use('/anuncios', require('./routes/anuncios.routes.js'));
 app.use('/denuncias', require('./routes/denuncias.routes.js'));
 app.use('/avaliacoes', require('./routes/avaliacoes.routes.js'));

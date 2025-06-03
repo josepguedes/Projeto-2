@@ -1,17 +1,17 @@
 const express = require('express');
 const router = express.Router();
+const { upload } = require('../config/cloudinaryConfig');
+const utilizadoresController = require('../controllers/utilizadores.controllers');
 
-// Importa os controladores de utilizador
-const utilizadoresController = require('../controllers/utilizadores.controllers.js');
 
 // Rota para registar novo utilizador
-router.post('/', utilizadoresController.createUser);
+router.post('/', upload.single('ImagemPerfil'), utilizadoresController.createUser);
 
 // Rota para login de utilizador
 router.post('/login', utilizadoresController.loginUser);
 
 //Rota para editar utilizador
-router.put('/:id', utilizadoresController.updateUser);
+router.put('/:id', upload.single('ImagemPerfil'), utilizadoresController.updateUser);
 
 // Listar todos os utilizadores
 router.get('/', utilizadoresController.getAllUsers);

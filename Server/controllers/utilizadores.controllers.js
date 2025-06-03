@@ -3,31 +3,60 @@ const Utilizador = db.Utilizador;
 const { ErrorHandler } = require("../utils/error.js");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const { cloudinary, uploadToCloudinary } = require('../config/cloudinaryConfig');
 
 // Função para criar um novo utilizador
 const createUser = async (req, res, next) => {
     try {
         const { Nome, Email, Password } = req.body;
 
-        // Verifica campos obrigatórios
+        // Validate required fields
         if (!Nome || !Email || !Password) {
             throw new ErrorHandler(400, "Nome, Email e Password são obrigatórios.");
         }
 
-        // Verifica se o email já existe
+        // Check if email exists
         const existingUser = await Utilizador.findOne({ where: { Email } });
         if (existingUser) {
             throw new ErrorHandler(409, "Email já registado.");
         }
 
-        // Hash da password
+        // Hash password
         const hashedPassword = await bcrypt.hash(Password, 10);
 
-        // Cria o utilizador
+        let imagemPerfilUrl = null;
+        let cloudinaryId = null;
+
+        if (req.file) {
+            try {
+                // Delete old image if exists
+                if (utilizador.CloudinaryId) {
+                    console.log('Deleting old image:', utilizador.CloudinaryId);
+                    await cloudinary.uploader.destroy(utilizador.CloudinaryId);
+                }
+
+                // Upload new image
+                const result = await uploadToCloudinary(req.file);
+                utilizador.ImagemPerfil = result.secure_url;
+                utilizador.CloudinaryId = result.public_id;
+
+                console.log('New image uploaded:', {
+                    url: result.secure_url,
+                    id: result.public_id
+                });
+            } catch (error) {
+                console.error('Error handling image:', error);
+                throw new ErrorHandler(500, "Erro ao fazer upload da imagem");
+            }
+        }
+
+        // Create user
         const novoUtilizador = await Utilizador.create({
             Nome,
             Email,
-            Password: hashedPassword
+            Password: hashedPassword,
+            ImagemPerfil: imagemPerfilUrl,
+            CloudinaryId: cloudinaryId
         });
 
         res.status(201).json({
@@ -35,7 +64,8 @@ const createUser = async (req, res, next) => {
             data: {
                 IdUtilizador: novoUtilizador.IdUtilizador,
                 Nome: novoUtilizador.Nome,
-                Email: novoUtilizador.Email
+                Email: novoUtilizador.Email,
+                ImagemPerfil: novoUtilizador.ImagemPerfil
             }
         });
     } catch (err) {
@@ -92,10 +122,10 @@ const getUserDetails = async (req, res, next) => {
     try {
         const utilizador = await Utilizador.findByPk(req.params.id, {
             attributes: [
-                'IdUtilizador', 
-                'Nome', 
-                'ImagemPerfil', 
-                'Email', 
+                'IdUtilizador',
+                'Nome',
+                'ImagemPerfil',
+                'Email',
                 'Funcao',
                 'Nif',
                 'DataNascimento',
@@ -111,7 +141,8 @@ const getUserDetails = async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-};
+}
+
 const getAllUsers = async (req, res, next) => {
     try {
         const utilizadores = await Utilizador.findAll({
@@ -132,20 +163,34 @@ const getAllUsers = async (req, res, next) => {
 
 const updateUser = async (req, res, next) => {
     try {
-        const { Nome, Email, Password, ImagemPerfil, Funcao} = req.body;
+        const { Nome, Email, Password } = req.body;
         const utilizadorId = req.params.id;
 
-        // Verifica se o utilizador existe
         const utilizador = await Utilizador.findByPk(utilizadorId);
         if (!utilizador) {
             throw new ErrorHandler(404, "Utilizador não encontrado.");
         }
 
-        // Atualiza os campos do utilizador
+        // Handle image update if there's a file
+        if (req.file) {
+            try {
+                // Delete old image if exists
+                if (utilizador.CloudinaryId) {
+                    await cloudinary.uploader.destroy(utilizador.CloudinaryId);
+                }
+
+                // Upload new image using the utility function
+                const result = await uploadToCloudinary(req.file);
+                utilizador.ImagemPerfil = result.secure_url;
+                utilizador.CloudinaryId = result.public_id;
+            } catch (error) {
+                throw new ErrorHandler(500, "Erro ao fazer upload da imagem");
+            }
+        }
+
+        // Update other fields
         utilizador.Nome = Nome || utilizador.Nome;
         utilizador.Email = Email || utilizador.Email;
-        utilizador.ImagemPerfil = ImagemPerfil || utilizador.ImagemPerfil;
-        utilizador.Funcao = Funcao || utilizador.Funcao;
         if (Password) {
             utilizador.Password = await bcrypt.hash(Password, 10);
         }
@@ -158,7 +203,6 @@ const updateUser = async (req, res, next) => {
                 IdUtilizador: utilizador.IdUtilizador,
                 Nome: utilizador.Nome,
                 Email: utilizador.Email,
-                Funcao: utilizador.Funcao,
                 ImagemPerfil: utilizador.ImagemPerfil
             }
         });

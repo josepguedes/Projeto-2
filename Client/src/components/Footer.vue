@@ -49,6 +49,7 @@ import { RouterLink } from "vue-router";
 .footer {
     margin-top: auto;
     border-top: 1px solid #e9ecef;
+    z-index: 1000 !important;
 }
 
 .footer-link {

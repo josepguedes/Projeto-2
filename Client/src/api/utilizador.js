@@ -24,7 +24,7 @@ export const utilizadorService = {
 
         return response.json();
     },
-    
+
     async getUserDetails(userId) {
         const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/utilizadores/${userId}`, {
@@ -40,25 +40,29 @@ export const utilizadorService = {
         return response.json();
     },
 
-    async updateUser(userId, utilizador) {
+    async updateUser(userId, formData) {
         const token = sessionStorage.getItem('token');
-        const response = await fetch(`${API_URL}/utilizadores/${userId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(utilizador)
-        });
+        try {
+            const response = await fetch(`${API_URL}/utilizadores/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                    // Don't set Content-Type - browser will set it with boundary
+                },
+                body: formData
+            });
 
-        if (!response.ok) {
-            const error = await response.json();
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Erro ao atualizar utilizador');
+            }
+
+            return response.json();
+        } catch (error) {
             throw new Error(error.message || 'Erro ao atualizar utilizador');
         }
-
-        return response.json();
     },
-    
+
     async getAllUsers() {
         const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/utilizadores`, {

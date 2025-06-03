@@ -5,7 +5,7 @@
                 <div class="col-lg-3 mb-4 sidebar">
                     <UserSidebar :userDetails="userDetails" />
                 </div>
-                <div class="col-lg-8">
+                <div class="col-lg-12 offset-lg-1">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2>Meus Anúncios</h2>
                         <button class="btn btn-primary" @click="openCreateModal">

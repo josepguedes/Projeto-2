@@ -110,16 +110,28 @@ export default {
                 const token = sessionStorage.getItem('token');
                 const payload = JSON.parse(atob(token.split('.')[1]));
 
-                await utilizadorService.updateUser(payload.IdUtilizador, this.formData);
+                // Criar FormData
+                const formData = new FormData();
+                formData.append('Nome', this.formData.Nome);
+                formData.append('Email', this.formData.Email);
+                if (this.formData.Password) {
+                    formData.append('Password', this.formData.Password);
+                }
+
+                // Adicionar arquivo de imagem se houver
+                const imageInput = document.getElementById('imageUpload');
+                if (imageInput.files[0]) {
+                    formData.append('ImagemPerfil', imageInput.files[0]);
+                }
+
+                await utilizadorService.updateUser(payload.IdUtilizador, formData);
 
                 this.message = {
                     type: 'success',
                     text: 'Perfil atualizado com sucesso!'
                 };
 
-                // Emitir evento global
                 window.dispatchEvent(new CustomEvent('profile-updated'));
-
                 this.$emit('profile-updated');
             } catch (error) {
                 console.error('Error updating profile:', error);
