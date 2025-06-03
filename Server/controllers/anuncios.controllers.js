@@ -28,7 +28,7 @@ const getAllAnuncios = async (req, res, next) => {
         }
 
         // Add status filter to only show active listings
-        where.IdEstadoAnuncio = 1; // Active status
+        //where.IdEstadoAnuncio = 1; // Active status
 
         const anuncios = await Anuncio.findAndCountAll({
             where,
