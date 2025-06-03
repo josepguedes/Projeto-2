@@ -61,6 +61,25 @@ export const anunciosService = {
             const payload = JSON.parse(atob(token.split('.')[1]));
             const userId = payload.IdUtilizador;
 
+            // Usar FormData para enviar imagem
+            const formData = new FormData();
+            formData.append('IdUtilizadorAnuncio', userId);
+            formData.append('Nome', anuncioData.Nome);
+            formData.append('Descricao', anuncioData.Descricao);
+            formData.append('LocalRecolha', anuncioData.LocalRecolha);
+            formData.append('HorarioRecolha', anuncioData.HorarioRecolha);
+            formData.append('Preco', anuncioData.Preco);
+            formData.append('DataRecolha', anuncioData.DataRecolha);
+            formData.append('DataValidade', anuncioData.DataValidade);
+            formData.append('Quantidade', anuncioData.Quantidade);
+            formData.append('IdProdutoCategoria', anuncioData.IdProdutoCategoria);
+            formData.append('IdEstadoAnuncio', 1);
+
+            // Só adiciona imagem se existir
+            if (anuncioData.ImagemAnuncio) {
+                formData.append('ImagemAnuncio', anuncioData.ImagemAnuncio);
+            }
+
             const response = await fetch(`${API_URL}/anuncios`, {
                 method: 'POST',
                 headers: {
@@ -95,6 +114,4 @@ export const anunciosService = {
         }
         return true;
     },
-
-
 };
