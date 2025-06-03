@@ -1,7 +1,7 @@
 const API_URL = 'http://localhost:3000'; // Ajuste para a URL do seu backend
 
 export const anunciosService = {
-    async getAllAnuncios(page = 1, limit = 10, filters = {}) {
+    async getAllAnuncios(page = 1, limit = 12, filters = {}) {
         try {
             const queryParams = new URLSearchParams({
                 page: String(page),
@@ -22,8 +22,7 @@ export const anunciosService = {
                 throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
-            return data;
+            return response.json();
         } catch (error) {
             console.error('Error fetching anuncios:', error);
             throw new Error(`Erro ao buscar anúncios: ${error.message}`);

@@ -1,33 +1,22 @@
 <template>
   <div class="landing-page">
-    <!-- Header and Search Section -->
-    <header class="text-center py-4">
-      <h1 class="display-4 font-weight-bold text-primary">FoodShare</h1>
-      <p class="lead mt-2">Partilha alimentos. Encontra o que precisas</p>
-
-      <!-- Search Bar -->
-      <div class="container mt-4">
-        <div class="row justify-content-center">
-          <div class="col-md-6">
-            <div class="input-group mb-3">
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Procurar alimentos..."
-                v-model="searchTerm"
-                @input="handleSearch"
-              />
-              <button class="btn btn-primary" type="button">Procurar</button>
-            </div>
+    <div class="container">
+      <!-- Search Section -->
+      <div class="search-section text-center mb-5">
+        <h1 class="display-4 mb-4 title">Encontre Produtos Próximos</h1>
+        <div class="search-bar mx-auto">
+          <div class="input-group">
+            <input type="text" class="form-control" v-model="searchTerm" @keyup.enter="handleSearch"
+              placeholder="Pesquisar produtos...">
+            <button class="btn btn-primary" @click="handleSearch">
+              <i class="bi bi-search"></i>
+            </button>
           </div>
         </div>
       </div>
-    </header>
 
-    <!-- Main Content -->
-    <main class="container mt-4">
       <!-- Loading State -->
-      <div v-if="loading" class="text-center">
+      <div v-if="loading" class="text-center py-5">
         <div class="spinner-border text-primary" role="status">
           <span class="visually-hidden">Carregando...</span>
         </div>
@@ -41,62 +30,44 @@
       <!-- Content -->
       <div v-else class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
         <div v-for="anuncio in anuncios" :key="anuncio.IdAnuncio" class="col">
-          <FoodCard
-            :food="{
-              id: anuncio.IdAnuncio, // Add this line to pass the ID
-              name: anuncio.Nome,
-              location: anuncio.LocalRecolha,
-              date: formatDate(anuncio.DataRecolha),
-              price: formatPrice(anuncio.Preco),
-              image: anuncio.ImagemAnuncio || 'https://via.placeholder.com/500',
-            }"
-          />
+          <FoodCard :food="{
+            id: anuncio.IdAnuncio,
+            name: anuncio.Nome,
+            location: anuncio.LocalRecolha,
+            date: formatDate(anuncio.DataRecolha),
+            price: formatPrice(anuncio.Preco),
+            image: anuncio.ImagemAnuncio || 'https://via.placeholder.com/500',
+          }" />
         </div>
       </div>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="d-flex justify-content-center mt-4">
-        <nav aria-label="Page navigation">
-          <ul class="pagination">
-            <li class="page-item" :class="{ disabled: currentPage === 1 }">
-              <a
-                class="page-link"
-                href="#"
-                @click.prevent="changePage(currentPage - 1)"
-                >Anterior</a
-              >
-            </li>
-            <li
-              v-for="page in totalPages"
-              :key="page"
-              class="page-item"
-              :class="{ active: page === currentPage }"
-            >
-              <a class="page-link" href="#" @click.prevent="changePage(page)">{{
-                page
-              }}</a>
-            </li>
-            <li
-              class="page-item"
-              :class="{ disabled: currentPage === totalPages }"
-            >
-              <a
-                class="page-link"
-                href="#"
-                @click.prevent="changePage(currentPage + 1)"
-                >Próxima</a
-              >
-            </li>
-          </ul>
-        </nav>
-      </div>
-    </main>
+      <nav v-if="links && links.length > 0" aria-label="Page navigation" class="my-4">
+        <ul class="pagination justify-content-center">
+          <li class="page-item" :class="{ disabled: !hasPreviousPage }">
+            <a class="page-link" href="#" @click.prevent="navigateToPage('pagina-anterior')" aria-label="Previous">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+
+          <li class="page-item active">
+            <span class="page-link">{{ currentPage }}</span>
+          </li>
+
+          <li class="page-item" :class="{ disabled: !hasNextPage }">
+            <a class="page-link" href="#" @click.prevent="navigateToPage('proxima-pagina')" aria-label="Next">
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
   </div>
 </template>
 
 <script>
-import FoodCard from "@/components/FoodCard.vue";
 import { anunciosService } from "@/api/anuncio";
+import FoodCard from "@/components/FoodCard.vue";
 
 export default {
   name: "LandingPage",
@@ -110,9 +81,17 @@ export default {
       loading: true,
       error: null,
       currentPage: 1,
-      totalPages: 1,
-      itemsPerPage: 12,
+      links: [],
+      itemsPerPage: 12
     };
+  },
+  computed: {
+    hasPreviousPage() {
+      return this.links.some(link => link.rel === 'pagina-anterior');
+    },
+    hasNextPage() {
+      return this.links.some(link => link.rel === 'proxima-pagina');
+    }
   },
   methods: {
     async fetchAnuncios() {
@@ -120,17 +99,26 @@ export default {
         this.loading = true;
         this.error = null;
         const filters = this.searchTerm ? { nome: this.searchTerm } : {};
+
         const response = await anunciosService.getAllAnuncios(
           this.currentPage,
           this.itemsPerPage,
           filters
         );
+
         this.anuncios = response.data;
-        this.totalPages = response.totalPages;
+        this.links = response.links;
         this.currentPage = response.currentPage;
+
+        // Atualizar a URL com os parâmetros de paginação
+        this.$router.push({
+          query: {
+            ...this.$route.query,
+            page: this.currentPage
+          }
+        });
       } catch (err) {
-        this.error =
-          "Erro ao carregar os anúncios. Por favor, tente novamente.";
+        this.error = "Erro ao carregar os anúncios. Por favor, tente novamente.";
         console.error("Erro:", err);
       } finally {
         this.loading = false;
@@ -154,22 +142,43 @@ export default {
       this.currentPage = 1;
       await this.fetchAnuncios();
     },
-    async changePage(page) {
-      if (page < 1 || page > this.totalPages) return;
-      this.currentPage = page;
-      await this.fetchAnuncios();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
+    async navigateToPage(rel) {
+      const link = this.links.find(l => l.rel === rel);
+      if (link) {
+        const url = new URL(link.href, window.location.origin);
+        const page = url.searchParams.get('page');
+        if (page) {
+          this.currentPage = parseInt(page);
+          await this.fetchAnuncios();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      }
+    }
   },
   async created() {
+    // Recuperar a página da URL se existir
+    const page = parseInt(this.$route.query.page);
+    if (page && !isNaN(page)) {
+      this.currentPage = page;
+    }
     await this.fetchAnuncios();
   },
+  watch: {
+    // Observar mudanças na rota para atualizar a página quando necessário
+    '$route.query.page'(newPage) {
+      const page = parseInt(newPage);
+      if (page && !isNaN(page) && page !== this.currentPage) {
+        this.currentPage = page;
+        this.fetchAnuncios();
+      }
+    }
+  }
 };
 </script>
 
 <style scoped>
 .landing-page {
-  padding-top: 120px;
+  padding-top: 100px;
   padding-bottom: 120px;
   min-height: 100vh;
   background-color: #f8f9fa;
@@ -193,5 +202,64 @@ export default {
 .spinner-border {
   width: 3rem;
   height: 3rem;
+}
+
+.search-section {
+  background: #fff;
+  margin-bottom: 120px !important;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+  padding: 2.5rem 1.5rem 2rem 1.5rem;
+  margin-top: 2rem;
+}
+
+.search-bar {
+  max-width: 500px;
+  width: 100%;
+}
+
+.input-group {
+  border-radius: 50px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  background: #f1f3f6;
+}
+
+.form-control {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: 1.15rem;
+  padding: 1rem 1.25rem;
+  outline: none;
+  box-shadow: none;
+}
+
+.form-control:focus {
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+.btn-primary {
+  border-radius: 0 50px 50px 0;
+  padding: 0 1.5rem;
+  font-size: 1.25rem;
+  background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+  border: none;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%);
+}
+
+.title {
+  font-weight: 700;
+  letter-spacing: -1px;
+  color: #33A58C;
 }
 </style>
