@@ -132,11 +132,7 @@ export default {
         handleImageUpload(event) {
             const file = event.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    this.formData.ImagemAnuncio = e.target.result;
-                };
-                reader.readAsDataURL(file);
+                this.formData.ImagemAnuncio = file;
             }
         },
         // In CreateAnuncio.vue, update the handleSubmit method
