@@ -18,7 +18,10 @@ export default {
             currentUserId: null,
             currentPage: 1,
             pollingInterval: null,
-            pollTime: 2500
+            pollTime: 2500,
+            lastScrollPosition: 0,
+            isUserScrolling: false,
+            shouldScrollToBottom: true
         }
     },
     methods: {
@@ -53,6 +56,15 @@ export default {
         async selectConversation(conversation) {
             this.activeConversation = conversation;
             await this.fetchMessages();
+
+            // Force scroll to bottom after conversation selection
+            this.$nextTick(() => {
+                const container = this.$refs.messagesContainer;
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            });
+
             this.startPolling();
         },
         startPolling() {
@@ -60,7 +72,7 @@ export default {
                 clearInterval(this.pollingInterval);
             }
             this.pollingInterval = setInterval(async () => {
-                if (this.activeConversation) {
+                if (this.activeConversation && !this.isUserScrolling) {
                     await this.fetchMessages();
                 }
             }, this.pollTime);
@@ -79,18 +91,49 @@ export default {
                 }
                 const data = await response.json();
 
-                this.messages = data.data.sort((a, b) => {
+                // Store current scroll position before updating messages
+                const container = this.$refs.messagesContainer;
+                const wasAtBottom = container && (container.scrollHeight - container.scrollTop - container.clientHeight < 100);
+                const previousScrollTop = container?.scrollTop;
+
+                // Store current messages state
+                const currentMessages = this.messages || [];
+                const newMessages = data.data.sort((a, b) => {
                     const dateA = new Date(a.DataEnvio + ' ' + a.HoraEnvio);
                     const dateB = new Date(b.DataEnvio + ' ' + b.HoraEnvio);
                     return dateA - dateB;
-                }).map(msg => ({
-                    ...msg,
-                    showDelete: false
-                }));
-
-                this.$nextTick(() => {
-                    this.scrollToBottom();
                 });
+
+                // Check if there are actually new messages
+                const hasNewMessages = newMessages.some(newMsg =>
+                    !currentMessages.find(msg => msg.IdMensagem === newMsg.IdMensagem)
+                );
+
+                // Update messages while preserving hover states
+                this.messages = newMessages.map(newMsg => {
+                    const existingMsg = currentMessages.find(msg => msg.IdMensagem === newMsg.IdMensagem);
+                    return {
+                        ...newMsg,
+                        showDelete: existingMsg ? existingMsg.showDelete : false
+                    };
+                });
+
+                // Handle scrolling after messages update
+                this.$nextTick(() => {
+                    if (container) {
+                        if (!currentMessages.length) {
+                            // First load - scroll to bottom
+                            container.scrollTop = container.scrollHeight;
+                        } else if (hasNewMessages && wasAtBottom) {
+                            // New messages and was at bottom - scroll to bottom
+                            container.scrollTop = container.scrollHeight;
+                        } else if (!hasNewMessages && previousScrollTop) {
+                            // No new messages - maintain scroll position
+                            container.scrollTop = previousScrollTop;
+                        }
+                    }
+                });
+
             } catch (err) {
                 console.error('Erro ao carregar mensagens:', err);
             }
@@ -140,9 +183,28 @@ export default {
         },
         scrollToBottom() {
             const container = this.$refs.messagesContainer;
-            if (container) {
+            if (container && !this.isUserScrolling) {
                 container.scrollTop = container.scrollHeight;
             }
+        },
+        handleScroll(event) {
+            const container = event.target;
+            this.isUserScrolling = true;
+            this.shouldScrollToBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+            // Reset user scrolling flag after a delay
+            clearTimeout(this.scrollTimeout);
+            this.scrollTimeout = setTimeout(() => {
+                this.isUserScrolling = false;
+            }, 1000);
+        },
+
+        handleMouseEnter(message) {
+            message.showDelete = true;
+        },
+
+        handleMouseLeave(message) {
+            message.showDelete = false;
         },
         formatTime(time) {
             return time ? time.substring(0, 5) : '';
@@ -177,6 +239,10 @@ export default {
         this.fetchConversations();
     },
     mounted() {
+        const container = this.$refs.messagesContainer;
+        if (container) {
+            container.addEventListener('scroll', this.handleScroll);
+        }
         window.addEventListener('open-messages', (event) => {
             this.isMessagesSidebarOpen = true;
 
@@ -188,6 +254,14 @@ export default {
                 this.selectConversation(conversation);
             }
         });
+    },
+    beforeDestroy() {
+        const container = this.$refs.messagesContainer;
+        if (container) {
+            container.removeEventListener('scroll', this.handleScroll);
+        }
+        clearTimeout(this.scrollTimeout);
+        this.stopPolling();
     },
     beforeDestroy() {
         this.stopPolling();
@@ -233,15 +307,16 @@ export default {
                     </div>
                 </div>
 
-                <div class="chat-messages p-3" ref="messagesContainer">
-                    <template v-for="(messages, date) in groupMessagesByDate(messages)" :key="date">
+                <!-- Replace the existing chat-messages div with this: -->
+                <div class="chat-messages p-3" ref="messagesContainer" @scroll="handleScroll">
+                    <template v-for="(messageGroup, date) in groupMessagesByDate(messages)" :key="date">
                         <div class="date-divider">
                             <span class="date-label">{{ date }}</span>
                         </div>
-                        <div v-for="message in messages" :key="message.IdMensagem" class="message-wrapper"
-                            :class="{ 'message-sent': message.IdRemetente === currentUserId }">
-                            <div class="message-bubble-container" @mouseover="message.showDelete = true"
-                                @mouseleave="message.showDelete = false">
+                        <div v-for="message in messageGroup" :key="message.IdMensagem" class="message-wrapper"
+                            :class="{ 'message-sent': message.IdRemetente === currentUserId }"
+                            @mouseenter="handleMouseEnter(message)" @mouseleave="handleMouseLeave(message)">
+                            <div class="message-bubble-container">
                                 <div class="message-bubble">
                                     {{ message.Conteudo }}
                                     <div class="message-time">
