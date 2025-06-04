@@ -1,18 +1,32 @@
 const API_URL = "http://localhost:3000"; // Ajuste para a URL do seu backend
 
 export const anunciosService = {
-  async getAllAnuncios(page = 1, limit = 10, filters = {}) {
-    const queryParams = new URLSearchParams({
-      page,
-      limit,
-      ...filters,
-    });
+  async getAllAnuncios(page = 1, limit = 12, filters = {}) {
+    try {
+      const queryParams = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        ...filters,
+      });
 
-    const response = await fetch(`${API_URL}/anuncios?${queryParams}`);
-    if (!response.ok) {
-      throw new Error("Erro ao buscar anúncios");
+      const response = await fetch(`${API_URL}/anuncios?${queryParams}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("Error fetching anuncios:", error);
+      throw new Error(`Erro ao buscar anúncios: ${error.message}`);
     }
-    return response.json();
   },
 
   async getAnuncioById(id) {
@@ -29,9 +43,7 @@ export const anunciosService = {
       limit,
     });
 
-    const response = await fetch(
-      `${API_URL}/anuncios/utilizador/${userId}?${queryParams}`
-    );
+    const response = await fetch(`${API_URL}/anuncios/utilizador/${userId}?${queryParams}`);
     if (!response.ok) {
       throw new Error("Erro ao buscar anúncios do utilizador");
     }
@@ -45,39 +57,32 @@ export const anunciosService = {
         throw new Error("Token não encontrado");
       }
 
-      // Get user ID from token
       const payload = JSON.parse(atob(token.split(".")[1]));
       const userId = payload.IdUtilizador;
 
-      // Format the data before sending test
-      const formattedData = {
-        IdUtilizadorAnuncio: userId,
-        Nome: anuncioData.Nome,
-        Descricao: anuncioData.Descricao,
-        LocalRecolha: anuncioData.LocalRecolha,
-        HorarioRecolha: anuncioData.HorarioRecolha,
-        Preco: parseFloat(anuncioData.Preco),
-        DataRecolha: new Date(anuncioData.DataRecolha)
-          .toISOString()
-          .split("T")[0],
-        DataValidade: new Date(anuncioData.DataValidade)
-          .toISOString()
-          .split("T")[0],
-        Quantidade: parseInt(anuncioData.Quantidade),
-        IdProdutoCategoria: parseInt(anuncioData.IdProdutoCategoria),
-        ImagemAnuncio: anuncioData.ImagemAnuncio || "https://placehold.co/500",
-        IdEstadoAnuncio: 1,
-      };
+      const formData = new FormData();
+      formData.append("IdUtilizadorAnuncio", userId);
+      formData.append("Nome", anuncioData.Nome);
+      formData.append("Descricao", anuncioData.Descricao);
+      formData.append("LocalRecolha", anuncioData.LocalRecolha);
+      formData.append("HorarioRecolha", anuncioData.HorarioRecolha);
+      formData.append("Preco", anuncioData.Preco);
+      formData.append("DataRecolha", anuncioData.DataRecolha);
+      formData.append("DataValidade", anuncioData.DataValidade);
+      formData.append("Quantidade", anuncioData.Quantidade);
+      formData.append("IdProdutoCategoria", anuncioData.IdProdutoCategoria);
+      formData.append("IdEstadoAnuncio", 1);
 
-      console.log("Sending data:", formattedData);
+      if (anuncioData.ImagemAnuncio) {
+        formData.append("ImagemAnuncio", anuncioData.ImagemAnuncio);
+      }
 
       const response = await fetch(`${API_URL}/anuncios`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formattedData),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -86,8 +91,7 @@ export const anunciosService = {
         throw new Error(errorData.message || "Erro ao criar anúncio");
       }
 
-      const data = await response.json();
-      return data;
+      return response.json();
     } catch (error) {
       console.error("API Error:", error);
       throw new Error(`Erro ao criar anúncio: ${error.message}`);
@@ -104,14 +108,12 @@ export const anunciosService = {
       const payload = JSON.parse(atob(token.split(".")[1]));
       const userId = payload.IdUtilizador;
 
-      // Generate verification code
       const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
       let codigoVerificacao = "";
       for (let i = 0; i < 6; i++) {
         codigoVerificacao += chars[Math.floor(Math.random() * chars.length)];
       }
 
-      // Criar data atual e adicionar 1 hora
       const now = new Date();
       now.setHours(now.getHours() + 1);
 
@@ -122,7 +124,7 @@ export const anunciosService = {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          IdEstadoAnuncio: 2, // Estado "Reservado"
+          IdEstadoAnuncio: 2,
           CodigoVerificacao: codigoVerificacao,
           IdUtilizadorReserva: userId,
           DataReserva: now.toISOString(),
@@ -139,5 +141,20 @@ export const anunciosService = {
       console.error("API Error:", error);
       throw error;
     }
+  },
+
+  async deleteAnuncio(id) {
+    const token = sessionStorage.getItem("token");
+    const response = await fetch(`${API_URL}/anuncios/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok && response.status !== 204) {
+      throw new Error("Erro ao eliminar anúncio");
+    }
+    return true;
   },
 };

@@ -121,8 +121,33 @@ const updateAnuncio = async (req, res, next) => {
             throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
         }
 
-        // Permitir atualização de campos específicos
+        // Processar imagem se enviada
+        if (req.file) {
+            try {
+                // Deleta imagem anterior, se existir
+                if (anuncio.CloudinaryId) {
+                    await cloudinary.uploader.destroy(anuncio.CloudinaryId);
+                }
+
+                // Faz upload da nova imagem
+                const result = await uploadToCloudinary(req.file);
+                anuncio.ImagemAnuncio = result.secure_url;
+                anuncio.CloudinaryId = result.public_id;
+            } catch (error) {
+                throw new ErrorHandler(500, "Erro ao fazer upload da imagem");
+            }
+        }
+
+        // Campos permitidos para atualização (junção das duas versões)
         const allowedUpdates = [
+            'Nome',
+            'Descricao',
+            'LocalRecolha',
+            'HorarioRecolha',
+            'Preco',
+            'DataValidade',
+            'Quantidade',
+            'IdProdutoCategoria',
             'IdEstadoAnuncio',
             'CodigoVerificacao',
             'IdUtilizadorReserva',
@@ -132,16 +157,16 @@ const updateAnuncio = async (req, res, next) => {
         const updateData = {};
         Object.keys(req.body).forEach(key => {
             if (allowedUpdates.includes(key)) {
-                if (key === 'DataReserva') {
-                    // Garantir que a data está no formato correto
-                    updateData[key] = new Date(req.body[key]);
-                } else {
-                    updateData[key] = req.body[key];
-                }
+                updateData[key] = (key === 'DataReserva') ? new Date(req.body[key]) : req.body[key];
             }
         });
 
-        await anuncio.update(updateData);
+        // Aplica atualizações no objeto
+        await anuncio.update({
+            ...updateData,
+            ImagemAnuncio: anuncio.ImagemAnuncio,
+            CloudinaryId: anuncio.CloudinaryId
+        });
 
         res.status(200).json({
             message: 'Anúncio atualizado com sucesso',
