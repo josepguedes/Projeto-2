@@ -1,7 +1,7 @@
 <template>
     <div class="card border-0 shadow-lg h-100 overflow-hidden">
         <div class="position-relative">
-            <img :src="anuncio.ImagemAnuncio || 'https://via.placeholder.com/500'" :alt="anuncio.Nome"
+            <img :src="anuncio.ImagemAnuncio" :alt="anuncio.Nome"
                 class="card-img-top product-image object-fit-cover">
             <div class="image-overlay"></div>
             <span class="position-absolute top-0 end-0 m-4 badge bg-primary px-4 py-2 rounded-pill fs-5 shadow-sm">
@@ -15,7 +15,7 @@
                 <h2 class="h3 mb-4 text-primary fw-bold">{{ anuncio.Nome }}</h2>
                 <div class="d-flex align-items-center gap-3 bg-light p-4 rounded-4">
                     <div class="position-relative">
-                        <img :src="anuncio.utilizador?.ImagemPerfil || 'https://via.placeholder.com/50'" alt="Profile"
+                        <img :src="anuncio.utilizador?.ImagemPerfil" alt="Profile"
                             class="rounded-circle profile-image">
                         <div class="profile-border"></div>
                     </div>
@@ -85,9 +85,9 @@
             <!-- Action Buttons -->
             <div class="d-flex gap-3">
                 <button class="btn btn-primary flex-grow-1 d-flex align-items-center justify-content-center action-btn"
-                    @click="$emit('reserve')" :disabled="anuncio.IdEstadoAnuncio !== 1">
+                    @click="$emit('reserve')" :disabled="anuncio.IdEstadoAnuncio !== 1 || isMyAnnouncement">
                     <i class="bi bi-bag-check me-2"></i>
-                    {{ getReserveButtonText() }}
+                    {{ getReserveButtonText }}
                 </button>
                 <button class="btn btn-outline-danger d-flex align-items-center justify-content-center action-btn"
                     @click="$emit('report')">
@@ -145,6 +145,20 @@ export default {
 
             const payload = JSON.parse(atob(token.split('.')[1]));
             return payload.IdUtilizador !== this.anuncio.IdUtilizadorAnuncio;
+        },
+        isMyAnnouncement() {
+            const token = sessionStorage.getItem('token');
+            if (!token) return false;
+
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return payload.IdUtilizador === this.anuncio.IdUtilizadorAnuncio;
+        },
+        getReserveButtonText() {
+            if (!this.anuncio) return 'Carregando...';
+            if (this.isMyAnnouncement) return 'Este é o teu anúncio';
+            if (this.anuncio.IdEstadoAnuncio === 2) return 'Já Reservado';
+            if (this.anuncio.IdEstadoAnuncio === 3) return 'Expirado';
+            return 'Reservar Produto';
         }
     },
     methods: {

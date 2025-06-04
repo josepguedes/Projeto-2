@@ -1,279 +1,328 @@
-const db = require('../models/db.js');
+const db = require("../models/db.js");
 const Anuncio = db.Anuncio;
-const { Op, Sequelize } = require('sequelize');
+const { Op, Sequelize } = require("sequelize");
 const { ErrorHandler } = require("../utils/error.js");
-const { cloudinary, uploadToCloudinary } = require('../config/cloudinaryConfig');
+const {
+  cloudinary,
+  uploadToCloudinary,
+} = require("../config/cloudinaryConfig");
 
 // Listar todos os anúncios com paginação e filtros
 const getAllAnuncios = async (req, res, next) => {
-    try {
-        const {
-            nome,
-            localRecolha,
-            exclude,
-            page = 1,
-            limit = 10
-        } = req.query;
-        const where = {};
+  try {
+    const { nome, localRecolha, exclude, page = 1, limit = 10 } = req.query;
+    const where = {};
 
-        if (nome && typeof nome === 'string') {
-            where.Nome = { [Op.like]: `%${nome}%` };
-        }
-        if (localRecolha && typeof localRecolha === 'string') {
-            where.LocalRecolha = { [Op.like]: `%${localRecolha}%` };
-        }
-        if (exclude && !isNaN(exclude)) {
-            where.IdAnuncio = { [Op.ne]: exclude };
-        }
-
-        const anuncios = await Anuncio.findAndCountAll({
-            where,
-            include: [
-                {
-                    model: db.Utilizador,
-                    as: 'utilizador',
-                    attributes: ['Nome', 'ImagemPerfil', 'Classificacao'],
-                    required: false
-                },
-                {
-                    model: db.EstadoAnuncio,
-                    as: 'estado',
-                    attributes: ['EstadoAnuncio'],
-                    required: false
-                }
-            ],
-            order: [['DataAnuncio', 'DESC']],
-            limit: Math.min(+limit || 10, 100),
-            offset: Math.max((+page - 1) || 0, 0) * (+limit || 10),
-        });
-
-        return res.status(200).json({
-            totalPages: Math.ceil((anuncios?.count || 0) / (+limit || 10)),
-            currentPage: +page || 1,
-            total: anuncios?.count || 0,
-            data: anuncios?.rows || [],
-            links: [
-                { rel: "criar-anuncio", href: "/anuncios", method: "POST" },
-                ...(page > 1 ? [{ rel: "pagina-anterior", href: `/anuncios?limit=${limit}&page=${page - 1}`, method: "GET" }] : []),
-                ...(anuncios?.count > page * limit ? [{ rel: "proxima-pagina", href: `/anuncios?limit=${limit}&page=${+page + 1}`, method: "GET" }] : [])
-            ]
-        });
-    } catch (err) {
-        console.error('Error in getAllAnuncios:', err);
-        next(new ErrorHandler(500, 'Erro ao buscar anúncios'));
+    if (nome && typeof nome === "string") {
+      where.Nome = { [Op.like]: `%${nome}%` };
     }
+    if (localRecolha && typeof localRecolha === "string") {
+      where.LocalRecolha = { [Op.like]: `%${localRecolha}%` };
+    }
+    if (exclude && !isNaN(exclude)) {
+      where.IdAnuncio = { [Op.ne]: exclude };
+    }
+
+    const anuncios = await Anuncio.findAndCountAll({
+      where,
+      include: [
+        {
+          model: db.Utilizador,
+          as: "utilizador",
+          attributes: ["Nome", "ImagemPerfil", "Classificacao"],
+          required: false,
+        },
+        {
+          model: db.EstadoAnuncio,
+          as: "estado",
+          attributes: ["EstadoAnuncio"],
+          required: false,
+        },
+      ],
+      order: [["DataAnuncio", "DESC"]],
+      limit: Math.min(+limit || 10, 100),
+      offset: Math.max(+page - 1 || 0, 0) * (+limit || 10),
+    });
+
+    return res.status(200).json({
+      totalPages: Math.ceil((anuncios?.count || 0) / (+limit || 10)),
+      currentPage: +page || 1,
+      total: anuncios?.count || 0,
+      data: anuncios?.rows || [],
+      links: [
+        { rel: "criar-anuncio", href: "/anuncios", method: "POST" },
+        ...(page > 1
+          ? [
+              {
+                rel: "pagina-anterior",
+                href: `/anuncios?limit=${limit}&page=${page - 1}`,
+                method: "GET",
+              },
+            ]
+          : []),
+        ...(anuncios?.count > page * limit
+          ? [
+              {
+                rel: "proxima-pagina",
+                href: `/anuncios?limit=${limit}&page=${+page + 1}`,
+                method: "GET",
+              },
+            ]
+          : []),
+      ],
+    });
+  } catch (err) {
+    console.error("Error in getAllAnuncios:", err);
+    next(new ErrorHandler(500, "Erro ao buscar anúncios"));
+  }
 };
 
 // Criar novo anúncio
 const createAnuncio = async (req, res, next) => {
-    try {
-        const requiredFields = [
-            'IdUtilizadorAnuncio',
-            'Nome',
-            'LocalRecolha',
-            'HorarioRecolha',
-            'DataRecolha',
-            'Descricao',
-            'Preco',
-            'DataValidade',
-            'Quantidade',
-            'IdProdutoCategoria'
-        ];
+  try {
+    const requiredFields = [
+      "IdUtilizadorAnuncio",
+      "Nome",
+      "LocalRecolha",
+      "HorarioRecolha",
+      "DataRecolha",
+      "Descricao",
+      "Preco",
+      "DataValidade",
+      "Quantidade",
+      "IdProdutoCategoria",
+    ];
 
-        const missingFields = requiredFields.filter(field => !req.body[field]);
-        if (missingFields.length > 0) {
-            throw new ErrorHandler(400, `Campos obrigatórios ausentes: ${missingFields.join(', ')}`);
-        }
-
-        let imagemAnuncioUrl = null;
-        let cloudinaryId = null;
-
-        if (req.file) {
-            try {
-                const result = await uploadToCloudinary(req.file);
-                imagemAnuncioUrl = result.secure_url;
-                cloudinaryId = result.public_id;
-            } catch (error) {
-                console.error('Cloudinary upload error:', error);
-                throw new ErrorHandler(500, "Erro ao fazer upload da imagem");
-            }
-        }
-
-        const anuncio = await Anuncio.create({
-            ...req.body,
-            DataAnuncio: new Date(),
-            IdEstadoAnuncio: 1,
-            ImagemAnuncio: imagemAnuncioUrl,
-            CloudinaryId: cloudinaryId
-        });
-
-        res.status(201).json({
-            message: 'Anúncio criado com sucesso',
-            data: anuncio,
-            links: [
-                { rel: "self", href: `/anuncios/${anuncio.IdAnuncio}`, method: "GET" },
-                { rel: "delete", href: `/anuncios/${anuncio.IdAnuncio}`, method: "DELETE" },
-                { rel: "modify", href: `/anuncios/${anuncio.IdAnuncio}`, method: "PUT" }
-            ]
-        });
-    } catch (err) {
-        console.error('Create anuncio error:', err);
-        next(err);
+    const missingFields = requiredFields.filter((field) => !req.body[field]);
+    if (missingFields.length > 0) {
+      throw new ErrorHandler(
+        400,
+        `Campos obrigatórios ausentes: ${missingFields.join(", ")}`
+      );
     }
+
+    let imagemAnuncioUrl = null;
+    let cloudinaryId = null;
+
+    if (req.file) {
+      try {
+        const result = await uploadToCloudinary(req.file);
+        imagemAnuncioUrl = result.secure_url;
+        cloudinaryId = result.public_id;
+      } catch (error) {
+        console.error("Cloudinary upload error:", error);
+        throw new ErrorHandler(500, "Erro ao fazer upload da imagem");
+      }
+    }
+
+    const anuncio = await Anuncio.create({
+      ...req.body,
+      DataAnuncio: new Date(),
+      IdEstadoAnuncio: 1,
+      ImagemAnuncio: imagemAnuncioUrl,
+      CloudinaryId: cloudinaryId,
+    });
+
+    res.status(201).json({
+      message: "Anúncio criado com sucesso",
+      data: anuncio,
+      links: [
+        { rel: "self", href: `/anuncios/${anuncio.IdAnuncio}`, method: "GET" },
+        {
+          rel: "delete",
+          href: `/anuncios/${anuncio.IdAnuncio}`,
+          method: "DELETE",
+        },
+        {
+          rel: "modify",
+          href: `/anuncios/${anuncio.IdAnuncio}`,
+          method: "PUT",
+        },
+      ],
+    });
+  } catch (err) {
+    console.error("Create anuncio error:", err);
+    next(err);
+  }
 };
 
 // Atualizar anúncio
 const updateAnuncio = async (req, res, next) => {
-    try {
-        const anuncio = await Anuncio.findByPk(req.params.id);
-        
-        if (!anuncio) {
-            throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
-        }
+  try {
+    const anuncio = await Anuncio.findByPk(req.params.id);
 
-        if (req.file) {
-            try {
-                if (anuncio.CloudinaryId) {
-                    await cloudinary.uploader.destroy(anuncio.CloudinaryId);
-                }
-
-                const result = await uploadToCloudinary(req.file);
-                anuncio.ImagemAnuncio = result.secure_url;
-                anuncio.CloudinaryId = result.public_id;
-            } catch (error) {
-                throw new ErrorHandler(500, "Erro ao fazer upload da imagem");
-            }
-        }
-
-        const allowedUpdates = [
-            'Nome',
-            'Descricao',
-            'LocalRecolha',
-            'HorarioRecolha',
-            'Preco',
-            'DataValidade',
-            'Quantidade',
-            'IdProdutoCategoria'
-        ];
-
-        const updateData = {};
-        Object.keys(req.body).forEach(key => {
-            if (allowedUpdates.includes(key)) {
-                updateData[key] = req.body[key];
-            }
-        });
-
-        await anuncio.update({
-            ...updateData,
-            ImagemAnuncio: anuncio.ImagemAnuncio,
-            CloudinaryId: anuncio.CloudinaryId
-        });
-
-        res.status(200).json({
-            message: 'Anúncio atualizado com sucesso',
-            data: anuncio
-        });
-    } catch (err) {
-        next(err);
+    if (!anuncio) {
+      throw new ErrorHandler(
+        404,
+        `Anúncio com ID ${req.params.id} não encontrado`
+      );
     }
+
+    if (req.file) {
+      try {
+        if (anuncio.CloudinaryId) {
+          await cloudinary.uploader.destroy(anuncio.CloudinaryId);
+        }
+
+        const result = await uploadToCloudinary(req.file);
+        anuncio.ImagemAnuncio = result.secure_url;
+        anuncio.CloudinaryId = result.public_id;
+      } catch (error) {
+        throw new ErrorHandler(500, "Erro ao fazer upload da imagem");
+      }
+    }
+
+    const allowedUpdates = [
+      "Nome",
+      "Descricao",
+      "LocalRecolha",
+      "HorarioRecolha",
+      "Preco",
+      "DataValidade",
+      "Quantidade",
+      "IdProdutoCategoria",
+      "IdEstadoAnuncio", // Adicionar estes
+      "CodigoVerificacao", // novos campos
+      "IdUtilizadorReserva", // permitidos
+      "DataReserva", //
+    ];
+
+    const updateData = {};
+    Object.keys(req.body).forEach((key) => {
+      if (allowedUpdates.includes(key)) {
+        updateData[key] = req.body[key];
+      }
+    });
+
+    await anuncio.update({
+      ...updateData,
+      ImagemAnuncio: anuncio.ImagemAnuncio,
+      CloudinaryId: anuncio.CloudinaryId,
+    });
+
+    res.status(200).json({
+      message: "Anúncio atualizado com sucesso",
+      data: anuncio,
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Deletar anúncio
 const deleteAnuncio = async (req, res, next) => {
-    try {
-        const result = await Anuncio.destroy({
-            where: { IdAnuncio: req.params.id }
-        });
+  try {
+    const result = await Anuncio.destroy({
+      where: { IdAnuncio: req.params.id },
+    });
 
-        if (result === 0) {
-            throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
-        }
-
-        res.status(204).json();
-    } catch (err) {
-        next(err);
+    if (result === 0) {
+      throw new ErrorHandler(
+        404,
+        `Anúncio com ID ${req.params.id} não encontrado`
+      );
     }
+
+    res.status(204).json();
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Obter anúncio por ID
 const getAnuncioById = async (req, res, next) => {
-    try {
-        const anuncio = await Anuncio.findByPk(req.params.id, {
-            include: [{
-                model: db.Utilizador,
-                as: 'utilizador',
-                attributes: ['Nome', 'ImagemPerfil', 'Classificacao'],
-                where: {
-                    IdUtilizador: db.sequelize.col('Anuncio.IdUtilizadorAnuncio')
-                }
-            }]
-        });
+  try {
+    const anuncio = await Anuncio.findByPk(req.params.id, {
+      include: [
+        {
+          model: db.Utilizador,
+          as: "utilizador",
+          attributes: ["Nome", "ImagemPerfil", "Classificacao"],
+          where: {
+            IdUtilizador: db.sequelize.col("Anuncio.IdUtilizadorAnuncio"),
+          },
+        },
+      ],
+    });
 
-        if (!anuncio) {
-            throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
-        }
-
-        res.status(200).json({
-            data: anuncio,
-            links: [
-                { rel: "self", href: `/anuncios/${anuncio.IdAnuncio}`, method: "GET" },
-                { rel: "delete", href: `/anuncios/${anuncio.IdAnuncio}`, method: "DELETE" },
-                { rel: "modify", href: `/anuncios/${anuncio.IdAnuncio}`, method: "PUT" },
-                { rel: "all", href: "/anuncios", method: "GET" }
-            ]
-        });
-    } catch (err) {
-        next(err);
+    if (!anuncio) {
+      throw new ErrorHandler(
+        404,
+        `Anúncio com ID ${req.params.id} não encontrado`
+      );
     }
+
+    res.status(200).json({
+      data: anuncio,
+      links: [
+        { rel: "self", href: `/anuncios/${anuncio.IdAnuncio}`, method: "GET" },
+        {
+          rel: "delete",
+          href: `/anuncios/${anuncio.IdAnuncio}`,
+          method: "DELETE",
+        },
+        {
+          rel: "modify",
+          href: `/anuncios/${anuncio.IdAnuncio}`,
+          method: "PUT",
+        },
+        { rel: "all", href: "/anuncios", method: "GET" },
+      ],
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Obter anúncios por utilizador
 const getAnunciosByUser = async (req, res, next) => {
-    try {
-        const { userId } = req.params;
+  try {
+    const { userId } = req.params;
 
-        if (!userId) {
-            throw new ErrorHandler(400, 'ID do utilizador é obrigatório');
-        }
-
-        const anuncios = await Anuncio.findAll({
-            where: { IdUtilizadorAnuncio: userId },
-            include: [
-                {
-                    model: db.Utilizador,
-                    as: 'utilizador',
-                    attributes: ['Nome', 'ImagemPerfil', 'Classificacao']
-                },
-                {
-                    model: db.EstadoAnuncio,
-                    as: 'estado',
-                    attributes: ['EstadoAnuncio']
-                }
-            ],
-            order: [['DataAnuncio', 'DESC']]
-        });
-
-        if (anuncios.length === 0) {
-            return res.status(404).json({ message: 'Nenhum anúncio encontrado para este utilizador' });
-        }
-
-        res.status(200).json({
-            data: anuncios,
-            links: [
-                { rel: "self", href: `/anuncios/user/${userId}`, method: "GET" },
-                { rel: "all", href: "/anuncios", method: "GET" }
-            ]
-        });
-    } catch (err) {
-        next(err);
+    if (!userId) {
+      throw new ErrorHandler(400, "ID do utilizador é obrigatório");
     }
+
+    const anuncios = await Anuncio.findAll({
+      where: { IdUtilizadorAnuncio: userId },
+      include: [
+        {
+          model: db.Utilizador,
+          as: "utilizador",
+          attributes: ["Nome", "ImagemPerfil", "Classificacao"],
+        },
+        {
+          model: db.EstadoAnuncio,
+          as: "estado",
+          attributes: ["EstadoAnuncio"],
+        },
+      ],
+      order: [["DataAnuncio", "DESC"]],
+    });
+
+    if (anuncios.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Nenhum anúncio encontrado para este utilizador" });
+    }
+
+    res.status(200).json({
+      data: anuncios,
+      links: [
+        { rel: "self", href: `/anuncios/user/${userId}`, method: "GET" },
+        { rel: "all", href: "/anuncios", method: "GET" },
+      ],
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
 module.exports = {
-    getAllAnuncios,
-    getAnuncioById,
-    createAnuncio,
-    updateAnuncio,
-    deleteAnuncio,
-    getAnunciosByUser
+  getAllAnuncios,
+  getAnuncioById,
+  createAnuncio,
+  updateAnuncio,
+  deleteAnuncio,
+  getAnunciosByUser,
 };
