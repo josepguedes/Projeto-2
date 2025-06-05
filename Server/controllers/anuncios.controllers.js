@@ -278,13 +278,57 @@ const getAnuncioById = async (req, res, next) => {
 const getAnunciosByUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
 
     if (!userId) {
       throw new ErrorHandler(400, "ID do utilizador é obrigatório");
     }
 
-    const anuncios = await Anuncio.findAll({
+    const { count, rows } = await Anuncio.findAndCountAll({
       where: { IdUtilizadorAnuncio: userId },
+      include: [
+        {
+          model: db.Utilizador,
+          as: "utilizador",
+          attributes: ["Nome", "ImagemPerfil", "Classificacao"],
+        },
+        {
+          model: db.EstadoAnuncio,
+          as: "estado",
+          attributes: ["EstadoAnuncio"],
+        },
+      ],
+      order: [["DataAnuncio", "DESC"]],
+      limit: Math.min(+limit || 10, 100),
+      offset: (Math.max(+page, 1) - 1) * (+limit || 10),
+    });
+
+    res.status(200).json({
+      totalPages: Math.ceil(count / (+limit || 10)),
+      currentPage: +page || 1,
+      total: count,
+      data: rows,
+      links: [
+        { rel: "self", href: `/anuncios/utilizador/${userId}?page=${page}&limit=${limit}`, method: "GET" },
+        { rel: "all", href: "/anuncios", method: "GET" },
+      ],
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get anuncio by category
+const getAnunciosByCategory = async (req, res, next) => {
+  try {
+    const { categoryId } = req.params;
+
+    if (!categoryId) {
+      throw new ErrorHandler(400, "ID da categoria é obrigatório");
+    }
+
+    const anuncios = await Anuncio.findAll({
+      where: { IdProdutoCategoria: categoryId },
       include: [
         {
           model: db.Utilizador,
@@ -303,20 +347,20 @@ const getAnunciosByUser = async (req, res, next) => {
     if (anuncios.length === 0) {
       return res
         .status(404)
-        .json({ message: "Nenhum anúncio encontrado para este utilizador" });
+        .json({ message: "Nenhum anúncio encontrado para esta categoria" });
     }
 
     res.status(200).json({
       data: anuncios,
       links: [
-        { rel: "self", href: `/anuncios/user/${userId}`, method: "GET" },
+        { rel: "self", href: `/anuncios/category/${categoryId}`, method: "GET" },
         { rel: "all", href: "/anuncios", method: "GET" },
       ],
     });
   } catch (err) {
     next(err);
   }
-};
+}
 
 module.exports = {
   getAllAnuncios,
@@ -325,4 +369,5 @@ module.exports = {
   updateAnuncio,
   deleteAnuncio,
   getAnunciosByUser,
+  getAnunciosByCategory
 };

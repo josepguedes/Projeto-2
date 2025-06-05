@@ -42,22 +42,21 @@
       </div>
 
       <!-- Pagination -->
-      <nav v-if="links && links.length > 0" aria-label="Page navigation" class="my-4">
+      <!-- Substitui o bloco de paginação atual por este -->
+      <nav v-if="totalPages > 1" class="mt-4">
         <ul class="pagination justify-content-center">
-          <li class="page-item" :class="{ disabled: !hasPreviousPage }">
-            <a class="page-link" href="#" @click.prevent="navigateToPage('pagina-anterior')" aria-label="Previous">
+          <li class="page-item" :class="{ disabled: currentPage === 1 }">
+            <button class="page-link" @click="goToPage(currentPage - 1)">
               <i class="bi bi-chevron-left"></i>
-            </a>
+            </button>
           </li>
-
-          <li class="page-item active">
-            <span class="page-link">{{ currentPage }}</span>
+          <li class="page-item" v-for="page in totalPages" :key="page" :class="{ active: page === currentPage }">
+            <button class="page-link" @click="goToPage(page)">{{ page }}</button>
           </li>
-
-          <li class="page-item" :class="{ disabled: !hasNextPage }">
-            <a class="page-link" href="#" @click.prevent="navigateToPage('proxima-pagina')" aria-label="Next">
+          <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+            <button class="page-link" @click="goToPage(currentPage + 1)">
               <i class="bi bi-chevron-right"></i>
-            </a>
+            </button>
           </li>
         </ul>
       </nav>
@@ -71,46 +70,35 @@ import FoodCard from "@/components/FoodCard.vue";
 
 export default {
   name: "LandingPage",
-  components: {
-    FoodCard,
-  },
+  components: { FoodCard },
   data() {
     return {
       searchTerm: "",
       anuncios: [],
       loading: true,
       error: null,
-      currentPage: 1,
       links: [],
-      itemsPerPage: 12
     };
   },
-  computed: {
-    hasPreviousPage() {
-      return this.links.some(link => link.rel === 'pagina-anterior');
-    },
-    hasNextPage() {
-      return this.links.some(link => link.rel === 'proxima-pagina');
-    }
-  },
   methods: {
-    async fetchAnuncios() {
+    async fetchAnuncios(page = 1) {
       try {
         this.loading = true;
         this.error = null;
         const filters = this.searchTerm ? { nome: this.searchTerm } : {};
 
         const response = await anunciosService.getAllAnuncios(
-          this.currentPage,
+          page,
           this.itemsPerPage,
           filters
         );
 
         this.anuncios = response.data;
         this.links = response.links;
-        this.currentPage = response.currentPage;
+        this.currentPage = response.currentPage; // <-- do backend!
+        this.totalPages = response.totalPages;   // <-- do backend!
 
-        // Atualizar a URL com os parâmetros de paginação
+        // Atualiza a URL com a página atual
         this.$router.push({
           query: {
             ...this.$route.query,
@@ -123,6 +111,15 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    goToPage(page) {
+      if (page < 1 || page > this.totalPages) return;
+      this.fetchAnuncios(page);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    async handleSearch() {
+      this.currentPage = 1;
+      await this.fetchAnuncios(1);
     },
     formatDate(date) {
       if (!date) return "";
@@ -138,38 +135,22 @@ export default {
         currency: "EUR",
       });
     },
-    async handleSearch() {
-      this.currentPage = 1;
-      await this.fetchAnuncios();
-    },
-    async navigateToPage(rel) {
-      const link = this.links.find(l => l.rel === rel);
-      if (link) {
-        const url = new URL(link.href, window.location.origin);
-        const page = url.searchParams.get('page');
-        if (page) {
-          this.currentPage = parseInt(page);
-          await this.fetchAnuncios();
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }
-      }
-    }
   },
   async created() {
-    // Recuperar a página da URL se existir
+    // Recupera a página da URL se existir
     const page = parseInt(this.$route.query.page);
     if (page && !isNaN(page)) {
       this.currentPage = page;
     }
-    await this.fetchAnuncios();
+    await this.fetchAnuncios(this.currentPage);
   },
   watch: {
-    // Observar mudanças na rota para atualizar a página quando necessário
+    // Atualiza ao mudar a query da página
     '$route.query.page'(newPage) {
       const page = parseInt(newPage);
       if (page && !isNaN(page) && page !== this.currentPage) {
         this.currentPage = page;
-        this.fetchAnuncios();
+        this.fetchAnuncios(page);
       }
     }
   }

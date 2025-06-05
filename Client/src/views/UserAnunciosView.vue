@@ -14,10 +14,30 @@
                     </div>
 
                     <AnuncioList :anuncios="anuncios" :loading="loading" :error="error" @delete="deleteAnuncio"
-                        @view-details="openDetails" @edit="openEditModal"/>
+                        @view-details="openDetails" @edit="openEditModal" />
 
-                        <UserAnuncioEdit v-if="showEdit" :anuncio="selectedAnuncio" :show="showEdit"
-                            @close="closeEditModal" />
+                    <nav v-if="totalPages > 1" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                                <button class="page-link" @click="goToPage(currentPage - 1)">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                            </li>
+                            <li class="page-item" v-for="page in totalPages" :key="page"
+                                :class="{ active: page === currentPage }">
+                                <button class="page-link" @click="goToPage(page)">{{ page }}</button>
+                            </li>
+                            <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                                <button class="page-link" @click="goToPage(currentPage + 1)">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+
+                    <UserAnuncioEdit v-if="showEdit" :anuncio="selectedAnuncio" :show="showEdit" @close="closeEditModal"
+                        @updated="handleAnuncioEditado" />
+
                 </div>
             </div>
         </div>
@@ -30,6 +50,7 @@
         <CreateAnuncio v-if="showCreate" @close="closeCreate" @created="handleAnuncioCriado" />
     </div>
 </template>
+
 
 <script>
 import UserSidebar from '@/components/UserSidebar.vue';
@@ -58,7 +79,7 @@ export default {
             selectedAnuncio: null,
             showEdit: false,
             showDetails: false,
-            showCreate: false
+            showCreate: false,
         }
     },
     methods: {
@@ -68,19 +89,31 @@ export default {
                 if (!token) return this.$router.push('/login');
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 this.userDetails = await utilizadorService.getUserDetails(payload.IdUtilizador);
-                await this.fetchAnuncios(this.userDetails.IdUtilizador);
+
+                // Lê a página da query string
+                let page = parseInt(this.$route.query.page) || 1;
+                this.currentPage = page;
+
+                // Se não existe ?page=... na URL, força para page=1
+                if (!this.$route.query.page) {
+                    this.$router.replace({ query: { ...this.$route.query, page: 1 } });
+                    page = 1;
+                }
+
+                await this.fetchAnuncios(this.userDetails.IdUtilizador, page);
             } catch (error) {
                 console.error('Erro ao carregar dados do usuário:', error);
                 this.error = 'Erro ao carregar dados do usuário';
             }
         },
-        async fetchAnuncios(userId) {
+        async fetchAnuncios(userId = this.userDetails.IdUtilizador, page = 1) {
             try {
                 this.loading = true;
-                const response = await anunciosService.getUserAnuncios(userId);
+                const response = await anunciosService.getUserAnuncios(userId, page, this.itemsPerPage);
                 this.anuncios = response.data;
+                this.currentPage = response.currentPage;   // <-- usa o valor do backend
+                this.totalPages = response.totalPages;     // <-- usa o valor do backend
             } catch (error) {
-                console.error('Erro ao carregar anúncios:', error);
                 this.error = 'Erro ao carregar anúncios';
             } finally {
                 this.loading = false;
@@ -120,13 +153,36 @@ export default {
             this.selectedAnuncio = null;
             this.showEdit = false;
         },
+        goToPage(page) {
+            if (page < 1 || page > this.totalPages) return;
+            // Atualiza a query string do URL
+            this.$router.push({ query: { ...this.$route.query, page } });
+            // O watcher abaixo vai chamar fetchAnuncios com a página correta
+        },
         async handleAnuncioCriado() {
             this.closeCreate();
+            await this.fetchAnuncios(this.userDetails.IdUtilizador);
+        },
+        async handleAnuncioEditado() {
+            this.closeEditModal();
             await this.fetchAnuncios(this.userDetails.IdUtilizador);
         }
     },
     created() {
         this.fetchUserDetails();
+    },
+
+
+    watch: {
+        '$route.query.page'(newPage) {
+            const page = parseInt(newPage) || 1;
+            if (page !== this.currentPage) {
+                this.currentPage = page;
+                if (this.userDetails) {
+                    this.fetchAnuncios(this.userDetails.IdUtilizador, page);
+                }
+            }
+        }
     }
 }
 </script>
