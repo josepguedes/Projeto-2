@@ -29,7 +29,7 @@
 
                     <!-- Similar Items Sidebar -->
                     <div class="col-lg-4">
-                        <SimilarAds class="h-100" :currentAnuncioId="anuncio?.IdAnuncio" />
+                        <SimilarAds :currentAnuncioId="anuncio?.IdAnuncio" />
                     </div>
                 </div>
 

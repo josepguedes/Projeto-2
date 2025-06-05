@@ -1,5 +1,5 @@
 <template>
-    <div class="card border-0 shadow-lg h-100 overflow-hidden">
+    <div class="card border-0 shadow-lg overflow-hidden">
         <div class="position-relative">
             <img :src="anuncio.ImagemAnuncio" :alt="anuncio.Nome"
                 class="card-img-top product-image object-fit-cover">
@@ -73,12 +73,30 @@
             </div>
 
             <!-- Description -->
+            <!-- Description -->
             <div class="mb-4">
                 <h5 class="mb-3 fw-bold text-primary">
                     <i class="bi bi-file-text me-2"></i>Descrição
                 </h5>
                 <div class="bg-light p-4 rounded-4">
-                    {{ anuncio.Descricao || 'Sem descrição disponível.' }}
+                    <span v-if="!showFullDescription">
+                        {{ getShortDescription(anuncio.Descricao) }}
+                        <template v-if="anuncio.Descricao && anuncio.Descricao.split(' ').length > maxWords">
+                            <div class="text-center mt-2">
+                                <a href="#" @click.prevent="toggleDescription" class="ver-mais-link">
+                                    Ver mais
+                                </a>
+                            </div>
+                        </template>
+                    </span>
+                    <span v-else>
+                        {{ anuncio.Descricao }}
+                        <div class="text-center mt-2">
+                            <a href="#" @click.prevent="toggleDescription" class="ver-mais-link">
+                                Ver menos
+                            </a>
+                        </div>
+                    </span>
                 </div>
             </div>
 
@@ -102,6 +120,13 @@
 <script>
 export default {
     name: 'AnuncioDetail',
+
+    data() {
+        return {
+            showFullDescription: false,
+            maxWords: 30
+        }
+    },
     props: {
         anuncio: {
             type: Object,
@@ -210,6 +235,16 @@ export default {
                 console.error('Erro ao abrir conversa:', err);
                 alert('Erro ao abrir conversa. Por favor, tente novamente.');
             }
+        },
+
+        getShortDescription(desc) {
+            if (!desc) return 'Sem descrição disponível.';
+            const words = desc.split(' ');
+            if (words.length <= this.maxWords) return desc;
+            return words.slice(0, this.maxWords).join(' ') + '...';
+        },
+        toggleDescription() {
+            this.showFullDescription = !this.showFullDescription;
         }
     }
 }
@@ -278,6 +313,18 @@ export default {
     font-size: 0.95rem;
     border-radius: 8px;
     transition: all 0.2s ease;
+}
+
+.ver-mais-link {
+    color: var(--bs-primary);
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+.ver-mais-link:hover {
+    color: #0a58ca;
+    text-decoration: underline;
 }
 
 .btn-primary {
