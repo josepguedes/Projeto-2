@@ -12,5 +12,6 @@ router.get('/:id', anunciosController.getAnuncioById);
 router.post('/', upload.single('ImagemAnuncio'), anunciosController.createAnuncio);
 router.put('/:id', upload.single('ImagemAnuncio'), anunciosController.updateAnuncio);
 router.delete('/:id', anunciosController.deleteAnuncio);
+router.get('/categoria/:categoryId', anunciosController.getAnunciosByCategory);
 
 module.exports = router;

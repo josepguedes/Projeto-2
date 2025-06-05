@@ -164,4 +164,62 @@ export const anunciosService = {
       throw error;
     }
   },
+
+  async updateAnuncio(id, anuncioData) {
+    try {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
+        throw new Error("Token não encontrado");
+      }
+
+      // Usar FormData para enviar imagem
+      const formData = new FormData();
+      formData.append("Nome", anuncioData.Nome);
+      formData.append("Descricao", anuncioData.Descricao);
+      formData.append("LocalRecolha", anuncioData.LocalRecolha);
+      formData.append("HorarioRecolha", anuncioData.HorarioRecolha);
+      formData.append("Preco", anuncioData.Preco);
+      formData.append("DataRecolha", anuncioData.DataRecolha);
+      formData.append("DataValidade", anuncioData.DataValidade);
+      formData.append("Quantidade", anuncioData.Quantidade);
+      formData.append("IdProdutoCategoria", anuncioData.IdProdutoCategoria);
+
+      // Só adiciona imagem se existir
+      if (anuncioData.ImagemAnuncio) {
+        formData.append("ImagemAnuncio", anuncioData.ImagemAnuncio);
+      }
+
+      const response = await fetch(`${API_URL}/anuncios/${id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Erro ao atualizar anúncio");
+      }
+
+      return response.json();
+    } catch (error) {
+      throw new Error(`Erro ao atualizar anúncio: ${error.message}`);
+    }
+  },
+
+  getUserAnuncios: async (userId, page = 1, limit = 6) => {
+    const queryParams = new URLSearchParams({
+      page,
+      limit,
+    });
+
+    const response = await fetch(
+      `${API_URL}/anuncios/utilizador/${userId}?${queryParams}`
+    );
+    if (!response.ok) {
+      throw new Error("Erro ao buscar anúncios do utilizador");
+    }
+    return response.json();
+  },
 };
