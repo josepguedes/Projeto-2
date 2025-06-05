@@ -254,6 +254,7 @@ export default {
 .product-image {
     height: 500px;
     transition: transform 0.3s ease;
+    object-fit: contain !important;
 }
 
 .image-overlay {

@@ -40,14 +40,24 @@
                         </div>
                     </div>
                     <div class="card-footer bg-white border-0">
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary" @click="$emit('view-details', anuncio)">
+                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                            <button
+                                class="btn btn-outline-primary flex-fill d-flex align-items-center justify-content-center"
+                                @click="$emit('view-details', anuncio)">
                                 <i class="bi bi-eye me-1"></i>
-                                Ver Detalhes
+                                <span class="d-none d-md-inline">Ver Detalhes</span>
                             </button>
-                            <button @click="$emit('delete', anuncio.IdAnuncio)" class="btn btn-outline-danger">
+                            <button
+                                class="btn btn-outline-secondary flex-fill d-flex align-items-center justify-content-center"
+                                @click="$emit('edit', anuncio)">
+                                <i class="bi bi-pencil me-1"></i>
+                                <span class="d-none d-md-inline">Editar</span>
+                            </button>
+                            <button
+                                class="btn btn-outline-danger flex-fill d-flex align-items-center justify-content-center"
+                                @click="$emit('delete', anuncio.IdAnuncio)">
                                 <i class="bi bi-trash"></i>
-                                Eliminar
+                                <span class="d-none d-md-inline">Eliminar</span>
                             </button>
                         </div>
                     </div>
@@ -117,13 +127,11 @@ export default {
 .card-img-top {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain !important;
+    background: #f8f9fa;
     transition: transform 0.2s;
 }
 
-.card-img-top:hover {
-    transform: scale(1.04);
-}
 
 .card-title {
     font-size: 1.25rem;
@@ -134,5 +142,17 @@ export default {
     font-size: 1.1rem;
     font-weight: 500;
     color: #198754;
+}
+
+.card-footer .btn {
+    min-width: 0;
+    flex: 1 1 0;
+    white-space: nowrap;
+    font-size: 1rem;
+    padding: 0.5rem 0.5rem;
+    transition: background 0.2s, color 0.2s;
+}
+.card-footer .btn i {
+    font-size: 1.1rem;
 }
 </style>

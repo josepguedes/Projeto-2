@@ -14,7 +14,10 @@
                     </div>
 
                     <AnuncioList :anuncios="anuncios" :loading="loading" :error="error" @delete="deleteAnuncio"
-                        @view-details="openDetails" />
+                        @view-details="openDetails" @edit="openEditModal"/>
+
+                        <UserAnuncioEdit v-if="showEdit" :anuncio="selectedAnuncio" :show="showEdit"
+                            @close="closeEditModal" />
                 </div>
             </div>
         </div>
@@ -31,6 +34,7 @@
 <script>
 import UserSidebar from '@/components/UserSidebar.vue';
 import UserAnuncioDetails from '@/components/UserAnuncioDetails.vue';
+import UserAnuncioEdit from '@/components/UserAnuncioEdit.vue';
 import CreateAnuncio from '@/components/CreateAnuncio.vue';
 import AnuncioList from '@/components/UserAnuncios.vue';
 import { utilizadorService } from '@/api/utilizador';
@@ -42,6 +46,7 @@ export default {
         UserSidebar,
         AnuncioList,
         UserAnuncioDetails,
+        UserAnuncioEdit,
         CreateAnuncio
     },
     data() {
@@ -51,6 +56,7 @@ export default {
             loading: true,
             error: null,
             selectedAnuncio: null,
+            showEdit: false,
             showDetails: false,
             showCreate: false
         }
@@ -105,6 +111,14 @@ export default {
 
         closeCreate() {
             this.showCreate = false;
+        },
+        openEditModal(anuncio) {
+            this.selectedAnuncio = anuncio;
+            this.showEdit = true;
+        },
+        closeEditModal() {
+            this.selectedAnuncio = null;
+            this.showEdit = false;
         },
         async handleAnuncioCriado() {
             this.closeCreate();
