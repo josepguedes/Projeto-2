@@ -53,19 +53,21 @@ export default {
 }
 
 .card-img-top-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     height: 200px;
     overflow: hidden;
-    object-fit: fill;
+    background: #f8f9fa;
 }
 
 .card-img-top {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.food-item:hover .card-img-top {
-    transform: scale(1.05);
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain !important;
+    display: block;
+    margin: 0 auto;
 }
 </style>
