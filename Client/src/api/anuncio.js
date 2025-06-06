@@ -222,4 +222,19 @@ export const anunciosService = {
     }
     return response.json();
   },
+
+  getReservasByUser: async (userId, page = 1, limit = 6) => {
+    const queryParams = new URLSearchParams({
+      page,
+      limit,
+    });
+
+    const response = await fetch(
+      `${API_URL}/anuncios/reservas/${userId}?${queryParams}`
+    );
+    if (!response.ok) {
+      throw new Error("Erro ao buscar reservas do utilizador");
+    }
+    return response.json();
+  },
 };

@@ -242,6 +242,15 @@ const getAnuncioById = async (req, res, next) => {
             IdUtilizador: db.sequelize.col("Anuncio.IdUtilizadorAnuncio"),
           },
         },
+        {
+          model: db.Utilizador,
+          as: "reservador",
+          attributes: ["IdUtilizador", "Nome", "ImagemPerfil", "Classificacao"],
+          required: false,
+          where: {
+            IdUtilizador: db.sequelize.col("Anuncio.IdUtilizadorReserva"),
+          },
+        },
       ],
     });
 
@@ -360,7 +369,47 @@ const getAnunciosByCategory = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-}
+};
+
+// Server/controllers/anuncios.controllers.js
+const getReservasByUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    if (!userId) {
+      throw new ErrorHandler(400, "ID do utilizador é obrigatório");
+    }
+
+    const { count, rows } = await Anuncio.findAndCountAll({
+      where: { IdUtilizadorReserva: userId },
+      include: [
+        {
+          model: db.Utilizador,
+          as: "utilizador",
+          attributes: ["Nome", "ImagemPerfil"],
+        },
+        {
+          model: db.Utilizador,
+          as: "reservador",
+          attributes: ["Nome", "ImagemPerfil"],
+        },
+      ],
+      order: [["DataReserva", "DESC"]],
+      limit: Math.min(+limit || 10, 100),
+      offset: (Math.max(+page, 1) - 1) * (+limit || 10),
+    });
+
+    res.status(200).json({
+      totalPages: Math.ceil(count / (+limit || 10)),
+      currentPage: +page || 1,
+      total: count,
+      data: rows,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 module.exports = {
   getAllAnuncios,
@@ -369,5 +418,6 @@ module.exports = {
   updateAnuncio,
   deleteAnuncio,
   getAnunciosByUser,
-  getAnunciosByCategory
+  getAnunciosByCategory,
+  getReservasByUser,
 };

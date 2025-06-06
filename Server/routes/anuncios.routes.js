@@ -13,5 +13,6 @@ router.post('/', upload.single('ImagemAnuncio'), anunciosController.createAnunci
 router.put('/:id', upload.single('ImagemAnuncio'), anunciosController.updateAnuncio);
 router.delete('/:id', anunciosController.deleteAnuncio);
 router.get('/categoria/:categoryId', anunciosController.getAnunciosByCategory);
+router.get('/reservas/:userId', anunciosController.getReservasByUser);
 
 module.exports = router;
