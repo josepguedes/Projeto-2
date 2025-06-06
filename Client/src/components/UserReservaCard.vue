@@ -2,11 +2,7 @@
   <div class="card reserva-card shadow mb-4 border-0">
     <div class="row g-0 align-items-stretch">
       <div class="col-md-4 d-flex align-items-center justify-content-center bg-light rounded-start">
-        <img
-          :src="reserva.ImagemAnuncio || 'https://via.placeholder.com/300'"
-          :alt="reserva.Nome"
-          class="img-fluid reserva-img"
-        />
+        <img :src="reserva.ImagemAnuncio" :alt="reserva.Nome" class="img-fluid reserva-img" />
       </div>
       <div class="col-md-8">
         <div class="card-body d-flex flex-column h-100 position-relative">
@@ -16,20 +12,13 @@
               {{ getStatusText(reserva.IdEstadoAnuncio) }}
             </span>
             <!-- 3 dots menu -->
-            <div class="dropdown ms-2" v-if="reserva.IdEstadoAnuncio === 2">
-              <button
-                class="btn btn-link btn-sm p-0 text-muted"
-                type="button"
-                @click="toggleMenu"
-                aria-label="Mais opções"
-              >
+            <div class="dropdown ms-2" v-if="reserva.IdEstadoAnuncio === 2 || 6">
+              <button class="btn btn-link btn-sm p-0 text-muted" type="button" @click="toggleMenu"
+                aria-label="Mais opções">
                 <i class="bi bi-three-dots-vertical fs-4"></i>
               </button>
-              <div
-                v-if="showMenu"
-                class="dropdown-menu dropdown-menu-end show"
-                style="position: absolute; right: 0; top: 30px; min-width: 180px;"
-              >
+              <div v-if="showMenu" class="dropdown-menu dropdown-menu-end show"
+                style="position: absolute; right: 0; top: 30px; min-width: 180px;">
                 <button class="dropdown-item text-danger" @click="handleCancelar">
                   <i class="bi bi-x-circle me-2"></i> Cancelar Reserva
                 </button>
@@ -69,7 +58,8 @@
               <i class="bi bi-person-circle me-1"></i>
               <span class="fw-semibold">Anunciante:</span>
               <span>{{ reserva.utilizador?.Nome || 'N/A' }}</span>
-              <img v-if="reserva.utilizador?.ImagemPerfil" :src="reserva.utilizador.ImagemPerfil" alt="Perfil" class="rounded-circle ms-2" style="width:28px; height:28px; object-fit:cover;">
+              <img v-if="reserva.utilizador?.ImagemPerfil" :src="reserva.utilizador.ImagemPerfil" alt="Perfil"
+                class="rounded-circle ms-2" style="width:28px; height:28px; object-fit:cover;">
             </div>
           </div>
           <div class="mt-auto pt-2 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
@@ -78,16 +68,44 @@
               <span class="fw-bold">Código de Entrega:</span>
               <span class="codigo">{{ reserva.CodigoVerificacao || 'N/A' }}</span>
             </div>
+
+            <button v-if="reserva.IdEstadoAnuncio === 6" @click="handlePayment"
+              class="payment-badge rounded-3 px-3 py-2 d-inline-flex align-items-center gap-2">
+              <i class="bi bi-credit-card-fill text-success"></i>
+              <span class="fw-bold">Total a Pagar:</span>
+              <span class="price">{{ formatPrice(reserva.Preco) }}</span>
+            </button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+  <div v-if="showPayment" class="payment-modal">
+    <div class="payment-overlay" @click="showPayment = false"></div>
+    <div class="payment-content">
+      <div class="payment-header">
+        <h3>Pagamento</h3>
+        <button class="btn-close" @click="showPayment = false"></button>
+      </div>
+      <div class="payment-body">
+        <div class="paypal-title">{{ reserva.Nome }}</div>
+        <div class="paypal-text">
+          <span>Total a Pagar</span>
+          <span>{{ formatPrice(reserva.Preco) }}</span>
+        </div>
+        <hr class="my-3">
+        <div id="paypal-button-container"></div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { paymentService } from '@/api/paypal.js';
+
 export default {
   name: "UserReservaCard",
+  emits: ['cancelar', 'payment-success'],
   props: {
     reserva: {
       type: Object,
@@ -97,6 +115,12 @@ export default {
   data() {
     return {
       showMenu: false,
+      showPayment: false,
+      packageselect: {
+        title: '',
+        amount: 0,
+        plan_id: 'AUwW60K8YG6rKUctsc0zn2kc-K9ZtJiK1-H32C-GsUaw24EkmTlgLTZpvF2TOzs-L93WoweWf2H7wjuS' // Add your PayPal plan ID here
+      }
     };
   },
   methods: {
@@ -122,16 +146,18 @@ export default {
         3: "Expirado",
         4: "Cancelado",
         5: "Concluído",
+        6: "Por Pagar",
       };
       return texts[status] || "Desconhecido";
     },
     getStatusClass(status) {
       switch (status) {
-        case 1: return "bg-success";
-        case 2: return "bg-warning text-dark";
-        case 3: return "bg-secondary";
+        case 1: return "bg-primary text-white";
+        case 2: return "bg-info text-white";
+        case 3: return "bg-success text-white";
         case 4: return "bg-danger";
-        case 5: return "bg-info text-dark";
+        case 5: return "bg-dark text-white";
+        case 6: return "bg-warning ";
         default: return "bg-light text-dark";
       }
     },
@@ -151,6 +177,73 @@ export default {
     handleCancelar() {
       this.showMenu = false;
       this.$emit('cancelar', this.reserva);
+    },
+    async loadPayPalScript() {
+      const script = document.createElement('script');
+      script.src = "https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&vault=true";
+      script.addEventListener('load', this.setLoaded);
+      document.body.appendChild(script);
+    },
+
+
+    handlePayment() {
+      this.showPayment = true;
+      this.$nextTick(() => {
+        this.mountpaypalbutton();
+      });
+    },
+
+    mountpaypalbutton() {
+      if (!window.paypal) {
+        console.error('PayPal SDK not loaded');
+        return;
+      }
+
+      window.paypal.Buttons({
+        style: {
+          shape: "rect",
+          color: "blue",
+          layout: "vertical",
+          label: "paypal"
+        },
+        createOrder: (data, actions) => {
+          return actions.order.create({
+            purchase_units: [{
+              amount: {
+                value: this.reserva.Preco
+              }
+            }]
+          });
+        },
+        onApprove: async (data, actions) => {
+          try {
+            await actions.order.capture();
+
+            const response = await fetch(`http://localhost:3000/anuncios/${this.reserva.IdAnuncio}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                IdEstadoAnuncio: 2
+              })
+            });
+
+            if (!response.ok) {
+              throw new Error('Erro ao atualizar o estado da reserva');
+            }
+
+            alert('Pagamento processado com sucesso!');
+            this.showPayment = false;
+            this.$emit('payment-success');
+            this.$router.push('/user/reservas');
+          } catch (error) {
+            console.error('Erro:', error);
+            alert('Erro ao processar o pagamento. Por favor, tente novamente.');
+          }
+        }
+      }).render("#paypal-button-container");
     }
   },
   beforeUnmount() {
@@ -172,9 +265,11 @@ export default {
   margin-bottom: 2rem;
   position: relative;
 }
+
 .reserva-card:hover {
   box-shadow: 0 8px 32px rgba(44, 62, 80, 0.12), 0 1.5px 6px rgba(44, 62, 80, 0.08);
 }
+
 .reserva-img {
   max-width: 100%;
   max-height: 180px;
@@ -182,11 +277,13 @@ export default {
   border-radius: 1rem 0 0 1rem;
   box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
 }
+
 .badge-status {
   font-size: 0.95rem;
   padding: 0.5em 1em;
   box-shadow: 0 1px 4px rgba(44, 62, 80, 0.08);
 }
+
 .entrega-badge {
   background: #eafaf1;
   color: #27ae60;
@@ -196,6 +293,7 @@ export default {
   letter-spacing: 1px;
   box-shadow: 0 1px 4px rgba(44, 62, 80, 0.04);
 }
+
 .entrega-badge .codigo {
   color: #222;
   background: #fff;
@@ -204,6 +302,7 @@ export default {
   font-size: 1.1em;
   font-family: inherit;
 }
+
 .dropdown-menu {
   z-index: 1000;
   min-width: 180px;
@@ -211,29 +310,126 @@ export default {
   box-shadow: 0 4px 16px rgba(44, 62, 80, 0.12);
   padding: 0.5rem 0;
 }
+
 .dropdown-item {
   font-weight: 500;
   font-size: 1rem;
   padding: 0.5rem 1.25rem;
   cursor: pointer;
 }
+
 .dropdown-item.text-danger:hover {
   background: #ffeaea;
   color: #dc3545;
 }
+
+.payment-badge {
+  background: #eafaf1;
+  color: #27ae60;
+  font-size: 1.05rem;
+  font-family: 'Fira Mono', monospace, monospace;
+  border: 1.5px dashed #27ae60;
+  letter-spacing: 1px;
+  box-shadow: 0 1px 4px rgba(44, 62, 80, 0.04);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.payment-badge:hover {
+  background: #d4f5e9;
+  box-shadow: 0 2px 8px rgba(39, 174, 96, 0.15);
+  transform: translateY(-1px);
+}
+
+.payment-badge .price {
+  color: #222;
+  background: #fff;
+  padding: 0.15em 0.5em;
+  border-radius: 0.4em;
+  font-size: 1.1em;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+.payment-badge i {
+  font-size: 1.2em;
+}
+
 @media (max-width: 900px) {
   .reserva-card {
     max-width: 98vw;
     padding: 0.5rem 1rem;
   }
 }
+
 @media (max-width: 768px) {
   .reserva-card {
     border-radius: 1rem;
   }
+
   .reserva-img {
     border-radius: 1rem 1rem 0 0;
     max-height: 140px;
   }
+}
+
+.payment-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+
+.payment-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1051;
+}
+
+.payment-content {
+  background: white;
+  border-radius: 1rem;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  z-index: 1052;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.payment-header {
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.payment-body {
+  padding: 1.5rem;
+}
+
+.paypal-title {
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: #2d3436;
+  margin-bottom: 1rem;
+}
+
+.paypal-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1rem;
+  color: #2d3436;
+  margin-bottom: 1rem;
 }
 </style>
