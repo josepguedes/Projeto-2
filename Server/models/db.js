@@ -19,7 +19,7 @@ const sequelize = new Sequelize(
     try {
         await sequelize.authenticate();
         console.log('Connection to the database has been established successfully.');
-        
+
         // Sync all models
         await sequelize.sync({ alter: true }); // Use { force: true } only in development
         console.log('Database synchronized');
@@ -34,7 +34,7 @@ const sequelize = new Sequelize(
 const db = {};
 db.sequelize = sequelize;
 
-db.Anuncio = require('./anuncios.model.js')(sequelize, Sequelize.DataTypes); 
+db.Anuncio = require('./anuncios.model.js')(sequelize, Sequelize.DataTypes);
 db.Denuncia = require('./denuncias.models.js')(sequelize, Sequelize.DataTypes);
 db.Avaliacao = require('./avaliaçoes.models')(sequelize, Sequelize.DataTypes);
 db.Utilizador = require('./utilizador.models.js')(sequelize, Sequelize.DataTypes);
@@ -48,6 +48,11 @@ db.Anuncio.belongsTo(db.Utilizador, {
     as: 'utilizador',
     attributes: ['Nome', 'ImagemPerfil', 'Classificacao']
 });
+
+db.Anuncio.belongsTo(db.Utilizador, { 
+    as: "reservador", 
+    foreignKey: "IdUtilizadorReserva"
+ });
 
 db.Avaliacao.belongsTo(db.Utilizador, {
     foreignKey: 'IdAutor',

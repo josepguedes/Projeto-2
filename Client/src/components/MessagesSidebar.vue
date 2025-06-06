@@ -233,7 +233,15 @@ export default {
             } else {
                 return date.toLocaleDateString('pt-BR');
             }
-        }
+        },
+        toggleMenu(message) {
+            // Fecha todos os outros menus
+            this.messages.forEach(msg => {
+                if (msg !== message) msg.showMenu = false;
+            });
+            // Alterna o menu deste
+            message.showMenu = !message.showMenu;
+        },
     },
     created() {
         this.fetchConversations();
@@ -313,22 +321,32 @@ export default {
                         <div class="date-divider">
                             <span class="date-label">{{ date }}</span>
                         </div>
+                        <!-- ...existing code... -->
                         <div v-for="message in messageGroup" :key="message.IdMensagem" class="message-wrapper"
                             :class="{ 'message-sent': message.IdRemetente === currentUserId }"
                             @mouseenter="handleMouseEnter(message)" @mouseleave="handleMouseLeave(message)">
+                            <!-- Três pontos para menu de ações -->
+                            <div v-if="message.IdRemetente === currentUserId" class="message-actions">
+                                <button class="menu-btn" @click.stop="toggleMenu(message)">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <div v-if="message.showMenu" class="dropdown-menu show">
+                                    <button class="dropdown-item text-danger"
+                                        @click.stop="deleteMessage(message.IdMensagem)">
+                                        <i class="bi bi-trash"></i> Apagar mensagem
+                                    </button>
+                                </div>
+                            </div>
                             <div class="message-bubble-container">
                                 <div class="message-bubble">
                                     {{ message.Conteudo }}
                                     <div class="message-time">
                                         <span>{{ formatTime(message.HoraEnvio) }}</span>
-                                        <button v-if="message.IdRemetente === currentUserId" class="delete-message-btn"
-                                            @click.stop="deleteMessage(message.IdMensagem)">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        <!-- ...existing code... -->
                     </template>
                 </div>
 
@@ -411,6 +429,7 @@ export default {
 .message-wrapper {
     display: flex;
     margin-bottom: 0.5rem;
+    position: relative;
 }
 
 .message-sent {
@@ -469,6 +488,52 @@ export default {
     background-color: rgba(220, 53, 69, 0.2);
     /* Darker on hover */
     color: #dc3545;
+}
+
+
+.message-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 5.5rem;
+    z-index: 10;
+}
+
+.menu-btn {
+    background: none;
+    border: none;
+    color: black;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 1.5rem;
+    right: 0;
+    min-width: 140px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    z-index: 100;
+    padding: 0.25rem 0;
+}
+
+.dropdown-item {
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 0.5rem 1rem;
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.dropdown-item:hover {
+    background: #f8d7da;
+    color: #a71d2a;
 }
 
 
