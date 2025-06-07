@@ -14,9 +14,9 @@
         <div v-else-if="anuncios.length === 0" class="text-center py-5">
             <i class="bi bi-clipboard-x display-1 text-muted"></i>
             <p class="mt-3 text-muted">Você ainda não possui anúncios publicados.</p>
-            <router-link to="/criar-anuncio" class="btn btn-primary mt-3">
+            <button class="btn btn-primary mt-3" @click="$emit('open-create-anuncio')">
                 Criar Meu Primeiro Anúncio
-            </router-link>
+            </button>
         </div>
 
         <div v-else class="row g-4 justify-content-start">
