@@ -12,7 +12,7 @@
               {{ getStatusText(reserva.IdEstadoAnuncio) }}
             </span>
             <!-- 3 dots menu -->
-            <div class="dropdown ms-2" v-if="reserva.IdEstadoAnuncio === 2 || 6">
+            <div class="dropdown ms-2" v-if="[2, 6].includes(reserva.IdEstadoAnuncio)">
               <button class="btn btn-link btn-sm p-0 text-muted" type="button" @click="toggleMenu"
                 aria-label="Mais opções">
                 <i class="bi bi-three-dots-vertical fs-4"></i>
@@ -94,7 +94,10 @@
           <span>{{ formatPrice(reserva.Preco) }}</span>
         </div>
         <hr class="my-3">
-        <div id="paypal-button-container"></div>
+        <!-- Importante: Adicione um wrapper div -->
+        <div class="paypal-button-wrapper">
+          <div id="paypal-button-container"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -116,11 +119,6 @@ export default {
     return {
       showMenu: false,
       showPayment: false,
-      packageselect: {
-        title: '',
-        amount: 0,
-        plan_id: 'AUwW60K8YG6rKUctsc0zn2kc-K9ZtJiK1-H32C-GsUaw24EkmTlgLTZpvF2TOzs-L93WoweWf2H7wjuS' // Add your PayPal plan ID here
-      }
     };
   },
   methods: {
@@ -178,13 +176,6 @@ export default {
       this.showMenu = false;
       this.$emit('cancelar', this.reserva);
     },
-    async loadPayPalScript() {
-      const script = document.createElement('script');
-      script.src = "https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&vault=true";
-      script.addEventListener('load', this.setLoaded);
-      document.body.appendChild(script);
-    },
-
 
     handlePayment() {
       this.showPayment = true;
@@ -193,57 +184,35 @@ export default {
       });
     },
 
-    mountpaypalbutton() {
-      if (!window.paypal) {
-        console.error('PayPal SDK not loaded');
-        return;
-      }
+    async mountpaypalbutton() {
+      try {
+        const container = document.getElementById('paypal-button-container');
+        if (container) {
+          container.innerHTML = '';
+        }
 
-      window.paypal.Buttons({
-        style: {
-          shape: "rect",
-          color: "blue",
-          layout: "vertical",
-          label: "paypal"
-        },
-        createOrder: (data, actions) => {
-          return actions.order.create({
-            purchase_units: [{
-              amount: {
-                value: this.reserva.Preco
-              }
-            }]
-          });
-        },
-        onApprove: async (data, actions) => {
-          try {
-            await actions.order.capture();
-
-            const response = await fetch(`http://localhost:3000/anuncios/${this.reserva.IdAnuncio}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-              },
-              body: JSON.stringify({
-                IdEstadoAnuncio: 2
-              })
-            });
-
-            if (!response.ok) {
-              throw new Error('Erro ao atualizar o estado da reserva');
-            }
+        // Usar o serviço para criar os botões do PayPal
+        const paypalButtons = await paymentService.createPayPalOrder(
+          Number(this.reserva.Preco).toFixed(2),
+          async (order) => {
+            // Este callback será executado quando o pagamento for bem-sucedido
+            await paymentService.updateAnuncioAfterPayment(this.reserva.IdAnuncio);
 
             alert('Pagamento processado com sucesso!');
             this.showPayment = false;
             this.$emit('payment-success');
-            this.$router.push('/user/reservas');
-          } catch (error) {
-            console.error('Erro:', error);
-            alert('Erro ao processar o pagamento. Por favor, tente novamente.');
+
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
           }
-        }
-      }).render("#paypal-button-container");
+        );
+
+        paypalButtons.render("#paypal-button-container");
+      } catch (error) {
+        console.error('Erro ao inicializar PayPal:', error);
+        alert('Erro ao inicializar o pagamento. Por favor, tente novamente.');
+      }
     }
   },
   beforeUnmount() {
@@ -431,5 +400,45 @@ export default {
   font-size: 1.1rem;
   color: #2d3436;
   margin-bottom: 1rem;
+}
+
+.paypal-button-wrapper {
+  position: relative;
+  z-index: 1053;
+  min-height: 150px;
+}
+
+.payment-content {
+  background: white;
+  border-radius: 1rem;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  z-index: 1052;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  /* Importante: mantém o conteúdo dentro do modal */
+}
+
+.payment-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+
+.payment-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1051;
 }
 </style>
