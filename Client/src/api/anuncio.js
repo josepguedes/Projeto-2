@@ -183,6 +183,10 @@ export const anunciosService = {
       formData.append("DataValidade", anuncioData.DataValidade);
       formData.append("Quantidade", anuncioData.Quantidade);
       formData.append("IdProdutoCategoria", anuncioData.IdProdutoCategoria);
+      formData.append("IdEstadoAnuncio", anuncioData.IdEstadoAnuncio);
+      formData.append("IdUtilizadorReserva", anuncioData.IdUtilizadorReserva);
+      formData.append("DataReserva", anuncioData.DataReserva);
+      formData.append("CodigoVerificacao", anuncioData.CodigoVerificacao);
 
       // Só adiciona imagem se existir
       if (anuncioData.ImagemAnuncio) {

@@ -53,21 +53,21 @@ const getAllAnuncios = async (req, res, next) => {
         { rel: "criar-anuncio", href: "/anuncios", method: "POST" },
         ...(page > 1
           ? [
-              {
-                rel: "pagina-anterior",
-                href: `/anuncios?limit=${limit}&page=${page - 1}`,
-                method: "GET",
-              },
-            ]
+            {
+              rel: "pagina-anterior",
+              href: `/anuncios?limit=${limit}&page=${page - 1}`,
+              method: "GET",
+            },
+          ]
           : []),
         ...(anuncios?.count > page * limit
           ? [
-              {
-                rel: "proxima-pagina",
-                href: `/anuncios?limit=${limit}&page=${+page + 1}`,
-                method: "GET",
-              },
-            ]
+            {
+              rel: "proxima-pagina",
+              href: `/anuncios?limit=${limit}&page=${+page + 1}`,
+              method: "GET",
+            },
+          ]
           : []),
       ],
     });
@@ -181,10 +181,10 @@ const updateAnuncio = async (req, res, next) => {
       "DataValidade",
       "Quantidade",
       "IdProdutoCategoria",
-      "IdEstadoAnuncio", // Adicionar estes
-      "CodigoVerificacao", // novos campos
-      "IdUtilizadorReserva", // permitidos
-      "DataReserva", //
+      "IdEstadoAnuncio",
+      "CodigoVerificacao",
+      "IdUtilizadorReserva",
+      "DataReserva",
     ];
 
     const updateData = {};
@@ -192,6 +192,10 @@ const updateAnuncio = async (req, res, next) => {
       if (allowedUpdates.includes(key)) {
         updateData[key] = req.body[key];
       }
+    });
+
+    Object.keys(updateData).forEach((key) => {
+      if (updateData[key] === "null" || updateData[key] === "") updateData[key] = null;
     });
 
     await anuncio.update({

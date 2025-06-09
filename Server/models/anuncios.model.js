@@ -11,6 +11,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       IdUtilizadorReserva: {
          type: DataTypes.INTEGER,
+         allowNull: true,
       },
       DataAnuncio: {
          type: DataTypes.DATE,

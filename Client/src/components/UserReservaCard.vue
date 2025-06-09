@@ -161,9 +161,12 @@ export default {
     },
     toggleMenu(e) {
       this.showMenu = !this.showMenu;
-      // Fecha o menu ao clicar fora
       if (this.showMenu) {
-        document.addEventListener('click', this.handleClickOutside);
+        setTimeout(() => {
+          document.addEventListener('click', this.handleClickOutside);
+        }, 0);
+      } else {
+        document.removeEventListener('click', this.handleClickOutside);
       }
     },
     handleClickOutside(e) {
