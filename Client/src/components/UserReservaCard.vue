@@ -12,7 +12,7 @@
               {{ getStatusText(reserva.IdEstadoAnuncio) }}
             </span>
             <!-- 3 dots menu -->
-            <div class="dropdown ms-2" v-if="reserva.IdEstadoAnuncio === 2 || reserva.IdEstadoAnuncio === 6">
+            <div class="dropdown ms-2" v-if="[2, 6].includes(reserva.IdEstadoAnuncio)">
               <button class="btn btn-link btn-sm p-0 text-muted" type="button" @click="toggleMenu"
                 aria-label="Mais opções">
                 <i class="bi bi-three-dots-vertical fs-4"></i>
@@ -119,11 +119,6 @@ export default {
     return {
       showMenu: false,
       showPayment: false,
-      packageselect: {
-        title: '',
-        amount: 0,
-        plan_id: 'AUwW60K8YG6rKUctsc0zn2kc-K9ZtJiK1-H32C-GsUaw24EkmTlgLTZpvF2TOzs-L93WoweWf2H7wjuS' // Add your PayPal plan ID here
-      }
     };
   },
   methods: {
@@ -184,13 +179,6 @@ export default {
       this.showMenu = false;
       this.$emit('cancelar', this.reserva);
     },
-    async loadPayPalScript() {
-      const script = document.createElement('script');
-      script.src = "https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&vault=true";
-      script.addEventListener('load', this.setLoaded);
-      document.body.appendChild(script);
-    },
-
 
     handlePayment() {
       this.showPayment = true;
@@ -201,47 +189,29 @@ export default {
 
     async mountpaypalbutton() {
       try {
-        if (!window.paypal) {
-          console.error('PayPal SDK not loaded');
-          return;
-        }
-
-        // Limpa o container antes de renderizar
         const container = document.getElementById('paypal-button-container');
         if (container) {
           container.innerHTML = '';
         }
 
-        window.paypal.Buttons({
-          style: {
-            shape: "rect",
-            color: "blue",
-            layout: "vertical",
-            label: "paypal"
-          },
-          createOrder: (data, actions) => {
-            return actions.order.create({
-              purchase_units: [{
-                amount: {
-                  value: this.reserva.Preco
-                }
-              }]
-            });
-          },
-          onApprove: async (data, actions) => {
-            try {
-              await actions.order.capture();
-              await paymentService.updateAnuncioAfterPayment(this.reserva.IdAnuncio);
-              alert('Pagamento processado com sucesso!');
-              this.showPayment = false;
-              this.$emit('payment-success');
-            } catch (error) {
-              console.error('Erro:', error);
-              alert('Erro ao processar o pagamento. Por favor, tente novamente.');
-            }
-          }
-        }).render("#paypal-button-container");
+        // Usar o serviço para criar os botões do PayPal
+        const paypalButtons = await paymentService.createPayPalOrder(
+          Number(this.reserva.Preco).toFixed(2),
+          async (order) => {
+            // Este callback será executado quando o pagamento for bem-sucedido
+            await paymentService.updateAnuncioAfterPayment(this.reserva.IdAnuncio);
 
+            alert('Pagamento processado com sucesso!');
+            this.showPayment = false;
+            this.$emit('payment-success');
+
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          }
+        );
+
+        paypalButtons.render("#paypal-button-container");
       } catch (error) {
         console.error('Erro ao inicializar PayPal:', error);
         alert('Erro ao inicializar o pagamento. Por favor, tente novamente.');
