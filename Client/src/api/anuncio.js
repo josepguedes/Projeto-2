@@ -146,7 +146,7 @@ export const anunciosService = {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          IdEstadoAnuncio: 2, // Estado "Reservado"
+          IdEstadoAnuncio: 6, // Estado "Reservado"
           CodigoVerificacao: codigoVerificacao,
           IdUtilizadorReserva: userId,
           DataReserva: dataReserva.toISOString(),
