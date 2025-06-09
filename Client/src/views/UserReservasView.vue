@@ -25,7 +25,8 @@
                         <!-- filepath: c:\Users\josep\OneDrive - Instituto Politécnico do Porto\Faculdade\2º ano\2º Semestre\Projeto-2\Client\src\views\UserReservasView.vue -->
                         <div class="row g-4">
                             <div class="col-12" v-for="reserva in reservas" :key="reserva.IdAnuncio">
-                                <UserReservaCard :reserva="reserva" @payment-success="fetchReservas"/>
+                                <UserReservaCard :reserva="reserva" @payment-success="fetchReservas"
+                                    @cancelar="handleCancelarReserva" />
                             </div>
                         </div>
                     </div>
@@ -81,6 +82,30 @@ export default {
                 this.error = 'Erro ao carregar reservas.';
             } finally {
                 this.loading = false;
+            }
+        },
+        async handleCancelarReserva(reserva) {
+            try {
+                await anunciosService.updateAnuncio(reserva.IdAnuncio, {
+                    Nome: reserva.Nome,
+                    Descricao: reserva.Descricao,
+                    LocalRecolha: reserva.LocalRecolha,
+                    HorarioRecolha: reserva.HorarioRecolha,
+                    Preco: reserva.Preco,
+                    DataRecolha: reserva.DataRecolha,
+                    DataValidade: reserva.DataValidade,
+                    Quantidade: reserva.Quantidade,
+                    IdProdutoCategoria: reserva.IdProdutoCategoria,
+                    IdEstadoAnuncio: 1,
+                    IdUtilizadorReserva: null,
+                    DataReserva: null,
+                    CodigoVerificacao: null
+                });
+                this.reservas = this.reservas.filter(r => r.IdAnuncio !== reserva.IdAnuncio);
+            } catch (err) {
+                console.log(reserva);
+                
+                alert('Erro ao cancelar reserva');
             }
         }
     },
