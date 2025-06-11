@@ -2,11 +2,13 @@
 import { RouterLink } from "vue-router";
 import { utilizadorService } from "@/api/utilizador";
 import MessagesSidebar from './MessagesSidebar.vue';
+import NotificationsBox from './NotificationsBox.vue';
 
 export default {
     name: 'Navbar',
     components: {
-        MessagesSidebar
+        MessagesSidebar,
+        NotificationsBox,
     },
     data() {
         return {
@@ -14,6 +16,7 @@ export default {
             user: null,
             userDetails: null,
             isMessageSidebarOpen: false,
+            isNotificationBoxOpen: false,
             unreadMessages: 0
         }
     },
@@ -52,6 +55,35 @@ export default {
                 console.error('Error fetching user details:', error);
             }
         },
+        async updateUnreadNotifications() {
+            try {
+                if (this.user?.IdUtilizador) {
+                    const details = await utilizadorService.getUserDetails(this.user.IdUtilizador);
+                    if (details) {
+                        this.userDetails = {
+                            ...this.userDetails,
+                            NotificacoesNaoLidas: details.NotificacoesNaoLidas
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar notificações:', error);
+            }
+        },
+        handleClickOutside(event) {
+            // Verifica se as notificações estão abertas
+            if (!this.isNotificationBoxOpen) return;
+
+            const notificationsBox = this.$el.querySelector('.notifications-wrapper');
+            const toggleButton = this.$el.querySelector('.notifications-toggle');
+
+            // Verifica se os elementos existem e se o clique foi fora deles
+            if (notificationsBox && toggleButton) {
+                if (!notificationsBox.contains(event.target) && !toggleButton.contains(event.target)) {
+                    this.closeNotificationBox();
+                }
+            }
+        },
         logout() {
             sessionStorage.removeItem('token');
             this.isAuthenticated = false;
@@ -62,7 +94,13 @@ export default {
         },
         toggleMessagesSidebar() {
             this.isMessageSidebarOpen = !this.isMessageSidebarOpen;
-        }
+        },
+        toggleNotificationBox() {
+            this.isNotificationBoxOpen = !this.isNotificationBoxOpen;
+        },
+        closeNotificationBox() {
+            this.isNotificationBoxOpen = false;
+        },
     },
     created() {
         this.checkAuth(); // Verificação inicial
@@ -72,13 +110,20 @@ export default {
             this.checkAuth();
         });
 
+        window.addEventListener('notifications-updated', this.updateUnreadNotifications);
+
         // Listener para atualizações do perfil
         window.addEventListener('profile-updated', this.fetchUserDetails);
+    },
+    mounted() {
+        document.addEventListener('click', this.handleClickOutside);
     },
     beforeUnmount() {
         // Remover todos os listeners
         window.removeEventListener('auth-changed', this.checkAuth);
         window.removeEventListener('profile-updated', this.fetchUserDetails);
+        window.removeEventListener('notifications-updated', this.updateUnreadNotifications);
+        document.removeEventListener('click', this.handleClickOutside);
     }
 }
 </script>
@@ -105,15 +150,26 @@ export default {
                     <template v-else>
                         <li class="nav-item dropdown">
                             <div class="d-flex align-items-center">
+                                <div class="notifications-wrapper">
+                                    <button class="btn btn-link nav-link me-2 position-relative notifications-toggle"
+                                        @click="toggleNotificationBox" title="Notificações">
+                                        <i class="bi bi-bell fs-5"></i>
+                                        <span v-if="userDetails?.NotificacoesNaoLidas > 0"
+                                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                            style="font-size: 0.7rem;">
+                                            {{ userDetails.NotificacoesNaoLidas }}
+                                        </span>
+                                    </button>
+                                    <NotificationsBox v-if="isNotificationBoxOpen" :isOpen="isNotificationBoxOpen"
+                                        @close="closeNotificationBox" />
+                                </div>
                                 <button class="btn btn-link nav-link me-3" @click="toggleMessagesSidebar">
                                     <i class="bi bi-chat-left fs-5"></i>
                                 </button>
-                                <div class="d-flex align-items-center cursor-pointer" data-bs-toggle="dropdown" role="button">
-                                    <img :src="userDetails?.ImagemPerfil || 'https://via.placeholder.com/40'" 
-                                         alt="Profile"
-                                         class="rounded-circle me-2" 
-                                         width="40" 
-                                         height="40">
+                                <div class="d-flex align-items-center cursor-pointer" data-bs-toggle="dropdown"
+                                    role="button">
+                                    <img :src="userDetails?.ImagemPerfil || 'https://via.placeholder.com/40'"
+                                        alt="Profile" class="rounded-circle me-2" width="40" height="40">
                                     <span class="me-2">{{ userDetails?.Nome || user?.Nome || 'Utilizador' }}</span>
                                     <i class="bi bi-chevron-down"></i>
                                 </div>
@@ -211,6 +267,26 @@ export default {
 
 .dropdown-item:active {
     background-color: #33A58C;
+}
+
+.notifications-wrapper {
+    position: relative;
+}
+
+.notifications-toggle {
+    z-index: 1001;
+}
+
+.notifications-box {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 400px;
+    z-index: 1000;
+    margin-top: 0.5rem;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
 .dropdown-menu {
