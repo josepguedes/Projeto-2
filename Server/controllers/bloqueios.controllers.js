@@ -43,11 +43,11 @@ const getAllUtilizadorBloqueios = async (req, res, next) => {
       const bloqueador = await Utilizador.findByPk(bloqueio.IdBloqueador, {
         attributes: ["Nome", "ImagemPerfil"],
       });
-      
+
       const bloqueado = await Utilizador.findByPk(bloqueio.IdBloqueado, {
         attributes: ["Nome", "ImagemPerfil"],
       });
-      
+
       // Adicionar as informações ao objeto do bloqueio
       bloqueio.dataValues.bloqueador = bloqueador;
       bloqueio.dataValues.bloqueado = bloqueado;
@@ -56,8 +56,16 @@ const getAllUtilizadorBloqueios = async (req, res, next) => {
     // Adicionar links HATEOAS
     bloqueios.rows.forEach((bloqueio) => {
       bloqueio.links = [
-        { rel: "self", href: `/bloqueios/utilizador/${bloqueio.IdBloqueio}`, method: "GET" },
-        { rel: "delete", href: `/bloqueios/utilizador/${bloqueio.IdBloqueio}`, method: "DELETE" },
+        {
+          rel: "self",
+          href: `/bloqueios/utilizador/${bloqueio.IdBloqueio}`,
+          method: "GET",
+        },
+        {
+          rel: "delete",
+          href: `/bloqueios/utilizador/${bloqueio.IdBloqueio}`,
+          method: "DELETE",
+        },
       ];
     });
 
@@ -67,12 +75,28 @@ const getAllUtilizadorBloqueios = async (req, res, next) => {
       total: bloqueios.count,
       data: bloqueios.rows,
       links: [
-        { rel: "criar-bloqueio", href: `/bloqueios/utilizador`, method: "POST" },
+        {
+          rel: "criar-bloqueio",
+          href: `/bloqueios/utilizador`,
+          method: "POST",
+        },
         ...(page > 1
-          ? [{ rel: "pagina-anterior", href: `/bloqueios/utilizador?limit=${limit}&page=${page - 1}`, method: "GET" }]
+          ? [
+              {
+                rel: "pagina-anterior",
+                href: `/bloqueios/utilizador?limit=${limit}&page=${page - 1}`,
+                method: "GET",
+              },
+            ]
           : []),
         ...(bloqueios.count > page * limit
-          ? [{ rel: "proxima-pagina", href: `/bloqueios/utilizador?limit=${limit}&page=${+page + 1}`, method: "GET" }]
+          ? [
+              {
+                rel: "proxima-pagina",
+                href: `/bloqueios/utilizador?limit=${limit}&page=${+page + 1}`,
+                method: "GET",
+              },
+            ]
           : []),
       ],
     });
@@ -87,7 +111,10 @@ const checkUtilizadorBloqueio = async (req, res, next) => {
     const { idBloqueador, idBloqueado } = req.query;
 
     if (!idBloqueador || !idBloqueado) {
-      throw new ErrorHandler(400, "IDs de bloqueador e bloqueado são obrigatórios");
+      throw new ErrorHandler(
+        400,
+        "IDs de bloqueador e bloqueado são obrigatórios"
+      );
     }
 
     const bloqueio = await UtilizadorBloqueio.findOne({
@@ -113,7 +140,10 @@ const createUtilizadorBloqueio = async (req, res, next) => {
 
     // Validar dados obrigatórios
     if (!IdBloqueador || !IdBloqueado) {
-      throw new ErrorHandler(400, "IDs de bloqueador e bloqueado são obrigatórios");
+      throw new ErrorHandler(
+        400,
+        "IDs de bloqueador e bloqueado são obrigatórios"
+      );
     }
 
     // Verificar se usuários existem
@@ -147,8 +177,16 @@ const createUtilizadorBloqueio = async (req, res, next) => {
       message: "Utilizador bloqueado com sucesso",
       data: novoBloqueio,
       links: [
-        { rel: "self", href: `/bloqueios/utilizador/${novoBloqueio.IdBloqueio}`, method: "GET" },
-        { rel: "delete", href: `/bloqueios/utilizador/${novoBloqueio.IdBloqueio}`, method: "DELETE" },
+        {
+          rel: "self",
+          href: `/bloqueios/utilizador/${novoBloqueio.IdBloqueio}`,
+          method: "GET",
+        },
+        {
+          rel: "delete",
+          href: `/bloqueios/utilizador/${novoBloqueio.IdBloqueio}`,
+          method: "DELETE",
+        },
       ],
     });
   } catch (err) {
@@ -171,8 +209,16 @@ const deleteUtilizadorBloqueio = async (req, res, next) => {
     return res.status(200).json({
       message: "Bloqueio removido com sucesso",
       links: [
-        { rel: "criar-bloqueio", href: `/bloqueios/utilizador`, method: "POST" },
-        { rel: "listar-bloqueios", href: `/bloqueios/utilizador`, method: "GET" },
+        {
+          rel: "criar-bloqueio",
+          href: `/bloqueios/utilizador`,
+          method: "POST",
+        },
+        {
+          rel: "listar-bloqueios",
+          href: `/bloqueios/utilizador`,
+          method: "GET",
+        },
       ],
     });
   } catch (err) {
@@ -186,10 +232,14 @@ const deleteUtilizadorBloqueio = async (req, res, next) => {
 const createAdminBloqueio = async (req, res, next) => {
   try {
     const { IdUtilizadorBloqueado, Motivo, DataExpiracao } = req.body;
-    const IdAdministrador = req.user.IdUtilizador; // Obtido do token JWT
+    const novoBloqueio = await AdminBloqueio.create({
+      IdBloqueado,
+      DataBloqueio: new Date(),
+      DataFimBloqueio: DataFimBloqueio || null,
+    });
 
     // Verificar se usuário é admin
-    if (req.user.Funcao !== 'admin') {
+    if (req.user.Funcao !== "admin") {
       throw new ErrorHandler(403, "Acesso não autorizado");
     }
 
@@ -208,33 +258,34 @@ const createAdminBloqueio = async (req, res, next) => {
     const bloqueioExistente = await AdminBloqueio.findOne({
       where: {
         IdUtilizadorBloqueado,
-        Ativo: true
-      }
+        Ativo: true,
+      },
     });
 
     if (bloqueioExistente) {
-      throw new ErrorHandler(409, "Este utilizador já está bloqueado por um administrador");
+      throw new ErrorHandler(
+        409,
+        "Este utilizador já está bloqueado por um administrador"
+      );
     }
 
-    // Criar bloqueio administrativo
-    const novoBloqueio = await AdminBloqueio.create({
-      IdAdministrador,
-      IdUtilizadorBloqueado,
-      Motivo,
-      DataBloqueio: new Date(),
-      DataExpiracao: DataExpiracao || null,
-      Ativo: true
-    });
-
     // Atualizar estado do utilizador
-    await utilizador.update({ EstadoConta: 'bloqueado' });
+    await utilizador.update({ EstadoConta: "bloqueado" });
 
     return res.status(201).json({
       message: "Utilizador bloqueado com sucesso pelo administrador",
       data: novoBloqueio,
       links: [
-        { rel: "self", href: `/bloqueios/admin/${novoBloqueio.IdAdminBloqueio}`, method: "GET" },
-        { rel: "delete", href: `/bloqueios/admin/${novoBloqueio.IdAdminBloqueio}`, method: "DELETE" },
+        {
+          rel: "self",
+          href: `/bloqueios/admin/${novoBloqueio.IdAdminBloqueio}`,
+          method: "GET",
+        },
+        {
+          rel: "delete",
+          href: `/bloqueios/admin/${novoBloqueio.IdAdminBloqueio}`,
+          method: "DELETE",
+        },
       ],
     });
   } catch (err) {
@@ -247,33 +298,19 @@ const deleteAdminBloqueio = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Verificar se usuário é admin
-    if (req.user.Funcao !== 'admin') {
-      throw new ErrorHandler(403, "Acesso não autorizado");
-    }
-
     const bloqueio = await AdminBloqueio.findByPk(id);
-    if (!bloqueio || !bloqueio.Ativo) {
-      throw new ErrorHandler(404, "Bloqueio administrativo não encontrado");
+    if (!bloqueio) {
+      throw new ErrorHandler(404, "Bloqueio não encontrado");
     }
 
-    // Desativar o bloqueio (soft delete)
-    await bloqueio.update({ 
-      Ativo: false,
-      DataDesbloqueio: new Date()
-    });
-
-    // Reativar conta do utilizador
-    const utilizador = await Utilizador.findByPk(bloqueio.IdUtilizadorBloqueado);
-    if (utilizador) {
-      await utilizador.update({ EstadoConta: 'ativo' });
-    }
+    // Usar destroy() em vez de update pois não temos campo Ativo
+    await bloqueio.destroy();
 
     return res.status(200).json({
-      message: "Bloqueio administrativo removido com sucesso",
+      message: "Bloqueio removido com sucesso",
       links: [
-        { rel: "listar-bloqueios", href: `/bloqueios/admin`, method: "GET" },
-      ],
+        { rel: "listar-bloqueios", href: `/bloqueios/admin`, method: "GET" }
+      ]
     });
   } catch (err) {
     next(err);
@@ -285,12 +322,6 @@ const getAllAdminBloqueios = async (req, res, next) => {
   try {
     const { page = 1, limit = 10 } = req.query;
 
-    // Remova a verificação de usuário temporariamente
-    // if (req.user && req.user.Funcao !== 'admin') {
-    //   throw new ErrorHandler(403, "Acesso não autorizado");
-    // }
-
-    // Podemos considerar bloqueios ativos aqueles onde DataFimBloqueio é nulo ou no futuro
     const where = {
       [Op.or]: [
         { DataFimBloqueio: null },
@@ -300,25 +331,30 @@ const getAllAdminBloqueios = async (req, res, next) => {
 
     const bloqueios = await AdminBloqueio.findAndCountAll({
       where,
-      include: [
-        {
-          model: db.Utilizador,
-          as: "utilizadorBloqueado",
-          foreignKey: 'IdBloqueado',
-          attributes: ["Nome", "ImagemPerfil", "Email"],
-          required: false // Tornando o join opcional para testar
-        },
-      ],
+      include: [{
+        model: db.Utilizador,
+        as: "bloqueado", // Ajustar alias para match com modelo
+        foreignKey: 'IdBloqueado',
+        attributes: ["Nome", "ImagemPerfil", "Email"]
+      }],
       order: [["DataBloqueio", "DESC"]],
       limit: +limit,
-      offset: (+page - 1) * +limit,
+      offset: (+page - 1) * +limit
     });
 
     // Ajuste os links para usar o nome correto da chave primária
     bloqueios.rows.forEach((bloqueio) => {
       bloqueio.links = [
-        { rel: "self", href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`, method: "GET" },
-        { rel: "delete", href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`, method: "DELETE" },
+        {
+          rel: "self",
+          href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`,
+          method: "GET",
+        },
+        {
+          rel: "delete",
+          href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`,
+          method: "DELETE",
+        },
       ];
     });
 
@@ -326,7 +362,7 @@ const getAllAdminBloqueios = async (req, res, next) => {
       totalPages: Math.ceil(bloqueios.count / limit),
       currentPage: +page,
       total: bloqueios.count,
-      data: bloqueios.rows
+      data: bloqueios.rows,
     });
   } catch (err) {
     next(err);
@@ -355,7 +391,7 @@ const getAdminBloqueioById = async (req, res, next) => {
           model: db.Utilizador,
           as: "utilizadorBloqueado",
           attributes: ["Nome", "ImagemPerfil", "Email"],
-          required: false // Tornando o join opcional para debugging
+          required: false, // Tornando o join opcional para debugging
         },
       ],
     });
@@ -365,13 +401,23 @@ const getAdminBloqueioById = async (req, res, next) => {
     }
 
     // Verificar se o bloqueio está ativo usando DataFimBloqueio
-    const bloqueioAtivo = !bloqueio.DataFimBloqueio || new Date(bloqueio.DataFimBloqueio) > new Date();
+    const bloqueioAtivo =
+      !bloqueio.DataFimBloqueio ||
+      new Date(bloqueio.DataFimBloqueio) > new Date();
 
     return res.status(200).json({
       data: bloqueio,
       links: [
-        { rel: "self", href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`, method: "GET" },
-        { rel: "delete", href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`, method: "DELETE" },
+        {
+          rel: "self",
+          href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`,
+          method: "GET",
+        },
+        {
+          rel: "delete",
+          href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`,
+          method: "DELETE",
+        },
         { rel: "listar-bloqueios", href: `/bloqueios/admin`, method: "GET" },
       ],
     });
@@ -386,10 +432,10 @@ module.exports = {
   checkUtilizadorBloqueio,
   createUtilizadorBloqueio,
   deleteUtilizadorBloqueio,
-  
+
   // Bloqueios administrativos
   createAdminBloqueio,
   deleteAdminBloqueio,
   getAllAdminBloqueios,
-  getAdminBloqueioById
+  getAdminBloqueioById,
 };
