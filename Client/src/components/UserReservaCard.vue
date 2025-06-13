@@ -139,11 +139,11 @@ export default {
     },
     getStatusText(status) {
       const texts = {
-        1: "Disponível",
+        1: "Ativo",
         2: "Reservado",
-        3: "Expirado",
+        3: "Finalizado",
         4: "Cancelado",
-        5: "Concluído",
+        5: "Expirado",
         6: "Por Pagar",
       };
       return texts[status] || "Desconhecido";

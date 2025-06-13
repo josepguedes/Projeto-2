@@ -14,7 +14,7 @@
                     </div>
 
                     <AnuncioList :anuncios="anuncios" :loading="loading" :error="error" @delete="deleteAnuncio"
-                        @view-details="openDetails" @edit="openEditModal" />
+                        @view-details="openDetails" @edit="openEditModal" @confirm-code="openConfirmCodeModal" />
 
                     <nav v-if="totalPages > 1" class="mt-4">
                         <ul class="pagination justify-content-center">
@@ -48,6 +48,10 @@
 
         <!-- Modal Criar Anúncio -->
         <CreateAnuncio v-if="showCreate" @close="closeCreate" @created="handleAnuncioCriado" />
+
+        <!-- Modal Confirmar Código -->
+        <UserConfirmCodeModal v-if="showConfirmCodeModal" :anuncioId="confirmCodeAnuncioId" :show="showConfirmCodeModal"
+            @close="closeConfirmCodeModal" @confirmed="handleCodeConfirmed" />
     </div>
 </template>
 
@@ -55,6 +59,7 @@
 <script>
 import UserSidebar from '@/components/UserSidebar.vue';
 import UserAnuncioDetails from '@/components/UserAnuncioDetails.vue';
+import UserConfirmCodeModal from '@/components/UserConfirmCodeModal.vue';
 import UserAnuncioEdit from '@/components/UserAnuncioEdit.vue';
 import CreateAnuncio from '@/components/CreateAnuncio.vue';
 import AnuncioList from '@/components/UserAnuncios.vue';
@@ -68,7 +73,8 @@ export default {
         AnuncioList,
         UserAnuncioDetails,
         UserAnuncioEdit,
-        CreateAnuncio
+        CreateAnuncio,
+        UserConfirmCodeModal
     },
     data() {
         return {
@@ -80,6 +86,8 @@ export default {
             showEdit: false,
             showDetails: false,
             showCreate: false,
+            showConfirmCodeModal: false,
+            confirmCodeAnuncioId: null,
         }
     },
     methods: {
@@ -153,6 +161,14 @@ export default {
             this.selectedAnuncio = null;
             this.showEdit = false;
         },
+        openConfirmCodeModal(anuncioId) {
+            this.confirmCodeAnuncioId = anuncioId;
+            this.showConfirmCodeModal = true;
+        },
+        closeConfirmCodeModal() {
+            this.showConfirmCodeModal = false;
+            this.confirmCodeAnuncioId = null;
+        },
         goToPage(page) {
             if (page < 1 || page > this.totalPages) return;
             // Atualiza a query string do URL
@@ -166,7 +182,11 @@ export default {
         async handleAnuncioEditado() {
             this.closeEditModal();
             await this.fetchAnuncios(this.userDetails.IdUtilizador);
-        }
+        },
+        async handleCodeConfirmed() {
+            this.closeConfirmCodeModal();
+            await this.fetchAnuncios(this.userDetails.IdUtilizador);
+        },
     },
     created() {
         this.fetchUserDetails();
