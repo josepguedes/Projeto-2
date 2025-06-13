@@ -34,6 +34,9 @@ const getAllAnuncios = async (req, res, next) => {
       where.DataRecolha = dataRecolha;
     }
 
+    // Filtra apenas anúncios ativos
+    where.IdEstadoAnuncio = 1
+
 
     const anuncios = await Anuncio.findAndCountAll({
       where,
