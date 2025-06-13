@@ -27,7 +27,7 @@ const getAllDenuncias = async (req, res, next) => {
 
     const denuncias = await Denuncia.findAndCountAll({
       where,
-      order: [["DataDenuncia", "ASC"]],
+      order: [["DataDenuncia", "DESC"]],
       limit: +limit,
       offset: (+page - 1) * +limit,
     });

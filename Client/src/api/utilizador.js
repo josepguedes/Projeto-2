@@ -63,18 +63,23 @@ export const utilizadorService = {
         }
     },
 
-    async getAllUsers() {
-        const token = sessionStorage.getItem('token');
-        const response = await fetch(`${API_URL}/utilizadores`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
+    async getAllUsers(page = 1, limit = 10) {
+        try {
+            const token = sessionStorage.getItem('token');
+            const response = await fetch(`http://localhost:3000/utilizadores?page=${page}&limit=${limit}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch users');
             }
-        });
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch users');
+            return await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+            throw error;
         }
-
-        return response.json();
     }
 };
