@@ -66,11 +66,15 @@ export default {
 
                 const payload = JSON.parse(atob(token.split('.')[1]));
 
-                await denunciasService.createDenuncia({
+                // Criar objeto de denúncia com todos os campos necessários
+                const denunciaData = {
                     IdUtilizadorDenunciante: payload.IdUtilizador,
                     IdUtilizadorDenunciado: this.idDenunciado,
-                    Motivo: this.reportReason
-                });
+                    Motivo: this.reportReason,
+                    IdAnuncio: null // Como é denúncia via mensagens, não há anúncio associado
+                };
+
+                await denunciasService.createDenuncia(denunciaData);
 
                 this.modal.hide();
                 this.reportReason = '';

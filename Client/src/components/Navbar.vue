@@ -14,7 +14,8 @@ export default {
             user: null,
             userDetails: null,
             isMessageSidebarOpen: false,
-            unreadMessages: 0
+            unreadMessages: 0,
+            isAdmin: false,
         }
     },
     methods: {

@@ -73,12 +73,16 @@ export default {
   components: { FoodCard },
   data() {
     return {
-      searchTerm: "",
       anuncios: [],
-      loading: true,
+      loading: false,
       error: null,
-      links: [],
-    };
+      currentPage: 1,
+      totalPages: 1,
+      itemsPerPage: 12,
+      searchQuery: '',
+      selectedFilter: 'all',
+      sortOrder: 'desc'
+    }
   },
   methods: {
     async fetchAnuncios(page = 1) {

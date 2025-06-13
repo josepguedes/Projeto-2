@@ -1,9 +1,9 @@
 const db = require("../models/db.js");
 const Mensagem = db.Mensagem;
+const UtilizadorBloqueio = db.UtilizadorBloqueio; // Adicionar esta linha
 const { Op } = require('sequelize');
 const { ErrorHandler } = require("../utils/error.js");
 
-// Get all messages for a chat between two users
 const getMensagensChat = async (req, res, next) => {
     try {
         const { idRemetente, idDestinatario, page = 1, limit = 50 } = req.query;
@@ -12,21 +12,43 @@ const getMensagensChat = async (req, res, next) => {
             throw new ErrorHandler(400, 'IDs de remetente e destinatário são obrigatórios');
         }
 
-        const where = {
-            [Op.or]: [
-                {
-                    IdRemetente: idRemetente,
-                    IdDestinatario: idDestinatario
-                },
-                {
-                    IdRemetente: idDestinatario,
-                    IdDestinatario: idRemetente
-                }
-            ]
-        };
+        // Verificar bloqueios primeiro
+        const bloqueioExistente = await UtilizadorBloqueio.findOne({
+            where: {
+                [Op.or]: [
+                    {
+                        IdBloqueador: idRemetente,
+                        IdBloqueado: idDestinatario
+                    },
+                    {
+                        IdBloqueador: idDestinatario,
+                        IdBloqueado: idRemetente
+                    }
+                ]
+            }
+        });
 
+        if (bloqueioExistente) {
+            return res.status(403).json({
+                message: 'Não é possível ver mensagens de utilizadores bloqueados',
+                bloqueado: true
+            });
+        }
+
+        // Buscar mensagens se não houver bloqueio
         const mensagens = await Mensagem.findAndCountAll({
-            where,
+            where: {
+                [Op.or]: [
+                    {
+                        IdRemetente: idRemetente,
+                        IdDestinatario: idDestinatario
+                    },
+                    {
+                        IdRemetente: idDestinatario,
+                        IdDestinatario: idRemetente
+                    }
+                ]
+            },
             include: [
                 {
                     model: db.Utilizador,
@@ -39,11 +61,7 @@ const getMensagensChat = async (req, res, next) => {
                     attributes: ['Nome', 'ImagemPerfil']
                 }
             ],
-            order: [
-                ['DataEnvio', 'ASC'],
-                ['HoraEnvio', 'ASC'],
-                ['IdMensagem', 'ASC']
-            ],
+            order: [['DataEnvio', 'ASC'], ['HoraEnvio', 'ASC']],
             limit: +limit,
             offset: (+page - 1) * +limit
         });
@@ -55,6 +73,7 @@ const getMensagensChat = async (req, res, next) => {
             data: mensagens.rows
         });
     } catch (err) {
+        console.error('Erro em getMensagensChat:', err);
         next(err);
     }
 };
@@ -66,6 +85,26 @@ const createMensagem = async (req, res, next) => {
 
         if (!IdRemetente || !IdDestinatario || !Conteudo) {
             throw new ErrorHandler(400, 'Remetente, destinatário e conteúdo são obrigatórios');
+        }
+
+        // Verificar se existe bloqueio em qualquer direção
+        const bloqueioExistente = await UtilizadorBloqueio.findOne({
+            where: {
+                [Op.or]: [
+                    {
+                        IdBloqueador: IdRemetente,
+                        IdBloqueado: IdDestinatario
+                    },
+                    {
+                        IdBloqueador: IdDestinatario,
+                        IdBloqueado: IdRemetente
+                    }
+                ]
+            }
+        });
+
+        if (bloqueioExistente) {
+            throw new ErrorHandler(403, 'Não é possível enviar mensagens para utilizadores bloqueados');
         }
 
         const now = new Date();
@@ -85,7 +124,6 @@ const createMensagem = async (req, res, next) => {
             data: mensagem
         });
     } catch (err) {
-        console.error('Erro ao criar mensagem:', err);
         next(err);
     }
 };

@@ -87,40 +87,35 @@ const getAllDenuncias = async (req, res, next) => {
 
 // Criar uma nova denúncia
 const createDenuncia = async (req, res, next) => {
-  try {
-    const {
-      IdUtilizadorDenunciante,
-      IdUtilizadorDenunciado,
-      IdAnuncio,
-      Motivo,
-    } = req.body;
+    try {
+        const {
+            IdUtilizadorDenunciante,
+            IdUtilizadorDenunciado,
+            Motivo,
+            IdAnuncio
+        } = req.body;
 
-    // Validar campos obrigatórios
-    if (
-      !IdUtilizadorDenunciante ||
-      !IdUtilizadorDenunciado ||
-      !Motivo ||
-      !IdAnuncio
-    ) {
-      throw new ErrorHandler(400, "Campos obrigatórios ausentes");
+        // Validar campos obrigatórios
+        if (!IdUtilizadorDenunciante || !IdUtilizadorDenunciado || !Motivo) {
+            throw new ErrorHandler(400, "Campos obrigatórios ausentes: IdUtilizadorDenunciante, IdUtilizadorDenunciado e Motivo são obrigatórios");
+        }
+
+        // Criar nova denúncia
+        const denuncia = await Denuncia.create({
+            IdUtilizadorDenunciante,
+            IdUtilizadorDenunciado,
+            IdAnuncio,
+            Motivo,
+            DataDenuncia: new Date()
+        });
+
+        return res.status(201).json({
+            message: "Denúncia criada com sucesso",
+            data: denuncia
+        });
+    } catch (err) {
+        next(err);
     }
-
-    // Criar nova denúncia
-    const denuncia = await Denuncia.create({
-      IdUtilizadorDenunciante,
-      IdUtilizadorDenunciado,
-      IdAnuncio,
-      Motivo,
-      DataDenuncia: new Date(),
-    });
-
-    return res.status(201).json({
-      message: "Denúncia criada com sucesso",
-      data: denuncia,
-    });
-  } catch (err) {
-    next(err);
-  }
 };
 
 // Deletar uma denúncia
