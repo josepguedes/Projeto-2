@@ -1,16 +1,16 @@
 <script>
-import BlockUserButton from './BlockUserButton.vue';
+import DenunciaModal from './DenunciaModal.vue';
 
 export default {
     name: 'MessagesSidebar',
+    components: {
+        DenunciaModal
+    },
     props: {
         isOpen: {
             type: Boolean,
             default: false
         }
-    },
-    components: {
-        BlockUserButton
     },
     data() {
         return {
@@ -246,37 +246,8 @@ export default {
                 console.error('Erro ao verificar status de bloqueio:', error);
             }
         },
-        async handleReport() {
-            try {
-                if (!this.selectedUser) return;
-
-                const token = sessionStorage.getItem('token');
-                if (!token) {
-                    this.$router.push('/login');
-                    return;
-                }
-
-                const payload = JSON.parse(atob(token.split('.')[1]));
-
-                const response = await fetch('http://localhost:3000/denuncias', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        IdDenunciador: payload.IdUtilizador,
-                        IdDenunciado: this.selectedUser.id,
-                        Motivo: 'Comportamento inadequado nas mensagens'
-                    })
-                });
-
-                if (!response.ok) throw new Error('Erro ao enviar denúncia');
-
-                alert('Denúncia enviada com sucesso');
-            } catch (error) {
-                console.error('Erro ao denunciar:', error);
-                alert('Erro ao enviar denúncia');
-            }
+        handleReport() {
+            this.$refs.denunciaModal.showModal();
         },
         async handleBlock() {
             try {
@@ -325,6 +296,10 @@ export default {
                 alert(error.message);
             }
         },
+        handleDenunciaEnviada() {
+            // Opcional: adicionar feedback ou atualizar algo após a denúncia
+            console.log('Denúncia enviada com sucesso');
+        }
     },
 
     created() {
@@ -397,10 +372,10 @@ export default {
             <div v-if="activeConversation" class="chat-container">
                 <div class="chat-header border-bottom p-3" v-if="selectedUser">
                     <div class="d-flex justify-content-between align-items-center">
-                        <button class="btn btn-link text-dark p-0 me-2" @click="activeConversation = null">
-                            <i class="bi bi-arrow-left fs-5"></i>
-                        </button>
                         <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-link text-dark p-0 me-2" @click="activeConversation = null">
+                                <i class="bi bi-arrow-left fs-5"></i>
+                            </button>
                             <img :src="selectedUser.imagemPerfil" alt="User" class="rounded-circle" width="40"
                                 height="40">
                             <div>
@@ -485,6 +460,8 @@ export default {
             </div>
         </div>
     </div>
+    <DenunciaModal v-if="selectedUser" ref="denunciaModal" :idDenunciado="selectedUser.id"
+        :utilizadorDenunciado="selectedUser.nome" tipo="Utilizador" @denuncia-enviada="handleDenunciaEnviada" />
 </template>
 
 <style scoped>

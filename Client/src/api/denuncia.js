@@ -2,15 +2,18 @@ const API_URL = 'http://localhost:3000';
 
 export const denunciasService = {
     async createDenuncia(denuncia) {
+        const token = sessionStorage.getItem('token');
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        
         const response = await fetch(`${API_URL}/denuncias`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                IdUtilizadorDenunciante: 1, // Por enquanto fixo, depois usar do login
+                IdUtilizadorDenunciante: payload.IdUtilizador,
                 IdUtilizadorDenunciado: denuncia.IdUtilizadorDenunciado,
-                IdAnuncio: denuncia.IdAnuncio,
+                IdAnuncio: denuncia.IdAnuncio || null,
                 Motivo: denuncia.Motivo,
                 DataDenuncia: new Date().toISOString()
             })
