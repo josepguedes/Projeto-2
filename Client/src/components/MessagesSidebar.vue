@@ -21,6 +21,7 @@ export default {
             messages: [],
             newMessage: '',
             currentUserId: null,
+            selectedUser: null,
             currentPage: 1,
             pollingInterval: null,
             pollTime: 2500,
@@ -60,18 +61,10 @@ export default {
             }
         },
         async selectConversation(conversation) {
+            this.selectedUser = conversation.otherUser; // Atualizar selectedUser
             this.activeConversation = conversation;
             await this.fetchMessages();
-
-            // Force scroll to bottom after conversation selection
-            this.$nextTick(() => {
-                const container = this.$refs.messagesContainer;
-                if (container) {
-                    container.scrollTop = container.scrollHeight;
-                }
-            });
-
-            this.startPolling();
+            await this.checkBlockStatus();
         },
         startPolling() {
             if (this.pollingInterval) {
@@ -253,8 +246,37 @@ export default {
                 console.error('Erro ao verificar status de bloqueio:', error);
             }
         },
-        handleReport() {
-            // Implementar lógica de denúncia
+        async handleReport() {
+            try {
+                if (!this.selectedUser) return;
+
+                const token = sessionStorage.getItem('token');
+                if (!token) {
+                    this.$router.push('/login');
+                    return;
+                }
+
+                const payload = JSON.parse(atob(token.split('.')[1]));
+
+                const response = await fetch('http://localhost:3000/denuncias', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        IdDenunciador: payload.IdUtilizador,
+                        IdDenunciado: this.selectedUser.id,
+                        Motivo: 'Comportamento inadequado nas mensagens'
+                    })
+                });
+
+                if (!response.ok) throw new Error('Erro ao enviar denúncia');
+
+                alert('Denúncia enviada com sucesso');
+            } catch (error) {
+                console.error('Erro ao denunciar:', error);
+                alert('Erro ao enviar denúncia');
+            }
         }
     },
     created() {
@@ -301,7 +323,7 @@ export default {
                 this.stopPolling();
             }
         },
-                selectedUser: {
+        selectedUser: {
             immediate: true,
             handler() {
                 if (this.selectedUser) {
@@ -325,7 +347,8 @@ export default {
         <div class="messages-content bg-light">
             <!-- Chat Messages -->
             <div v-if="activeConversation" class="chat-container">
-                <div class="chat-header border-bottom p-3">
+                <div class="chat-header border-bottom p-3" v-if="selectedUser">
+                    <!-- ... resto do código ... -->
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="d-flex align-items-center gap-2">
                             <img :src="selectedUser.imagemPerfil" alt="User" class="rounded-circle" width="40"

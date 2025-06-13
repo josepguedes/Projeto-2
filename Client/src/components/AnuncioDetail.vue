@@ -1,8 +1,7 @@
 <template>
     <div class="card border-0 shadow-lg overflow-hidden">
         <div class="position-relative">
-            <img :src="anuncio.ImagemAnuncio" :alt="anuncio.Nome"
-                class="card-img-top product-image object-fit-cover">
+            <img :src="anuncio.ImagemAnuncio" :alt="anuncio.Nome" class="card-img-top product-image object-fit-cover">
             <div class="image-overlay"></div>
             <span class="position-absolute top-0 end-0 m-4 badge bg-primary px-4 py-2 rounded-pill fs-5 shadow-sm">
                 {{ formatPrice(anuncio.Preco) }}
@@ -15,8 +14,7 @@
                 <h2 class="h3 mb-4 text-primary fw-bold">{{ anuncio.Nome }}</h2>
                 <div class="d-flex align-items-center gap-3 bg-light p-4 rounded-4">
                     <div class="position-relative">
-                        <img :src="anuncio.utilizador?.ImagemPerfil" alt="Profile"
-                            class="rounded-circle profile-image">
+                        <img :src="anuncio.utilizador?.ImagemPerfil" alt="Profile" class="rounded-circle profile-image">
                         <div class="profile-border"></div>
                     </div>
                     <div class="flex-grow-1">
@@ -50,20 +48,15 @@
                                 <i class="bi bi-chat-dots me-1"></i>
                                 Enviar Mensagem
                             </button>
-                                <div class="d-flex gap-2 mb-3">
-        <button v-if="!isMyAnnouncement" 
-                class="btn btn-primary" 
-                @click="openChat">
-            <i class="bi bi-chat-dots me-1"></i>
-            Mensagem
-        </button>
-        <BlockUserButton 
-            v-if="!isMyAnnouncement"
-            :user-id="anuncio.IdUtilizadorAnuncio"
-            :is-blocked="isUserBlocked"
-            @blocked-status-changed="checkBlockStatus"
-        />
-    </div>
+                            <div class="d-flex gap-2 mb-3">
+                                <button v-if="!isMyAnnouncement" @click="startConversation"
+                                    class="btn btn-outline-primary btn-sm message-btn">
+                                    <i class="bi bi-chat-dots me-1"></i>
+                                    Enviar Mensagem
+                                </button>
+                                <BlockUserButton v-if="!isMyAnnouncement" :user-id="anuncio.IdUtilizadorAnuncio"
+                                    :is-blocked="isUserBlocked" @blocked-status-changed="checkBlockStatus" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -132,13 +125,16 @@
 </template>
 
 <script>
+import BlockUserButton from './BlockUserButton.vue';
+
 export default {
     name: 'AnuncioDetail',
 
     data() {
         return {
             showFullDescription: false,
-            maxWords: 30
+            maxWords: 30,
+            isUserBlocked: false,
         }
     },
     props: {
@@ -233,7 +229,6 @@ export default {
                     return;
                 }
 
-                // Create custom event with user data to open specific conversation
                 const customEvent = new CustomEvent('open-messages', {
                     detail: {
                         otherUser: {
@@ -245,6 +240,8 @@ export default {
                 });
 
                 window.dispatchEvent(customEvent);
+                // Adicionar evento para abrir o sidebar de mensagens
+                this.$emit('toggle-messages');
             } catch (err) {
                 console.error('Erro ao abrir conversa:', err);
                 alert('Erro ao abrir conversa. Por favor, tente novamente.');
@@ -259,7 +256,23 @@ export default {
         },
         toggleDescription() {
             this.showFullDescription = !this.showFullDescription;
+        },
+        async checkBlockStatus() {
+            try {
+                const token = sessionStorage.getItem('token');
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const response = await fetch(
+                    `http://localhost:3000/bloqueios/utilizador/check?idBloqueador=${payload.IdUtilizador}&idBloqueado=${this.anuncio.IdUtilizadorAnuncio}`
+                );
+                const data = await response.json();
+                this.isUserBlocked = data.bloqueado;
+            } catch (error) {
+                console.error('Erro ao verificar status de bloqueio:', error);
+            }
         }
+    },
+    mounted() {
+        this.checkBlockStatus();
     }
 }
 </script>
@@ -337,6 +350,7 @@ export default {
     text-decoration: underline;
     transition: color 0.2s;
 }
+
 .ver-mais-link:hover {
     color: #0a58ca;
     text-decoration: underline;
