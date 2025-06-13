@@ -10,7 +10,8 @@
         </div>
 
         <div class="navigation">
-            <router-link to="/admin/utilizadores" class="nav-item" :class="{ active: currentRoute === 'admin-utilizadores' }">
+            <router-link to="/admin/utilizadores" class="nav-item"
+                :class="{ active: currentRoute === 'admin-utilizadores' }">
                 <i class="bi bi-people"></i>
                 Gestão de Utilizadores
             </router-link>
@@ -22,7 +23,12 @@
                 <i class="bi bi-shield"></i>
                 Gestão de Denúncias
             </router-link>
-            <router-link to="/admin/avaliacoes" class="nav-item" :class="{ active: currentRoute === 'admin-avaliacoes' }">
+            <router-link to="/admin/bloqueios" class="nav-item" :class="{ active: currentRoute === 'admin-bloqueios' }">
+                <i class="bi bi-slash-circle"></i>
+                Utilizadores Bloqueados
+            </router-link>
+            <router-link to="/admin/avaliacoes" class="nav-item"
+                :class="{ active: currentRoute === 'admin-avaliacoes' }">
                 <i class="bi bi-star"></i>
                 Gestão de Avaliações
             </router-link>
@@ -30,11 +36,13 @@
                 <i class="bi bi-calendar-check"></i>
                 Gestão de Reservas
             </router-link>
-            <router-link to="/admin/notificacoes" class="nav-item" :class="{ active: currentRoute === 'admin-notificacoes' }">
+            <router-link to="/admin/notificacoes" class="nav-item"
+                :class="{ active: currentRoute === 'admin-notificacoes' }">
                 <i class="bi bi-bell"></i>
                 Gestão de Notificações
             </router-link>
-            <router-link to="/admin/categorias" class="nav-item" :class="{ active: currentRoute === 'admin-categorias' }">
+            <router-link to="/admin/categorias" class="nav-item"
+                :class="{ active: currentRoute === 'admin-categorias' }">
                 <i class="bi bi-tags"></i>
                 Gestão de Categorias
             </router-link>
