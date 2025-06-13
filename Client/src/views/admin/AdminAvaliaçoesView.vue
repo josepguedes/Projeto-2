@@ -59,6 +59,27 @@
                         </tr>
                     </tbody>
                 </table>
+
+                <nav v-if="totalPages > 1" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                            <button class="page-link" @click="goToPage(currentPage - 1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                        </li>
+                        <li v-for="page in totalPages" :key="page" class="page-item"
+                            :class="{ active: page === currentPage }">
+                            <button class="page-link" @click="goToPage(page)">
+                                {{ page }}
+                            </button>
+                        </li>
+                        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                            <button class="page-link" @click="goToPage(currentPage + 1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -77,18 +98,28 @@ export default {
     data() {
         return {
             avaliacoes: [],
-            userDetails: null
+            userDetails: null,
+            currentPage: 1,
+            totalPages: 1,
+            itemsPerPage: 12
         };
     },
     methods: {
-        async fetchAvaliacoes() {
+        async fetchAvaliacoes(page = 1) {
             try {
-                const response = await avaliacoesService.getAllAvaliacoes(1, 100);
+                const response = await avaliacoesService.getAllAvaliacoes(page, this.itemsPerPage);
+                this.currentPage = response.currentPage;
+                this.totalPages = response.totalPages;
                 this.avaliacoes = response.data;
             } catch (err) {
                 console.error('Erro ao buscar avaliações:', err);
                 this.avaliacoes = [];
             }
+        },
+        goToPage(page) {
+            if (page < 1 || page > this.totalPages) return;
+            this.currentPage = page;
+            this.fetchAvaliacoes(page);
         },
         formatDate(date) {
             if (!date) return '';
@@ -118,9 +149,27 @@ export default {
         }
     },
     created() {
+        // Recupera a página da URL se existir
+        const page = parseInt(this.$route.query.page) || 1;
+        this.currentPage = page;
+
+        // Se não existe ?page=... na URL, força para page=1
+        if (!this.$route.query.page) {
+            this.$router.replace({ query: { ...this.$route.query, page: 1 } });
+        }
+
         this.fetchAvaliacoes();
         this.fetchLoggedUserDetails();
-    }
+    },
+
+    watch: {
+        '$route.query.page'(newPage) {
+            const page = parseInt(newPage) || 1;
+            if (page !== this.currentPage) {
+                this.fetchAnuncios(page);
+            }
+        }
+    },
 };
 </script>
 

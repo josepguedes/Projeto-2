@@ -14,5 +14,6 @@ router.put('/:id', upload.single('ImagemAnuncio'), anunciosController.updateAnun
 router.delete('/:id', anunciosController.deleteAnuncio);
 router.get('/categoria/:categoryId', anunciosController.getAnunciosByCategory);
 router.get('/reservas/:userId', anunciosController.getReservasByUser);
+router.post('/:id/confirmarCodigo', anunciosController.confirmarCodigoEntrega);
 
 module.exports = router;

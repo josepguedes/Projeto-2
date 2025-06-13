@@ -145,20 +145,33 @@ const getUserDetails = async (req, res, next) => {
 
 const getAllUsers = async (req, res, next) => {
     try {
-        const utilizadores = await Utilizador.findAll({
-            attributes: [
-                'IdUtilizador', 'IdEndereco', 'Nome', 'Nif', 'DataNascimento', 'DataRegisto', 'Funcao', 'ImagemPerfil', 'Email']
-        });
-
-        if (!utilizadores) {
-            throw new ErrorHandler(404, 'Nenhum utilizador encontrado');
+        const { page = 1, limit = 10 } = req.query;
+        
+        // Validar página e limite
+        if (isNaN(page) || page < 1) {
+            throw new ErrorHandler(400, 'Página inválida');
+        }
+        if (isNaN(limit) || limit < 1) {
+            throw new ErrorHandler(400, 'Limite inválido');
         }
 
-        res.json(utilizadores);
+        const utilizadores = await Utilizador.findAndCountAll({
+            attributes: ['IdUtilizador', 'Nome', 'Email', 'Funcao', 'ImagemPerfil'],
+            order: [['Nome', 'DESC']],
+            limit: +limit,
+            offset: (+page - 1) * +limit
+        });
+
+        return res.status(200).json({
+            totalPages: Math.ceil(utilizadores.count / limit),
+            currentPage: +page,
+            total: utilizadores.count,
+            data: utilizadores.rows
+        });
     } catch (err) {
         next(err);
     }
-}
+};
 
 
 const updateUser = async (req, res, next) => {

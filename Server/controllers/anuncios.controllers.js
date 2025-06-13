@@ -10,9 +10,12 @@ const {
 // Listar todos os anúncios com paginação e filtros
 const getAllAnuncios = async (req, res, next) => {
   try {
-    const { nome, localRecolha, exclude, page = 1, limit = 10 } = req.query;
+    const { categoria, nome, localRecolha, exclude, precoMax, dataRecolha, page = 1, limit = 10 } = req.query;
     const where = {};
 
+    if (categoria) {
+      where.IdProdutoCategoria = categoria;
+    }
     if (nome && typeof nome === "string") {
       where.Nome = { [Op.like]: `%${nome}%` };
     }
@@ -22,6 +25,18 @@ const getAllAnuncios = async (req, res, next) => {
     if (exclude && !isNaN(exclude)) {
       where.IdAnuncio = { [Op.ne]: exclude };
     }
+    // Adiciona filtro de preço máximo
+    if (precoMax) {
+      where.Preco = { [Op.lte]: precoMax };
+    }
+    // Adiciona filtro de data de recolha
+    if (dataRecolha) {
+      where.DataRecolha = dataRecolha;
+    }
+
+    // Filtra apenas anúncios ativos
+    where.IdEstadoAnuncio = 1
+
 
     const anuncios = await Anuncio.findAndCountAll({
       where,
@@ -415,6 +430,30 @@ const getReservasByUser = async (req, res, next) => {
   }
 };
 
+// Confirmar código de entrega
+const confirmarCodigoEntrega = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { codigo } = req.body;
+
+    const anuncio = await Anuncio.findByPk(id);
+    if (!anuncio) {
+      return res.status(404).json({ message: "Anúncio não encontrado" });
+    }
+
+    if (anuncio.CodigoVerificacao !== codigo) {
+      return res.status(400).json({ message: "Código incorreto" });
+    }
+
+    anuncio.IdEstadoAnuncio = 3; // Concluído
+    await anuncio.save();
+
+    return res.status(200).json({ message: "Entrega confirmada com sucesso", data: anuncio });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getAllAnuncios,
   getAnuncioById,
@@ -424,4 +463,5 @@ module.exports = {
   getAnunciosByUser,
   getAnunciosByCategory,
   getReservasByUser,
+  confirmarCodigoEntrega,
 };
