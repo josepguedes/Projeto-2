@@ -10,9 +10,12 @@ const {
 // Listar todos os anúncios com paginação e filtros
 const getAllAnuncios = async (req, res, next) => {
   try {
-    const { nome, localRecolha, exclude, page = 1, limit = 10 } = req.query;
+    const { categoria, nome, localRecolha, exclude, precoMax, dataRecolha, page = 1, limit = 10 } = req.query;
     const where = {};
 
+    if (categoria) {
+      where.IdProdutoCategoria = categoria;
+    }
     if (nome && typeof nome === "string") {
       where.Nome = { [Op.like]: `%${nome}%` };
     }
@@ -22,6 +25,15 @@ const getAllAnuncios = async (req, res, next) => {
     if (exclude && !isNaN(exclude)) {
       where.IdAnuncio = { [Op.ne]: exclude };
     }
+    // Adiciona filtro de preço máximo
+    if (precoMax) {
+      where.Preco = { [Op.lte]: precoMax };
+    }
+    // Adiciona filtro de data de recolha
+    if (dataRecolha) {
+      where.DataRecolha = dataRecolha;
+    }
+
 
     const anuncios = await Anuncio.findAndCountAll({
       where,
