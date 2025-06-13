@@ -1,6 +1,12 @@
 <script>
+import DenunciaModal from './DenunciaModal.vue';
+
 export default {
     name: 'MessagesSidebar',
+    components: {
+        DenunciaModal
+    },
+    emits: ['close'],
     props: {
         isOpen: {
             type: Boolean,
@@ -16,12 +22,16 @@ export default {
             messages: [],
             newMessage: '',
             currentUserId: null,
+            selectedUser: null,
             currentPage: 1,
             pollingInterval: null,
             pollTime: 2500,
             lastScrollPosition: 0,
             isUserScrolling: false,
-            shouldScrollToBottom: true
+            shouldScrollToBottom: true,
+            isUserBlocked: false,
+            isBlockedByMe: false,
+            isBlockedByOther: false,
         }
     },
     methods: {
@@ -54,18 +64,18 @@ export default {
             }
         },
         async selectConversation(conversation) {
+            this.selectedUser = conversation.otherUser; // Atualizar selectedUser
             this.activeConversation = conversation;
             await this.fetchMessages();
-
-            // Force scroll to bottom after conversation selection
-            this.$nextTick(() => {
-                const container = this.$refs.messagesContainer;
-                if (container) {
-                    container.scrollTop = container.scrollHeight;
-                }
-            });
-
-            this.startPolling();
+            await this.checkBlockStatus();
+        },
+        async closeActiveConversation() {
+            this.activeConversation = null;
+            this.selectedUser = null;
+            this.messages = [];
+            this.error = null;
+            this.stopPolling();
+            await this.fetchConversations(); // Recarrega a lista de conversas
         },
         startPolling() {
             if (this.pollingInterval) {
@@ -73,7 +83,10 @@ export default {
             }
             this.pollingInterval = setInterval(async () => {
                 if (this.activeConversation && !this.isUserScrolling) {
-                    await this.fetchMessages();
+                    await this.checkBlockStatus();
+                    if (!this.isUserBlocked) {
+                        await this.fetchMessages();
+                    }
                 }
             }, this.pollTime);
         },
@@ -85,63 +98,53 @@ export default {
         },
         async fetchMessages() {
             try {
-                const response = await fetch(`http://localhost:3000/mensagens?idRemetente=${this.currentUserId}&idDestinatario=${this.activeConversation.otherUser.id}&page=${this.currentPage}`);
-                if (!response.ok) {
-                    throw new Error('Erro ao carregar mensagens');
+                if (!this.activeConversation?.otherUser?.id) {
+                    return;
                 }
-                const data = await response.json();
 
-                // Store current scroll position before updating messages
-                const container = this.$refs.messagesContainer;
-                const wasAtBottom = container && (container.scrollHeight - container.scrollTop - container.clientHeight < 100);
-                const previousScrollTop = container?.scrollTop;
+                // Verificar bloqueio primeiro antes de tentar buscar mensagens
+                await this.checkBlockStatus();
 
-                // Store current messages state
-                const currentMessages = this.messages || [];
-                const newMessages = data.data.sort((a, b) => {
-                    const dateA = new Date(a.DataEnvio + ' ' + a.HoraEnvio);
-                    const dateB = new Date(b.DataEnvio + ' ' + b.HoraEnvio);
-                    return dateA - dateB;
-                });
+                if (this.isUserBlocked) {
+                    this.messages = [];
+                    this.error = 'Não é possível ver mensagens de utilizadores bloqueados';
+                    return;
+                }
 
-                // Check if there are actually new messages
-                const hasNewMessages = newMessages.some(newMsg =>
-                    !currentMessages.find(msg => msg.IdMensagem === newMsg.IdMensagem)
+                const response = await fetch(
+                    `http://localhost:3000/mensagens?idRemetente=${this.currentUserId}&idDestinatario=${this.activeConversation.otherUser.id}&page=${this.currentPage}`
                 );
 
-                // Update messages while preserving hover states
-                this.messages = newMessages.map(newMsg => {
-                    const existingMsg = currentMessages.find(msg => msg.IdMensagem === newMsg.IdMensagem);
-                    return {
-                        ...newMsg,
-                        showDelete: existingMsg ? existingMsg.showDelete : false
-                    };
-                });
+                const data = await response.json();
 
-                // Handle scrolling after messages update
-                this.$nextTick(() => {
-                    if (container) {
-                        if (!currentMessages.length) {
-                            // First load - scroll to bottom
-                            container.scrollTop = container.scrollHeight;
-                        } else if (hasNewMessages && wasAtBottom) {
-                            // New messages and was at bottom - scroll to bottom
-                            container.scrollTop = container.scrollHeight;
-                        } else if (!hasNewMessages && previousScrollTop) {
-                            // No new messages - maintain scroll position
-                            container.scrollTop = previousScrollTop;
-                        }
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        this.isUserBlocked = true;
+                        this.messages = [];
+                        this.error = data.message || 'Não é possível ver mensagens de utilizadores bloqueados';
+                        return;
                     }
-                });
+                    throw new Error(data.message || 'Erro ao carregar mensagens');
+                }
 
-            } catch (err) {
-                console.error('Erro ao carregar mensagens:', err);
+                this.messages = data.data;
+                this.error = null;
+
+                if (this.shouldScrollToBottom) {
+                    this.$nextTick(this.scrollToBottom);
+                }
+            } catch (error) {
+                console.error('Erro ao buscar mensagens:', error);
+                this.error = error.message;
+                this.messages = [];
             }
         },
         async sendMessage() {
-            if (!this.newMessage.trim()) return;
-
             try {
+                if (!this.newMessage.trim() || !this.activeConversation?.otherUser?.id) {
+                    return;
+                }
+
                 const response = await fetch('http://localhost:3000/mensagens', {
                     method: 'POST',
                     headers: {
@@ -155,14 +158,23 @@ export default {
                 });
 
                 if (!response.ok) {
-                    throw new Error('Erro ao enviar mensagem');
+                    const errorData = await response.json();
+
+                    if (response.status === 403) {
+                        this.error = 'Não é possível enviar mensagens para utilizadores bloqueados';
+                        return;
+                    }
+
+                    throw new Error(errorData.message || 'Erro ao enviar mensagem');
                 }
 
                 this.newMessage = '';
+                this.error = null;
                 await this.fetchMessages();
                 await this.fetchConversations();
-            } catch (err) {
-                console.error('Erro ao enviar mensagem:', err);
+            } catch (error) {
+                console.error('Erro ao enviar mensagem:', error);
+                this.error = error.message;
             }
         },
         async deleteMessage(messageId) {
@@ -233,8 +245,104 @@ export default {
             } else {
                 return date.toLocaleDateString('pt-BR');
             }
+        },
+        async checkBlockStatus() {
+            try {
+                const token = sessionStorage.getItem('token');
+                if (!token || !this.activeConversation?.otherUser?.id) return;
+
+                const payload = JSON.parse(atob(token.split('.')[1]));
+
+                // Verificar bloqueio em ambas as direções
+                const [response1, response2] = await Promise.all([
+                    fetch(`http://localhost:3000/bloqueios/utilizador/check?idBloqueador=${payload.IdUtilizador}&idBloqueado=${this.activeConversation.otherUser.id}`),
+                    fetch(`http://localhost:3000/bloqueios/utilizador/check?idBloqueador=${this.activeConversation.otherUser.id}&idBloqueado=${payload.IdUtilizador}`)
+                ]);
+
+                if (!response1.ok || !response2.ok) {
+                    throw new Error('Erro ao verificar status de bloqueio');
+                }
+
+                const [data1, data2] = await Promise.all([
+                    response1.json(),
+                    response2.json()
+                ]);
+
+                this.isBlockedByMe = data1.bloqueado;
+                this.isBlockedByOther = data2.bloqueado;
+                this.isUserBlocked = this.isBlockedByMe || this.isBlockedByOther;
+
+                if (this.isUserBlocked) {
+                    this.messages = [];
+                    this.error = this.isBlockedByOther
+                        ? 'Você foi bloqueado por este utilizador'
+                        : 'Não é possível ver mensagens de utilizadores bloqueados';
+                } else {
+                    this.error = null;
+                }
+            } catch (error) {
+                console.error('Erro ao verificar status de bloqueio:', error);
+                this.error = 'Erro ao verificar status de bloqueio';
+            }
+        },
+        handleReport() {
+            this.$refs.denunciaModal.showModal();
+        },
+        async handleBlock() {
+            try {
+                const token = sessionStorage.getItem('token');
+                if (!token) {
+                    this.$router.push('/login');
+                    return;
+                }
+
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const currentUserId = payload.IdUtilizador;
+
+                // Primeiro, buscar o ID do bloqueio
+                const response = await fetch(`http://localhost:3000/bloqueios/utilizador?idBloqueador=${currentUserId}&idBloqueado=${this.selectedUser.id}`);
+                if (!response.ok) throw new Error('Erro ao verificar bloqueio');
+
+                const data = await response.json();
+
+                if (this.isUserBlocked) {
+                    // Desbloquear
+                    const bloqueio = data.data.find(b => b.IdBloqueado === this.selectedUser.id);
+                    if (!bloqueio) throw new Error('Bloqueio não encontrado');
+
+                    const deleteResponse = await fetch(`http://localhost:3000/bloqueios/utilizador/${bloqueio.IdUtilizadoresBloqueados}`, {
+                        method: 'DELETE'
+                    });
+                    if (!deleteResponse.ok) throw new Error('Erro ao desbloquear utilizador');
+
+                    // Após desbloquear, atualizar status e buscar mensagens
+                    this.isUserBlocked = false;
+                    this.error = null;
+                    await this.fetchMessages();
+                } else {
+                    // Bloquear
+                    const createResponse = await fetch('http://localhost:3000/bloqueios/utilizador', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            IdBloqueador: currentUserId,
+                            IdBloqueado: this.selectedUser.id
+                        })
+                    });
+                    if (!createResponse.ok) throw new Error('Erro ao bloquear utilizador');
+
+                    // Após bloquear, atualizar status
+                    await this.checkBlockStatus();
+                }
+            } catch (error) {
+                console.error('Erro ao bloquear/desbloquear:', error);
+                alert(error.message);
+            }
         }
     },
+
     created() {
         this.fetchConversations();
     },
@@ -267,6 +375,17 @@ export default {
         this.stopPolling();
     },
     watch: {
+        activeConversation: {
+            handler(newVal) {
+                if (newVal) {
+                    this.startPolling();
+                    this.fetchMessages();
+                } else {
+                    this.stopPolling();
+                }
+            },
+            immediate: true
+        },
         isOpen(newVal) {
             if (newVal) {
                 this.fetchConversations();
@@ -277,6 +396,14 @@ export default {
         activeConversation(newVal) {
             if (!newVal) {
                 this.stopPolling();
+            }
+        },
+        selectedUser: {
+            immediate: true,
+            handler() {
+                if (this.selectedUser) {
+                    this.checkBlockStatus();
+                }
             }
         }
     }
@@ -295,21 +422,65 @@ export default {
         <div class="messages-content bg-light">
             <!-- Chat Messages -->
             <div v-if="activeConversation" class="chat-container">
-                <div class="chat-header border-bottom p-3">
-                    <div class="d-flex align-items-center">
-                        <button class="btn btn-link p-0 me-3"
-                            @click="() => { activeConversation = null; stopPolling(); }">
-                            <i class="bi bi-arrow-left"></i>
-                        </button>
-                        <img :src="activeConversation.otherUser.imagemPerfil || 'https://via.placeholder.com/40'"
-                            class="rounded-circle me-2" width="40" height="40">
-                        <span class="fw-semibold">{{ activeConversation.otherUser.nome }}</span>
+                <div class="chat-header border-bottom p-3" v-if="selectedUser">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-link text-dark p-0 me-2" @click="closeActiveConversation">
+                                <i class="bi bi-arrow-left fs-5"></i>
+                            </button>
+                            <img :src="selectedUser.imagemPerfil" alt="User" class="rounded-circle" width="40"
+                                height="40">
+                            <div>
+                                <h6 class="mb-0">{{ selectedUser.nome }}</h6>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-link text-dark p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <button class="dropdown-item text-danger" @click="handleReport">
+                                        <i class="bi bi-flag me-2"></i>
+                                        Denunciar
+                                    </button>
+                                </li>
+                                <li>
+                                <li v-if="!isBlockedByOther">
+                                    <button class="dropdown-item" @click="handleBlock">
+                                        <i class="bi"
+                                            :class="isBlockedByMe ? 'bi-unlock me-2' : 'bi-slash-circle me-2'"></i>
+                                        {{ isBlockedByMe ? 'Desbloquear' : 'Bloquear' }}
+                                    </button>
+                                </li>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Replace the existing chat-messages div with this: -->
+                <!-- Messages Area -->
                 <div class="chat-messages p-3" ref="messagesContainer" @scroll="handleScroll">
-                    <template v-for="(messageGroup, date) in groupMessagesByDate(messages)" :key="date">
+                    <!-- Mensagem de bloqueio -->
+                    <div v-if="isUserBlocked" class="alert alert-warning text-center my-3">
+                        <i class="bi bi-slash-circle me-2"></i>
+                        Não é possível ver mensagens de utilizadores bloqueados
+                    </div>
+
+                    <!-- Error Message -->
+                    <div v-else-if="error" class="alert alert-danger text-center my-3">
+                        {{ error }}
+                    </div>
+
+                    <!-- Loading Message -->
+                    <div v-else-if="loading" class="text-center my-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                    </div>
+
+                    <!-- Normal Messages -->
+                    <template v-else v-for="(messageGroup, date) in groupMessagesByDate(messages)" :key="date">
                         <div class="date-divider">
                             <span class="date-label">{{ date }}</span>
                         </div>
@@ -332,11 +503,14 @@ export default {
                     </template>
                 </div>
 
+                <!-- Message Input -->
                 <div class="chat-input border-top p-3">
                     <form @submit.prevent="sendMessage" class="d-flex gap-2">
-                        <input type="text" class="form-control" v-model="newMessage"
-                            placeholder="Digite sua mensagem...">
-                        <button type="submit" class="btn btn-primary px-3" :disabled="!newMessage.trim()">
+                        <input type="text" v-model="newMessage" :disabled="isUserBlocked"
+                            :placeholder="isUserBlocked ? 'Não é possível enviar mensagens para utilizadores bloqueados' : 'Escreva uma mensagem...'"
+                            class="form-control">
+                        <button type="submit" class="btn btn-primary px-3"
+                            :disabled="isUserBlocked || !newMessage.trim()">
                             <i class="bi bi-send"></i>
                         </button>
                     </form>
@@ -345,23 +519,40 @@ export default {
 
             <!-- Conversations List -->
             <div v-else class="conversations-list">
-                <div v-for="conversation in conversations" :key="conversation.otherUser.id"
+                <div v-if="error" class="alert alert-danger m-3">
+                    {{ error }}
+                </div>
+                <div v-else-if="loading" class="text-center p-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                </div>
+                <div v-else-if="conversations.length === 0" class="text-center p-3 text-muted">
+                    Nenhuma conversa encontrada
+                </div>
+                <div v-else v-for="conversation in conversations" :key="conversation.otherUser.id"
                     class="conversation-item p-3 border-bottom" @click="selectConversation(conversation)">
                     <div class="d-flex align-items-center">
                         <img :src="conversation.otherUser.imagemPerfil || 'https://via.placeholder.com/40'"
                             class="rounded-circle me-3" width="40" height="40">
                         <div class="flex-grow-1 min-width-0">
                             <h6 class="mb-1 text-truncate">{{ conversation.otherUser.nome }}</h6>
-                            <p class="mb-0 small text-muted text-truncate">
+                            <p v-if="conversation.ultimaMensagem" class="mb-0 small text-muted text-truncate">
                                 {{ conversation.ultimaMensagem.conteudo }}
                             </p>
-                            <small class="text-muted">{{ conversation.ultimaMensagem.timeAgo }}</small>
+                            <small v-if="conversation.ultimaMensagem" class="text-muted">
+                                {{ conversation.ultimaMensagem.timeAgo }}
+                            </small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Denúncia Modal -->
+    <DenunciaModal v-if="selectedUser" ref="denunciaModal" :idDenunciado="selectedUser.id"
+        :utilizadorDenunciado="selectedUser.nome" tipo="Utilizador" @denuncia-enviada="handleDenunciaEnviada" />
 </template>
 
 <style scoped>

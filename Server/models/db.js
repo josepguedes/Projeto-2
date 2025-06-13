@@ -42,6 +42,8 @@ db.EstadoAnuncio = require('./estadoAnuncio.models.js')(sequelize, Sequelize.Dat
 db.Notificacao = require('./notificacoes.models.js')(sequelize, Sequelize.DataTypes);
 db.ProdutoCategoria = require('./produtoCategoria.models.js')(sequelize, Sequelize.DataTypes);
 db.Mensagem = require('./mensagens.models.js')(sequelize, Sequelize.DataTypes);
+db.UtilizadorBloqueio = require("./utilizadoresBloqueios.model.js")(sequelize, Sequelize.DataTypes);
+db.AdminBloqueio = require("./adminBloqueios.model.js")(sequelize, Sequelize.DataTypes);
 
 db.Anuncio.belongsTo(db.Utilizador, {
     foreignKey: 'IdUtilizadorAnuncio',
@@ -91,6 +93,20 @@ db.Mensagem.belongsTo(db.Utilizador, {
 db.Mensagem.belongsTo(db.Utilizador, {
     foreignKey: 'IdDestinatario',
     as: 'destinatario'
+});
+
+db.UtilizadorBloqueio.belongsTo(db.Utilizador, { 
+    foreignKey: 'IdBloqueador', 
+    as: 'bloqueador' 
+});
+db.UtilizadorBloqueio.belongsTo(db.Utilizador, { 
+    foreignKey: 'IdBloqueado', 
+    as: 'bloqueado' 
+});
+
+db.AdminBloqueio.belongsTo(db.Utilizador, { 
+    foreignKey: 'IdBloqueado', 
+    as: 'utilizadorBloqueado' 
 });
 
 module.exports = db;

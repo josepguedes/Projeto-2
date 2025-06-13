@@ -16,6 +16,8 @@ export default {
             user: null,
             userDetails: null,
             isMessageSidebarOpen: false,
+            unreadMessages: 0,
+            isAdmin: false,
             isNotificationBoxOpen: false,
             unreadMessages: 0
         }
@@ -95,6 +97,9 @@ export default {
         toggleMessagesSidebar() {
             this.isMessageSidebarOpen = !this.isMessageSidebarOpen;
         },
+        closeMessagesSidebar() {
+            this.isMessageSidebarOpen = false;
+        }
         toggleNotificationBox() {
             this.isNotificationBoxOpen = !this.isNotificationBoxOpen;
         },
@@ -104,6 +109,11 @@ export default {
     },
     created() {
         this.checkAuth(); // Verificação inicial
+
+        window.addEventListener('open-messages', (event) => {
+            this.isMessageSidebarOpen = true;
+            // Aqui você pode adicionar lógica para abrir a conversa específica
+        });
 
         // Listener para mudanças de autenticação
         window.addEventListener('auth-changed', () => {
@@ -122,8 +132,7 @@ export default {
         // Remover todos os listeners
         window.removeEventListener('auth-changed', this.checkAuth);
         window.removeEventListener('profile-updated', this.fetchUserDetails);
-        window.removeEventListener('notifications-updated', this.updateUnreadNotifications);
-        document.removeEventListener('click', this.handleClickOutside);
+        window.removeEventListener('open-messages');
     }
 }
 </script>
@@ -229,7 +238,7 @@ export default {
             </div>
         </div>
     </nav>
-    <MessagesSidebar :isOpen="isMessageSidebarOpen" @close="isMessageSidebarOpen = false" />
+    <MessagesSidebar :isOpen="isMessageSidebarOpen" @close="closeMessagesSidebar" />
 </template>
 
 <style scoped>

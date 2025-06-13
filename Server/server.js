@@ -33,7 +33,7 @@ app.use('/utilizadores', require('./routes/utilizadores.routes.js'));
 app.use('/notificacoes', require('./routes/notificacoes.routes.js'));
 app.use('/mensagens', require('./routes/mensagens.routes.js'));
 app.use('/categorias', require('./routes/produtoCategoria.routes.js'));
-
+app.use('/bloqueios', require('./routes/bloqueios.routes.js'));
 
 //handle invalid routes (404)    
 app.use((req, res, next) => {

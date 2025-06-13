@@ -111,18 +111,21 @@ export default {
   components: { FoodCard },
   data() {
     return {
-      searchTerm: "",
-      filterCategoria: "",
-      filterPreco: null,
-      filterData: "",
-      anuncios: [],
-      categorias: [],
-      loading: true,
-      error: null,
-      links: [],
-      currentPage: 1,
-      totalPages: 1,
-      itemsPerPage: 12,
+        searchTerm: "",
+        filterCategoria: "",
+        filterPreco: null,
+        filterData: "",
+        anuncios: [],
+        categorias: [],
+        loading: true,
+        error: null,
+        links: [],
+        currentPage: 1,
+        totalPages: 1,
+        itemsPerPage: 12,
+        searchQuery: '',
+        selectedFilter: 'all',
+        sortOrder: 'desc'
     };
   },
   methods: {
