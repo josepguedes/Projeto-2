@@ -415,6 +415,30 @@ const getReservasByUser = async (req, res, next) => {
   }
 };
 
+// Confirmar código de entrega
+const confirmarCodigoEntrega = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { codigo } = req.body;
+
+    const anuncio = await Anuncio.findByPk(id);
+    if (!anuncio) {
+      return res.status(404).json({ message: "Anúncio não encontrado" });
+    }
+
+    if (anuncio.CodigoVerificacao !== codigo) {
+      return res.status(400).json({ message: "Código incorreto" });
+    }
+
+    anuncio.IdEstadoAnuncio = 3; // Concluído
+    await anuncio.save();
+
+    return res.status(200).json({ message: "Entrega confirmada com sucesso", data: anuncio });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getAllAnuncios,
   getAnuncioById,
@@ -424,4 +448,5 @@ module.exports = {
   getAnunciosByUser,
   getAnunciosByCategory,
   getReservasByUser,
+  confirmarCodigoEntrega,
 };

@@ -48,6 +48,11 @@
                                 <span class="d-none d-md-inline">Ver Detalhes</span>
                             </button>
                             <button
+                                class="btn btn-outline-primary flex-fill d-flex align-items-center justify-content-center"
+                                @click="$emit('confirm-code', anuncio.IdAnuncio)">
+                                <span class="d-none d-md-inline">Confirmar Código</span>
+                            </button>
+                            <button
                                 class="btn btn-outline-secondary flex-fill d-flex align-items-center justify-content-center"
                                 @click="$emit('edit', anuncio)">
                                 <i class="bi bi-pencil me-1"></i>
@@ -93,11 +98,12 @@ export default {
         },
         getStatusText(status) {
             const texts = {
-                1: 'Disponível',
+                1: 'Ativo',
                 2: 'Reservado',
-                3: 'Expirado',
+                3: 'Finalizado',
                 4: 'Cancelado',
-                5: 'Concluído'
+                5: 'Expirado',
+                6: 'Por Pagar'
             };
             return texts[status] || 'Desconhecido';
         }
