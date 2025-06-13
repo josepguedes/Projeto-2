@@ -99,7 +99,7 @@ export default {
         },
         closeMessagesSidebar() {
             this.isMessageSidebarOpen = false;
-        }
+        },
         toggleNotificationBox() {
             this.isNotificationBoxOpen = !this.isNotificationBoxOpen;
         },
