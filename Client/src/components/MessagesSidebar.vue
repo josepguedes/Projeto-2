@@ -1,4 +1,6 @@
 <script>
+import BlockUserButton from './BlockUserButton.vue';
+
 export default {
     name: 'MessagesSidebar',
     props: {
@@ -6,6 +8,9 @@ export default {
             type: Boolean,
             default: false
         }
+    },
+    components: {
+        BlockUserButton
     },
     data() {
         return {
@@ -21,7 +26,8 @@ export default {
             pollTime: 2500,
             lastScrollPosition: 0,
             isUserScrolling: false,
-            shouldScrollToBottom: true
+            shouldScrollToBottom: true,
+            isUserBlocked: false,
         }
     },
     methods: {
@@ -233,6 +239,22 @@ export default {
             } else {
                 return date.toLocaleDateString('pt-BR');
             }
+        },
+        async checkBlockStatus() {
+            try {
+                const token = sessionStorage.getItem('token');
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const response = await fetch(
+                    `http://localhost:3000/bloqueios/utilizador/check?idBloqueador=${payload.IdUtilizador}&idBloqueado=${this.selectedUser.id}`
+                );
+                const data = await response.json();
+                this.isUserBlocked = data.bloqueado;
+            } catch (error) {
+                console.error('Erro ao verificar status de bloqueio:', error);
+            }
+        },
+        handleReport() {
+            // Implementar lógica de denúncia
         }
     },
     created() {
@@ -278,6 +300,14 @@ export default {
             if (!newVal) {
                 this.stopPolling();
             }
+        },
+                selectedUser: {
+            immediate: true,
+            handler() {
+                if (this.selectedUser) {
+                    this.checkBlockStatus();
+                }
+            }
         }
     }
 }
@@ -296,14 +326,22 @@ export default {
             <!-- Chat Messages -->
             <div v-if="activeConversation" class="chat-container">
                 <div class="chat-header border-bottom p-3">
-                    <div class="d-flex align-items-center">
-                        <button class="btn btn-link p-0 me-3"
-                            @click="() => { activeConversation = null; stopPolling(); }">
-                            <i class="bi bi-arrow-left"></i>
-                        </button>
-                        <img :src="activeConversation.otherUser.imagemPerfil || 'https://via.placeholder.com/40'"
-                            class="rounded-circle me-2" width="40" height="40">
-                        <span class="fw-semibold">{{ activeConversation.otherUser.nome }}</span>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <img :src="selectedUser.imagemPerfil" alt="User" class="rounded-circle" width="40"
+                                height="40">
+                            <div>
+                                <h6 class="mb-0">{{ selectedUser.nome }}</h6>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <BlockUserButton :user-id="selectedUser.id" :is-blocked="isUserBlocked"
+                                variant="btn-sm btn-outline-danger" @blocked-status-changed="checkBlockStatus" />
+                            <button class="btn btn-sm btn-outline-danger" @click="handleReport">
+                                <i class="bi bi-flag"></i>
+                                Denunciar
+                            </button>
+                        </div>
                     </div>
                 </div>
 

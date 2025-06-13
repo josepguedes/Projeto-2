@@ -50,6 +50,20 @@
                                 <i class="bi bi-chat-dots me-1"></i>
                                 Enviar Mensagem
                             </button>
+                                <div class="d-flex gap-2 mb-3">
+        <button v-if="!isMyAnnouncement" 
+                class="btn btn-primary" 
+                @click="openChat">
+            <i class="bi bi-chat-dots me-1"></i>
+            Mensagem
+        </button>
+        <BlockUserButton 
+            v-if="!isMyAnnouncement"
+            :user-id="anuncio.IdUtilizadorAnuncio"
+            :is-blocked="isUserBlocked"
+            @blocked-status-changed="checkBlockStatus"
+        />
+    </div>
                         </div>
                     </div>
                 </div>

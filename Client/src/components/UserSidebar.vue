@@ -24,6 +24,12 @@
                 Minhas Reservas
             </router-link>
 
+            <!-- Nova opção de menu para Utilizadores Bloqueados -->
+            <router-link to="/user/bloqueados" class="nav-item" :class="{ active: currentRoute === 'user-bloqueados' }">
+                <i class="bi bi-slash-circle"></i>
+                Utilizadores Bloqueados
+            </router-link>
+
             <router-link to="/" class="nav-item text-danger">
                 <i class="bi bi-house-door"></i>
                 Sair
@@ -57,14 +63,14 @@ export default {
     left: 0;
     height: 100vh;
     width: 270px;
-    border-radius: 0 1rem 1rem 0;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     background: white;
-    border-radius: 1rem;
+    border-radius: 0 1rem 1rem 0;
     padding: 2rem;
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    z-index: 1000;
 }
 
 .user-info {

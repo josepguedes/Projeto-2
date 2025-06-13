@@ -8,7 +8,6 @@ const { ErrorHandler } = require("../utils/error.js");
 // ================ BLOQUEIOS ENTRE UTILIZADORES ================
 
 // Listar todos os bloqueios entre utilizadores com paginação e filtros
-// Listar todos os bloqueios entre utilizadores com paginação e filtros
 const getAllUtilizadorBloqueios = async (req, res, next) => {
   try {
     const { idBloqueador, idBloqueado, page = 1, limit = 10 } = req.query;
@@ -30,12 +29,12 @@ const getAllUtilizadorBloqueios = async (req, res, next) => {
       throw new ErrorHandler(400, "Limite inválido");
     }
 
-    // Buscar os bloqueios sem as colunas que não existem
+    // Buscar os bloqueios agora ordenados por DataBloqueio
     const bloqueios = await UtilizadorBloqueio.findAndCountAll({
       where,
       limit: +limit,
       offset: (+page - 1) * +limit,
-      // Remover order by DataBloqueio já que essa coluna não existe
+      order: [["DataBloqueio", "DESC"]]
     });
 
     // Vamos carregar as informações de usuário manualmente
@@ -45,7 +44,7 @@ const getAllUtilizadorBloqueios = async (req, res, next) => {
       });
 
       const bloqueado = await Utilizador.findByPk(bloqueio.IdBloqueado, {
-        attributes: ["Nome", "ImagemPerfil"],
+        attributes: ["Nome", "ImagemPerfil", "Email"],
       });
 
       // Adicionar as informações ao objeto do bloqueio
@@ -166,11 +165,11 @@ const createUtilizadorBloqueio = async (req, res, next) => {
       throw new ErrorHandler(409, "Este utilizador já está bloqueado");
     }
 
-    // Criar bloqueio - remover campos que não existem na tabela
+    // Criar bloqueio com a nova coluna DataBloqueio
     const novoBloqueio = await UtilizadorBloqueio.create({
       IdBloqueador,
       IdBloqueado,
-      // Remover Motivo e DataBloqueio que não existem na tabela
+      DataBloqueio: new Date()
     });
 
     return res.status(201).json({

@@ -13,9 +13,14 @@ module.exports = (sequelize, DataTypes) => {
          type: DataTypes.INTEGER,
          allowNull: false,
       },
+      DataBloqueio: {
+         type: DataTypes.DATE,
+         allowNull: false,
+         defaultValue: DataTypes.NOW
+      }
    }, {
-      tableName: 'utilizadores_bloqueados', // nome da tabela no banco de dados
-      timestamps: false // se não precisar de createdAt e updatedAt
+      tableName: 'utilizadores_bloqueados',
+      timestamps: false
    });
    return UtilizadoresBloqueios;
 };
