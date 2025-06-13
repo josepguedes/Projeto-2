@@ -21,6 +21,7 @@ export default {
             messages: [],
             newMessage: '',
             currentUserId: null,
+            selectedUser: null,
             currentPage: 1,
             pollingInterval: null,
             pollTime: 2500,
@@ -60,18 +61,10 @@ export default {
             }
         },
         async selectConversation(conversation) {
+            this.selectedUser = conversation.otherUser; // Atualizar selectedUser
             this.activeConversation = conversation;
             await this.fetchMessages();
-
-            // Force scroll to bottom after conversation selection
-            this.$nextTick(() => {
-                const container = this.$refs.messagesContainer;
-                if (container) {
-                    container.scrollTop = container.scrollHeight;
-                }
-            });
-
-            this.startPolling();
+            await this.checkBlockStatus();
         },
         startPolling() {
             if (this.pollingInterval) {
@@ -253,10 +246,87 @@ export default {
                 console.error('Erro ao verificar status de bloqueio:', error);
             }
         },
-        handleReport() {
-            // Implementar lógica de denúncia
-        }
+        async handleReport() {
+            try {
+                if (!this.selectedUser) return;
+
+                const token = sessionStorage.getItem('token');
+                if (!token) {
+                    this.$router.push('/login');
+                    return;
+                }
+
+                const payload = JSON.parse(atob(token.split('.')[1]));
+
+                const response = await fetch('http://localhost:3000/denuncias', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        IdDenunciador: payload.IdUtilizador,
+                        IdDenunciado: this.selectedUser.id,
+                        Motivo: 'Comportamento inadequado nas mensagens'
+                    })
+                });
+
+                if (!response.ok) throw new Error('Erro ao enviar denúncia');
+
+                alert('Denúncia enviada com sucesso');
+            } catch (error) {
+                console.error('Erro ao denunciar:', error);
+                alert('Erro ao enviar denúncia');
+            }
+        },
+        async handleBlock() {
+            try {
+                const token = sessionStorage.getItem('token');
+                if (!token) {
+                    this.$router.push('/login');
+                    return;
+                }
+
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const currentUserId = payload.IdUtilizador;
+
+                // Primeiro, buscar o ID do bloqueio
+                const response = await fetch(`http://localhost:3000/bloqueios/utilizador?idBloqueador=${currentUserId}&idBloqueado=${this.selectedUser.id}`);
+                if (!response.ok) throw new Error('Erro ao verificar bloqueio');
+
+                const data = await response.json();
+
+                if (this.isUserBlocked) {
+                    // Desbloquear - usar o ID do bloqueio, não o ID do usuário
+                    const bloqueio = data.data.find(b => b.IdBloqueado === this.selectedUser.id);
+                    if (!bloqueio) throw new Error('Bloqueio não encontrado');
+
+                    const deleteResponse = await fetch(`http://localhost:3000/bloqueios/utilizador/${bloqueio.IdUtilizadoresBloqueados}`, {
+                        method: 'DELETE'
+                    });
+                    if (!deleteResponse.ok) throw new Error('Erro ao desbloquear utilizador');
+                } else {
+                    // Bloquear
+                    const createResponse = await fetch('http://localhost:3000/bloqueios/utilizador', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            IdBloqueador: currentUserId,
+                            IdBloqueado: this.selectedUser.id
+                        })
+                    });
+                    if (!createResponse.ok) throw new Error('Erro ao bloquear utilizador');
+                }
+
+                await this.checkBlockStatus();
+            } catch (error) {
+                console.error('Erro ao bloquear/desbloquear:', error);
+                alert(error.message);
+            }
+        },
     },
+
     created() {
         this.fetchConversations();
     },
@@ -301,7 +371,7 @@ export default {
                 this.stopPolling();
             }
         },
-                selectedUser: {
+        selectedUser: {
             immediate: true,
             handler() {
                 if (this.selectedUser) {
@@ -325,8 +395,11 @@ export default {
         <div class="messages-content bg-light">
             <!-- Chat Messages -->
             <div v-if="activeConversation" class="chat-container">
-                <div class="chat-header border-bottom p-3">
+                <div class="chat-header border-bottom p-3" v-if="selectedUser">
                     <div class="d-flex justify-content-between align-items-center">
+                        <button class="btn btn-link text-dark p-0 me-2" @click="activeConversation = null">
+                            <i class="bi bi-arrow-left fs-5"></i>
+                        </button>
                         <div class="d-flex align-items-center gap-2">
                             <img :src="selectedUser.imagemPerfil" alt="User" class="rounded-circle" width="40"
                                 height="40">
@@ -334,13 +407,25 @@ export default {
                                 <h6 class="mb-0">{{ selectedUser.nome }}</h6>
                             </div>
                         </div>
-                        <div class="d-flex gap-2">
-                            <BlockUserButton :user-id="selectedUser.id" :is-blocked="isUserBlocked"
-                                variant="btn-sm btn-outline-danger" @blocked-status-changed="checkBlockStatus" />
-                            <button class="btn btn-sm btn-outline-danger" @click="handleReport">
-                                <i class="bi bi-flag"></i>
-                                Denunciar
+                        <div class="dropdown">
+                            <button class="btn btn-link text-dark p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
                             </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <button class="dropdown-item text-danger" @click="handleReport">
+                                        <i class="bi bi-flag me-2"></i>
+                                        Denunciar
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item" @click="handleBlock">
+                                        <i class="bi"
+                                            :class="isUserBlocked ? 'bi-unlock me-2' : 'bi-slash-circle me-2'"></i>
+                                        {{ isUserBlocked ? 'Desbloquear' : 'Bloquear' }}
+                                    </button>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>

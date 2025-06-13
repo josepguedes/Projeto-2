@@ -62,10 +62,18 @@ export default {
         },
         toggleMessagesSidebar() {
             this.isMessageSidebarOpen = !this.isMessageSidebarOpen;
+        },
+        closeMessagesSidebar() {
+            this.isMessageSidebarOpen = false;
         }
     },
     created() {
         this.checkAuth(); // Verificação inicial
+
+        window.addEventListener('open-messages', (event) => {
+            this.isMessageSidebarOpen = true;
+            // Aqui você pode adicionar lógica para abrir a conversa específica
+        });
 
         // Listener para mudanças de autenticação
         window.addEventListener('auth-changed', () => {
@@ -79,6 +87,7 @@ export default {
         // Remover todos os listeners
         window.removeEventListener('auth-changed', this.checkAuth);
         window.removeEventListener('profile-updated', this.fetchUserDetails);
+        window.removeEventListener('open-messages');
     }
 }
 </script>
@@ -108,12 +117,10 @@ export default {
                                 <button class="btn btn-link nav-link me-3" @click="toggleMessagesSidebar">
                                     <i class="bi bi-chat-left fs-5"></i>
                                 </button>
-                                <div class="d-flex align-items-center cursor-pointer" data-bs-toggle="dropdown" role="button">
-                                    <img :src="userDetails?.ImagemPerfil || 'https://via.placeholder.com/40'" 
-                                         alt="Profile"
-                                         class="rounded-circle me-2" 
-                                         width="40" 
-                                         height="40">
+                                <div class="d-flex align-items-center cursor-pointer" data-bs-toggle="dropdown"
+                                    role="button">
+                                    <img :src="userDetails?.ImagemPerfil || 'https://via.placeholder.com/40'"
+                                        alt="Profile" class="rounded-circle me-2" width="40" height="40">
                                     <span class="me-2">{{ userDetails?.Nome || user?.Nome || 'Utilizador' }}</span>
                                     <i class="bi bi-chevron-down"></i>
                                 </div>
@@ -173,7 +180,7 @@ export default {
             </div>
         </div>
     </nav>
-    <MessagesSidebar :isOpen="isMessageSidebarOpen" @close="isMessageSidebarOpen = false" />
+    <MessagesSidebar :isOpen="isMessageSidebarOpen" @close="closeMessagesSidebar" />
 </template>
 
 <style scoped>
