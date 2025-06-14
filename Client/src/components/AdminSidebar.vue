@@ -23,10 +23,6 @@
                 <i class="bi bi-shield"></i>
                 Gestão de Denúncias
             </router-link>
-            <router-link to="/admin/bloqueios" class="nav-item" :class="{ active: currentRoute === 'admin-bloqueios' }">
-                <i class="bi bi-slash-circle"></i>
-                Utilizadores Bloqueados
-            </router-link>
             <router-link to="/admin/avaliacoes" class="nav-item"
                 :class="{ active: currentRoute === 'admin-avaliacoes' }">
                 <i class="bi bi-star"></i>

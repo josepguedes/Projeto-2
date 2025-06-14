@@ -14,7 +14,6 @@ import AdminNotificaçoes from "../views/admin/AdminNotificaçoesView.vue";
 import AdminDenuncias from "../views/admin/AdminDenunciasView.vue";
 import AdminCategorias from "../views/admin/AdminCategoriasView.vue";
 import UserBloqueadosView from "../views/UserBloqueiosView.vue";
-import AdminBloqueadosView from "../views/admin/AdminBloqueiosView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -93,11 +92,6 @@ const router = createRouter({
       path: "/user/bloqueados",
       name: "user-bloqueados",
       component: UserBloqueadosView,
-    },
-    {
-      path: "/admin/bloqueios",
-      name: "admin-bloqueios",
-      component: AdminBloqueadosView,
     },
   ],
 });

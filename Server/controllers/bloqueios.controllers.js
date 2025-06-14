@@ -229,67 +229,50 @@ const deleteUtilizadorBloqueio = async (req, res, next) => {
 
 // Bloquear utilizador por administrador
 const createAdminBloqueio = async (req, res, next) => {
-  try {
-    const { IdUtilizadorBloqueado, Motivo, DataExpiracao } = req.body;
-    const novoBloqueio = await AdminBloqueio.create({
-      IdBloqueado,
-      DataBloqueio: new Date(),
-      DataFimBloqueio: DataFimBloqueio || null,
-    });
+    try {
+        const { IdBloqueado, DataFimBloqueio } = req.body;
 
-    // Verificar se usuário é admin
-    if (req.user.Funcao !== "admin") {
-      throw new ErrorHandler(403, "Acesso não autorizado");
+        // Validar dados obrigatórios
+        if (!IdBloqueado) {
+            throw new ErrorHandler(400, "ID do utilizador é obrigatório");
+        }
+
+        // Verificar se utilizador existe
+        const utilizador = await db.Utilizador.findByPk(IdBloqueado);
+        if (!utilizador) {
+            throw new ErrorHandler(404, "Utilizador não encontrado");
+        }
+
+        // Verificar se já existe bloqueio ativo
+        const bloqueioExistente = await AdminBloqueio.findOne({
+            where: {
+                IdBloqueado,
+                [Op.or]: [
+                    { DataFimBloqueio: null },
+                    { DataFimBloqueio: { [Op.gt]: new Date() } }
+                ]
+            }
+        });
+
+        if (bloqueioExistente) {
+            throw new ErrorHandler(409, "Este utilizador já está bloqueado por um administrador");
+        }
+
+        // Criar o bloqueio
+        const novoBloqueio = await AdminBloqueio.create({
+            IdBloqueado,
+            DataBloqueio: new Date(),
+            DataFimBloqueio: DataFimBloqueio || null
+        });
+
+        return res.status(201).json({
+            message: "Utilizador bloqueado com sucesso",
+            data: novoBloqueio
+        });
+
+    } catch (err) {
+        next(err);
     }
-
-    // Validar dados obrigatórios
-    if (!IdUtilizadorBloqueado) {
-      throw new ErrorHandler(400, "ID do utilizador é obrigatório");
-    }
-
-    // Verificar se utilizador existe
-    const utilizador = await Utilizador.findByPk(IdUtilizadorBloqueado);
-    if (!utilizador) {
-      throw new ErrorHandler(404, "Utilizador não encontrado");
-    }
-
-    // Verificar se já existe bloqueio administrativo
-    const bloqueioExistente = await AdminBloqueio.findOne({
-      where: {
-        IdUtilizadorBloqueado,
-        Ativo: true,
-      },
-    });
-
-    if (bloqueioExistente) {
-      throw new ErrorHandler(
-        409,
-        "Este utilizador já está bloqueado por um administrador"
-      );
-    }
-
-    // Atualizar estado do utilizador
-    await utilizador.update({ EstadoConta: "bloqueado" });
-
-    return res.status(201).json({
-      message: "Utilizador bloqueado com sucesso pelo administrador",
-      data: novoBloqueio,
-      links: [
-        {
-          rel: "self",
-          href: `/bloqueios/admin/${novoBloqueio.IdAdminBloqueio}`,
-          method: "GET",
-        },
-        {
-          rel: "delete",
-          href: `/bloqueios/admin/${novoBloqueio.IdAdminBloqueio}`,
-          method: "DELETE",
-        },
-      ],
-    });
-  } catch (err) {
-    next(err);
-  }
 };
 
 // Remover bloqueio administrativo
@@ -394,6 +377,30 @@ const getAdminBloqueioById = async (req, res, next) => {
   }
 };
 
+const checkAdminBloqueio = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const bloqueio = await AdminBloqueio.findOne({
+            where: {
+                IdBloqueado: id,
+                [Op.or]: [
+                    { DataFimBloqueio: null },
+                    { DataFimBloqueio: { [Op.gt]: new Date() } }
+                ]
+            }
+        });
+
+        return res.status(200).json({
+            bloqueio: bloqueio,
+            bloqueado: !!bloqueio
+        });
+
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
   // Bloqueios entre utilizadores
   getAllUtilizadorBloqueios,
@@ -406,4 +413,5 @@ module.exports = {
   deleteAdminBloqueio,
   getAllAdminBloqueios,
   getAdminBloqueioById,
+  checkAdminBloqueio
 };

@@ -1,81 +1,67 @@
-const API_URL = 'http://localhost:3000';
+const API_URL = "http://localhost:3000";
 
 export const adminBloqueiosService = {
-    async getAllBloqueios(page = 1, limit = 10) {
-        const token = sessionStorage.getItem('token');
+    async checkBloqueio(idUtilizador) {
+        const token = sessionStorage.getItem("token");
         if (!token) {
-            throw new Error('Token não encontrado');
+            throw new Error("Token não encontrado");
         }
 
-        try {
-            const response = await fetch(`${API_URL}/bloqueios/admin?page=${page}&limit=${limit}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Erro ao buscar bloqueios administrativos');
+        const response = await fetch(`${API_URL}/bloqueios/admin/check/${idUtilizador}`, {
+            headers: {
+                Authorization: `Bearer ${token}`
             }
+        });
 
-            const data = await response.json();
-            return {
-                data: data.data || [],
-                currentPage: data.currentPage || page,
-                totalPages: data.totalPages || 1,
-                total: data.total || 0
-            };
-
-        } catch (error) {
-            console.error('Erro na requisição:', error);
-            throw error;
+        if (!response.ok) {
+            throw new Error("Erro ao verificar bloqueio");
         }
+
+        return response.json();
     },
 
-    async createBloqueio(idUtilizador, motivo) {
-        const token = sessionStorage.getItem('token');
+    async createBloqueio(idUtilizador, dataFimBloqueio = null) {
+        const token = sessionStorage.getItem("token");
         if (!token) {
-            throw new Error('Token não encontrado');
+            throw new Error("Token não encontrado");
         }
 
         const response = await fetch(`${API_URL}/bloqueios/admin`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                IdUtilizadorBloqueado: idUtilizador,
-                Motivo: motivo
+                IdBloqueado: idUtilizador, // Corrigido para IdBloqueado
+                DataFimBloqueio: dataFimBloqueio
             })
         });
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.message || 'Erro ao bloquear utilizador');
+            throw new Error(error.message || "Erro ao bloquear utilizador");
         }
 
         return response.json();
     },
 
     async deleteBloqueio(idBloqueio) {
-        const token = sessionStorage.getItem('token');
+        const token = sessionStorage.getItem("token");
         if (!token) {
-            throw new Error('Token não encontrado');
+            throw new Error("Token não encontrado");
         }
 
         const response = await fetch(`${API_URL}/bloqueios/admin/${idBloqueio}`, {
-            method: 'DELETE',
+            method: "DELETE",
             headers: {
-                'Authorization': `Bearer ${token}`,
+                Authorization: `Bearer ${token}`
             }
         });
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.message || 'Erro ao desbloquear utilizador');
+            throw new Error(error.message || "Erro ao desbloquear utilizador");
         }
 
         return response.json();
