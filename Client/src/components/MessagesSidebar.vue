@@ -39,23 +39,29 @@ export default {
             try {
                 this.loading = true;
                 const token = sessionStorage.getItem('token');
+
+                // Add early return if no token exists
+                if (!token) {
+                    this.conversations = [];
+                    this.error = null;
+                    this.loading = false;
+                    return;
+                }
+
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 this.currentUserId = payload.IdUtilizador;
 
                 const response = await fetch(`http://localhost:3000/mensagens/conversations/${this.currentUserId}`);
                 const data = await response.json();
 
-                // Sort conversations by the most recent message in ascending order (oldest first)
+                // Rest of your existing code...
                 this.conversations = data.data.sort((a, b) => {
                     if (!a.ultimaMensagem || !b.ultimaMensagem) return 0;
-
-                    // Create complete date objects for both messages
                     const dateTimeA = new Date(`${a.ultimaMensagem.DataEnvio} ${a.ultimaMensagem.HoraEnvio}`);
                     const dateTimeB = new Date(`${b.ultimaMensagem.DataEnvio} ${b.ultimaMensagem.HoraEnvio}`);
-
-                    // Compare full datetime in milliseconds (changed to ascending order)
                     return dateTimeA.getTime() - dateTimeB.getTime();
                 });
+
             } catch (err) {
                 this.error = 'Erro ao carregar conversas';
                 console.error(err);
@@ -344,7 +350,11 @@ export default {
     },
 
     created() {
-        this.fetchConversations();
+        // Only fetch conversations if user is logged in
+        const token = sessionStorage.getItem('token');
+        if (token) {
+            this.fetchConversations();
+        }
     },
     mounted() {
         const container = this.$refs.messagesContainer;

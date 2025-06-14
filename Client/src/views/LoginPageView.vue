@@ -18,7 +18,6 @@
         </p>
     </div>
 </template>
-
 <script>
 export default {
     name: "LoginPageView",
@@ -30,6 +29,28 @@ export default {
         };
     },
     methods: {
+        async checkAdminBlock(userId) {
+            try {
+                const response = await fetch(`http://localhost:3000/bloqueios/admin/check/${userId}`);
+                if (!response.ok) {
+                    throw new Error('Erro ao verificar bloqueio');
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                throw error;
+            }
+        },
+
+        formatBlockEndDate(date) {
+            if (!date) return 'permanentemente';
+            return new Date(date).toLocaleDateString('pt-PT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        },
+
         async handleLogin() {
             this.error = "";
             if (!this.email || !this.password) {
@@ -48,16 +69,31 @@ export default {
                     })
                 });
                 const data = await response.json();
+
                 if (!response.ok) {
                     this.error = data.message || data.error || "Falha no login.";
-                } else {
-                    sessionStorage.setItem("token", data.token);
-                    // Disparar o evento auth-changed antes do redirecionamento
-                    window.dispatchEvent(new Event('auth-changed'));
-                    this.$router.push("/");
+                    return;
                 }
+
+                // Verificar bloqueio administrativo antes de prosseguir com o login
+                const blockCheck = await this.checkAdminBlock(data.user.IdUtilizador);
+
+                if (blockCheck.bloqueado) {
+                    const endDate = blockCheck.bloqueio?.DataFimBloqueio;
+                    this.error = endDate
+                        ? `A sua conta está bloqueada até ${this.formatBlockEndDate(endDate)}`
+                        : 'A sua conta está permanentemente bloqueada';
+                    return;
+                }
+
+                // Se não estiver bloqueado, procede com o login normal
+                sessionStorage.setItem("token", data.token);
+                window.dispatchEvent(new Event('auth-changed'));
+                this.$router.push("/");
+
             } catch (err) {
                 this.error = "Erro de conexão com o servidor.";
+                console.error(err);
             }
         }
     }
@@ -112,7 +148,7 @@ button:hover {
 button {
     width: 100%;
     padding: 10px;
-    background-color: #33A58C ;
+    background-color: #33A58C;
     color: white;
     border: none;
     border-radius: 4px;

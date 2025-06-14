@@ -13,7 +13,7 @@ import AdminReservas from "../views/admin/AdminReservasView.vue";
 import AdminNotificaçoes from "../views/admin/AdminNotificaçoesView.vue";
 import AdminDenuncias from "../views/admin/AdminDenunciasView.vue";
 import AdminCategorias from "../views/admin/AdminCategoriasView.vue";
-import UserBloqueadosView from '../views/UserBloqueiosView.vue'
+import UserBloqueadosView from "../views/UserBloqueiosView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
