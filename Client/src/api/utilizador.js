@@ -11,9 +11,7 @@ export const utilizadorService = {
                 Nome: utilizador.Nome,
                 Email: utilizador.Email,
                 Password: utilizador.Password,
-                DataNascimento: utilizador.DataNascimento,
-                Telefone: utilizador.Telefone,
-                Morada: utilizador.Morada
+                DataNascimento: utilizador.DataNascimento
             })
         });
 
@@ -32,35 +30,37 @@ export const utilizadorService = {
                 'Authorization': `Bearer ${token}`
             }
         });
-
         if (!response.ok) {
             throw new Error('Failed to fetch user details');
         }
-
         return response.json();
     },
 
-    async updateUser(userId, formData) {
+    async updateUser(userId, data, isFormData = false) {
         const token = sessionStorage.getItem('token');
-        try {
-            const response = await fetch(`${API_URL}/utilizadores/${userId}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                    // Don't set Content-Type - browser will set it with boundary
-                },
-                body: formData
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Erro ao atualizar utilizador');
+        const url = `${API_URL}/utilizadores/${userId}`;
+        let options = {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
+        };
 
-            return response.json();
-        } catch (error) {
+        if (isFormData) {
+            options.body = data;
+        } else {
+            options.headers['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(data);
+        }
+
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            const error = await response.json();
             throw new Error(error.message || 'Erro ao atualizar utilizador');
         }
+
+        return response.json();
     },
 
     async getAllUsers(page = 1, limit = 10) {

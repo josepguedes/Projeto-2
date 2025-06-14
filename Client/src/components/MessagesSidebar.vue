@@ -121,7 +121,7 @@ export default {
                     if (response.status === 403) {
                         this.isUserBlocked = true;
                         this.messages = [];
-                        this.error = data.message || 'Não é possível ver mensagens de utilizadores bloqueados';
+                        this.error = data.message || 'Não é possível ver ou enviar mensagens de utilizadores bloqueados';
                         return;
                     }
                     throw new Error(data.message || 'Erro ao carregar mensagens');
@@ -464,7 +464,7 @@ export default {
                     <!-- Mensagem de bloqueio -->
                     <div v-if="isUserBlocked" class="alert alert-warning text-center my-3">
                         <i class="bi bi-slash-circle me-2"></i>
-                        Não é possível ver mensagens de utilizadores bloqueados
+                        Não é possível ver ou enviar mensagens de utilizadores bloqueados
                     </div>
 
                     <!-- Error Message -->
