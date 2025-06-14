@@ -179,7 +179,7 @@ export default {
                 this.$router.push('/login');
                 return;
             }
-            this.$emit('report');
+            this.reportModal.show(); // Abrir o modal diretamente
         },
         async submitReport() {
             try {
@@ -197,7 +197,6 @@ export default {
                     IdUtilizadorDenunciante: payload.IdUtilizador, // Adicionar ID do denunciante
                     IdUtilizadorDenunciado: this.anuncio.IdUtilizadorAnuncio,
                     Motivo: this.reportReason,
-                    IdAnuncio: this.anuncio.IdAnuncio
                 });
 
                 alert('Denúncia enviada com sucesso!');
