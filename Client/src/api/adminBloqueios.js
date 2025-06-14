@@ -7,19 +7,31 @@ export const adminBloqueiosService = {
             throw new Error('Token não encontrado');
         }
 
-        const response = await fetch(`${API_URL}/bloqueios/admin?page=${page}&limit=${limit}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+        try {
+            const response = await fetch(`${API_URL}/bloqueios/admin?page=${page}&limit=${limit}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao buscar bloqueios administrativos');
             }
-        });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Erro ao buscar bloqueios administrativos');
+            const data = await response.json();
+            return {
+                data: data.data || [],
+                currentPage: data.currentPage || page,
+                totalPages: data.totalPages || 1,
+                total: data.total || 0
+            };
+
+        } catch (error) {
+            console.error('Erro na requisição:', error);
+            throw error;
         }
-
-        return response.json();
     },
 
     async createBloqueio(idUtilizador, motivo) {

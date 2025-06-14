@@ -1,90 +1,72 @@
 <template>
     <div class="admin-bloqueios-page d-flex">
-        <AdminSidebar v-if="userDetails" :userDetails="userDetails" />
-        <div class="container">
-            <div class="content">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="mb-0">Utilizadores Bloqueados</h2>
-                </div>
+        <!-- Admin Sidebar -->
+        <AdminSidebar active="admin-bloqueios" :userDetails="userDetails" />
 
-                <!-- Loading State -->
-                <div v-if="loading" class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Carregando...</span>
-                    </div>
-                </div>
+        <!-- Main Content -->
+        <div class="flex-grow-1 p-4 content">
+            <h2 class="mb-4 fw-bold text-primary">Gestão de Bloqueios</h2>
 
-                <!-- Error State -->
-                <div v-else-if="error" class="alert alert-danger" role="alert">
-                    {{ error }}
-                </div>
+            <div class="table-responsive bg-white rounded shadow-sm p-3">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Utilizador</th>
+                            <th>Data de Bloqueio</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="bloqueios.length === 0">
+                            <td colspan="4" class="text-center text-muted py-4">
+                                <i class="bi bi-slash-circle fs-3 d-block mb-2"></i>
+                                Nenhum utilizador bloqueado encontrado
+                            </td>
+                        </tr>
+                        <tr v-for="bloqueio in bloqueios" :key="bloqueio.IdAdminBloqueados">
+                            <td>{{ bloqueio.IdAdminBloqueados }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <img :src="bloqueio.bloqueado?.ImagemPerfil || 'https://via.placeholder.com/32'"
+                                        alt="Utilizador" class="rounded-circle" width="32" height="32">
+                                    <div>
+                                        <div class="fw-medium">{{ bloqueio.bloqueado?.Nome }}</div>
+                                        <small class="text-muted">{{ bloqueio.bloqueado?.Email }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ formatDate(bloqueio.DataBloqueio) }}</td>
+                            <td>
+                                <button @click="handleDesbloquear(bloqueio.IdAdminBloqueados)"
+                                    class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-unlock me-1"></i>
+                                    Desbloquear
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
 
-                <!-- Content -->
-                <div v-else>
-                    <div v-if="bloqueios.length === 0" class="text-center text-muted py-4">
-                        <i class="bi bi-slash-circle fs-3 d-block mb-2"></i>
-                        Nenhum utilizador bloqueado encontrado
-                    </div>
-                    <div v-else>
-                        <div class="card">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle m-0">
-                                    <thead>
-                                        <tr>
-                                            <th>Utilizador</th>
-                                            <th>Data de Bloqueio</th>
-                                            <th>Motivo</th>
-                                            <th>Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="bloqueio in bloqueios" :key="bloqueio.IdAdminBloqueados">
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <img :src="bloqueio.bloqueado.ImagemPerfil" alt="Utilizador"
-                                                        class="rounded-circle me-2" width="32" height="32">
-                                                    <div>
-                                                        <div class="fw-medium">{{ bloqueio.bloqueado.Nome }}</div>
-                                                        <small class="text-muted">{{ bloqueio.bloqueado.Email }}</small>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>{{ formatDate(bloqueio.DataBloqueio) }}</td>
-                                            <td>{{ bloqueio.Motivo || 'Não especificado' }}</td>
-                                            <td>
-                                                <button @click="handleDesbloquear(bloqueio.IdAdminBloqueados)"
-                                                    class="btn btn-sm btn-outline-primary">
-                                                    <i class="bi bi-unlock me-1"></i>
-                                                    Desbloquear
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Pagination -->
-                        <nav v-if="totalPages > 1" class="mt-4">
-                            <ul class="pagination justify-content-center">
-                                <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                                    <button class="page-link" @click="goToPage(currentPage - 1)">
-                                        <i class="bi bi-chevron-left"></i>
-                                    </button>
-                                </li>
-                                <li class="page-item" v-for="page in totalPages" :key="page"
-                                    :class="{ active: page === currentPage }">
-                                    <button class="page-link" @click="goToPage(page)">{{ page }}</button>
-                                </li>
-                                <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                                    <button class="page-link" @click="goToPage(currentPage + 1)">
-                                        <i class="bi bi-chevron-right"></i>
-                                    </button>
-                                </li>
-                            </ul>
-                        </nav>
-                    </div>
-                </div>
+                <!-- Pagination -->
+                <nav v-if="totalPages > 1" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                            <button class="page-link" @click="goToPage(currentPage - 1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                        </li>
+                        <li v-for="page in totalPages" :key="page" class="page-item"
+                            :class="{ active: page === currentPage }">
+                            <button class="page-link" @click="goToPage(page)">{{ page }}</button>
+                        </li>
+                        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                            <button class="page-link" @click="goToPage(currentPage + 1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -102,7 +84,7 @@ export default {
     },
     data() {
         return {
-            userDetails: null,  // Add this
+            userDetails: null,
             bloqueios: [],
             loading: true,
             error: null,
@@ -112,6 +94,27 @@ export default {
         }
     },
     methods: {
+        async fetchBloqueios(page = 1) {
+            try {
+                this.loading = true;
+                this.error = null;
+
+                // Primeiro carrega os detalhes do usuário se necessário
+                if (!this.userDetails) {
+                    await this.fetchLoggedUserDetails();
+                }
+
+                const response = await adminBloqueiosService.getAllBloqueios(page, this.itemsPerPage);
+                this.bloqueios = response.data;
+                this.currentPage = response.currentPage;
+                this.totalPages = response.totalPages;
+            } catch (error) {
+                console.error('Erro ao buscar bloqueios:', error);
+                this.error = error.message || 'Erro ao carregar utilizadores bloqueados';
+            } finally {
+                this.loading = false;
+            }
+        },
         async fetchLoggedUserDetails() {
             try {
                 const token = sessionStorage.getItem('token');
@@ -122,10 +125,16 @@ export default {
 
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const response = await utilizadorService.getUserDetails(payload.IdUtilizador);
-                this.userDetails = response;
+
+                if (response) {
+                    this.userDetails = response;
+                } else {
+                    throw new Error('Detalhes do usuário não encontrados');
+                }
             } catch (err) {
                 console.error('Error fetching logged user details:', err);
                 this.error = 'Erro ao carregar detalhes do usuário';
+                this.$router.push('/login');
             }
         },
         async handleDesbloquear(idBloqueio) {
@@ -156,17 +165,19 @@ export default {
         }
     },
     async created() {
-        // Carrega os detalhes do usuário primeiro
-        await this.fetchLoggedUserDetails();
+        try {
+            await this.fetchLoggedUserDetails();
 
-        const page = parseInt(this.$route.query.page) || 1;
-        this.currentPage = page;
+            if (!this.userDetails) {
+                throw new Error('Detalhes do usuário não encontrados');
+            }
 
-        if (!this.$route.query.page) {
-            this.$router.replace({ query: { ...this.$route.query, page: 1 } });
+            const page = parseInt(this.$route.query.page) || 1;
+            await this.fetchBloqueios(page);
+        } catch (error) {
+            console.error('Error in created hook:', error);
+            this.error = error.message;
         }
-
-        await this.fetchBloqueios(page);
     },
     watch: {
         '$route.query.page'(newPage) {
@@ -181,24 +192,16 @@ export default {
 
 <style scoped>
 .admin-bloqueios-page {
-    padding-top: 80px;
-    padding-bottom: 40px;
     min-height: 100vh;
     background: #f8f9fa;
+    padding-bottom: 100px;
 }
 
 .content {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 2rem;
+    margin-top: 100px;
 }
 
-.table th {
-    font-weight: 600;
-    color: #495057;
-}
-
+.table th,
 .table td {
     vertical-align: middle;
 }

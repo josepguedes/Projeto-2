@@ -105,8 +105,8 @@ db.UtilizadorBloqueio.belongsTo(db.Utilizador, {
 });
 
 db.AdminBloqueio.belongsTo(db.Utilizador, { 
-    foreignKey: 'IdBloqueado', 
-    as: 'utilizadorBloqueado' 
+    foreignKey: 'IdBloqueado',
+    as: 'bloqueado' 
 });
 
 module.exports = db;

@@ -318,54 +318,32 @@ const deleteAdminBloqueio = async (req, res, next) => {
 
 // Listar todos os bloqueios administrativos
 const getAllAdminBloqueios = async (req, res, next) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
+    try {
+        const { page = 1, limit = 10 } = req.query;
+        
+        const bloqueios = await AdminBloqueio.findAndCountAll({
+            include: [{
+                model: db.Utilizador,
+                as: 'bloqueado',
+                attributes: ['Nome', 'ImagemPerfil', 'Email'],
+                required: true
+            }],
+            order: [['DataBloqueio', 'DESC']],
+            limit: parseInt(limit),
+            offset: (parseInt(page) - 1) * parseInt(limit)
+        });
 
-    const where = {
-      [Op.or]: [
-        { DataFimBloqueio: null },
-        { DataFimBloqueio: { [Op.gt]: new Date() } }
-      ]
-    };
+        return res.status(200).json({
+            data: bloqueios.rows,
+            totalPages: Math.ceil(bloqueios.count / parseInt(limit)),
+            currentPage: parseInt(page),
+            total: bloqueios.count
+        });
 
-    const bloqueios = await AdminBloqueio.findAndCountAll({
-      where,
-      include: [{
-        model: db.Utilizador,
-        as: "bloqueado", // Ajustar alias para match com modelo
-        foreignKey: 'IdBloqueado',
-        attributes: ["Nome", "ImagemPerfil", "Email"]
-      }],
-      order: [["DataBloqueio", "DESC"]],
-      limit: +limit,
-      offset: (+page - 1) * +limit
-    });
-
-    // Ajuste os links para usar o nome correto da chave primária
-    bloqueios.rows.forEach((bloqueio) => {
-      bloqueio.links = [
-        {
-          rel: "self",
-          href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`,
-          method: "GET",
-        },
-        {
-          rel: "delete",
-          href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`,
-          method: "DELETE",
-        },
-      ];
-    });
-
-    return res.status(200).json({
-      totalPages: Math.ceil(bloqueios.count / limit),
-      currentPage: +page,
-      total: bloqueios.count,
-      data: bloqueios.rows,
-    });
-  } catch (err) {
-    next(err);
-  }
+    } catch (err) {
+        console.error('Erro ao buscar bloqueios:', err);
+        next(err);
+    }
 };
 
 // Obter detalhes de um bloqueio administrativo específico
@@ -373,19 +351,10 @@ const getAdminBloqueioById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Remover temporariamente a verificação de admin para fins de teste
-    // if (req.user && req.user.Funcao !== 'admin') {
-    //   throw new ErrorHandler(403, "Acesso não autorizado");
-    // }
 
     const bloqueio = await AdminBloqueio.findByPk(id, {
       include: [
-        // Remover temporariamente a associação com administrador se não existir
-        // {
-        //   model: db.Utilizador,
-        //   as: "administrador",
-        //   attributes: ["Nome", "ImagemPerfil", "Email"],
-        // },
+
         {
           model: db.Utilizador,
           as: "utilizadorBloqueado",

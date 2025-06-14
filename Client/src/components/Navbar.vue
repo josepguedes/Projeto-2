@@ -196,12 +196,7 @@ export default {
                                                 <i class="bi bi-people me-2"></i>Painel Admin
                                             </router-link>
                                         </li>
-                                        <!-- Add the new menu item here -->
-                                        <li>
-                                            <router-link class="dropdown-item" :to="{ name: 'admin-bloqueios' }">
-                                                <i class="bi bi-slash-circle me-2"></i>Utilizadores Bloqueados
-                                            </router-link>
-                                        </li>
+
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
