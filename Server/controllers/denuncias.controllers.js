@@ -91,8 +91,7 @@ const createDenuncia = async (req, res, next) => {
         const {
             IdUtilizadorDenunciante,
             IdUtilizadorDenunciado,
-            Motivo,
-            IdAnuncio
+            Motivo
         } = req.body;
 
         // Validar campos obrigatórios
@@ -104,7 +103,6 @@ const createDenuncia = async (req, res, next) => {
         const denuncia = await Denuncia.create({
             IdUtilizadorDenunciante,
             IdUtilizadorDenunciado,
-            IdAnuncio,
             Motivo,
             DataDenuncia: new Date()
         });

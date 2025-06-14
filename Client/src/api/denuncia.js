@@ -11,7 +11,6 @@ export const denunciasService = {
         body: JSON.stringify({
           IdUtilizadorDenunciante: denuncia.IdUtilizadorDenunciante,
           IdUtilizadorDenunciado: denuncia.IdUtilizadorDenunciado,
-          IdAnuncio: denuncia.IdAnuncio,
           Motivo: denuncia.Motivo,
           DataDenuncia: new Date().toISOString(),
         }),
