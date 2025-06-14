@@ -4,16 +4,15 @@
             <div class="row justify-content-center">
                 <!-- Sidebar -->
                 <div class="col-lg-3 mb-4 sidebar">
-                    <UserSidebar :userDetails="userDetails" />
+                    <UserSidebar :userDetails="userDetails" :key="userDetails?.ImagemPerfil" />
                 </div>
 
                 <!-- Formulário de edição -->
                 <div class="col-lg-8">
-                    <ProfileForm 
-                        :userDetails="userDetails"
-                        @profile-updated="fetchUserDetails"
-                    />
+                    <ProfileForm :userDetails="userDetails" @profile-updated="fetchUserDetails" />
                 </div>
+
+                
             </div>
         </div>
     </div>

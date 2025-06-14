@@ -18,17 +18,21 @@
                     <div v-else-if="error" class="alert alert-danger">
                         {{ error }}
                     </div>
+                    <div v-else-if="reservas.length === 0" class="text-center py-5">
+                        <i class="bi bi-calendar-x display-1 text-muted"></i>
+                        <p class="mt-3 text-muted">Você ainda não possui reservas realizadas.</p>
+                        <router-link to="/" class="btn btn-primary mt-3">
+                            Explorar Anúncios
+                        </router-link>
+                    </div>
                     <div v-else>
-                        <div v-if="reservas.length === 0" class="alert alert-info">
-                            Nenhuma reserva encontrada.
-                        </div>
                         <!-- filepath: c:\Users\josep\OneDrive - Instituto Politécnico do Porto\Faculdade\2º ano\2º Semestre\Projeto-2\Client\src\views\UserReservasView.vue -->
                         <div class="row g-4">
                             <div class="col-12" v-for="reserva in reservas" :key="reserva.IdAnuncio">
                                 <UserReservaCard :reserva="reserva" @payment-success="fetchReservas"
                                     @cancelar="handleCancelarReserva" />
                             </div>
-                        </div>
+                        </div>«
                     </div>
                 </div>
             </div>
@@ -104,7 +108,7 @@ export default {
                 this.reservas = this.reservas.filter(r => r.IdAnuncio !== reserva.IdAnuncio);
             } catch (err) {
                 console.log(reserva);
-                
+
                 alert('Erro ao cancelar reserva');
             }
         }

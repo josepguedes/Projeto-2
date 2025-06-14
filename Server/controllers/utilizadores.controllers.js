@@ -136,7 +136,6 @@ const getUserDetails = async (req, res, next) => {
         if (!utilizador) {
             throw new ErrorHandler(404, 'Utilizador não encontrado');
         }
-
         res.json(utilizador);
     } catch (err) {
         next(err);
@@ -146,7 +145,7 @@ const getUserDetails = async (req, res, next) => {
 const getAllUsers = async (req, res, next) => {
     try {
         const { page = 1, limit = 10 } = req.query;
-        
+
         // Validar página e limite
         if (isNaN(page) || page < 1) {
             throw new ErrorHandler(400, 'Página inválida');
@@ -172,6 +171,11 @@ const getAllUsers = async (req, res, next) => {
         next(err);
     }
 };
+
+// Função utilitária para validar NIF português
+function isValidNif(nif) {
+    return /^[1235689]\d{8}$/.test(nif);
+}
 
 
 const updateUser = async (req, res, next) => {
@@ -208,6 +212,18 @@ const updateUser = async (req, res, next) => {
             utilizador.Password = await bcrypt.hash(Password, 10);
         }
 
+        if (req.body.Nif !== undefined && req.body.Nif !== null && req.body.Nif !== '') {
+            if (!isValidNif(String(req.body.Nif))) {
+                throw new ErrorHandler(400, "NIF inválido. Deve ter 9 dígitos e começar por 1, 2, 3, 5, 6, 8 ou 9.");
+            }
+        }
+
+        // Adiciona isto:
+        if (req.body.Nif !== undefined) utilizador.Nif = req.body.Nif;
+        if (req.body.DataNascimento !== undefined) utilizador.DataNascimento = req.body.DataNascimento;
+        if (req.body.Telefone !== undefined) utilizador.Telefone = req.body.Telefone;
+        if (req.body.Morada !== undefined) utilizador.Morada = req.body.Morada;
+
         await utilizador.save();
 
         res.status(200).json({
@@ -216,7 +232,9 @@ const updateUser = async (req, res, next) => {
                 IdUtilizador: utilizador.IdUtilizador,
                 Nome: utilizador.Nome,
                 Email: utilizador.Email,
-                ImagemPerfil: utilizador.ImagemPerfil
+                ImagemPerfil: utilizador.ImagemPerfil,
+                Nif: utilizador.Nif,
+                DataNascimento: utilizador.DataNascimento
             }
         });
     } catch (err) {

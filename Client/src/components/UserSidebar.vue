@@ -70,7 +70,6 @@ export default {
     border-radius: 0 1rem 1rem 0;
     padding: 2rem;
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    z-index: 1000;
 }
 
 .user-info {

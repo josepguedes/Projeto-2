@@ -9,7 +9,8 @@ import { RouterLink } from "vue-router";
             <div class="row">
                 <div class="col-lg-4 mb-3">
                     <h5 class="text-primary mb-3">FoodShare</h5>
-                    <p class="text-muted">Plataforma de partilha de alimentos para reduzir o desperdício alimentar e ajudar quem mais precisa.</p>
+                    <p class="text-muted">Plataforma de partilha de alimentos para reduzir o desperdício alimentar e
+                        ajudar quem mais precisa.</p>
                 </div>
                 <div class="col-lg-2 col-md-3 mb-3">
                     <h6 class="text-dark mb-3">Links Úteis</h6>
@@ -49,7 +50,8 @@ import { RouterLink } from "vue-router";
 .footer {
     margin-top: auto;
     border-top: 1px solid #e9ecef;
-    z-index: 1000 !important;
+    z-index: 2000 !important;
+    position: relative;
 }
 
 .footer-link {

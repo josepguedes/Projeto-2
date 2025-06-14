@@ -81,6 +81,10 @@
                                 <label for="imagem" class="form-label">Imagem do Produto</label>
                                 <input type="file" class="form-control" id="imagem" @change="handleImageUpload"
                                     accept="image/*">
+                                <div v-if="imagePreview" class="mt-2">
+                                    <img :src="imagePreview" alt="Pré-visualização da imagem" class="img-thumbnail"
+                                        style="max-height: 150px;">
+                                </div>
                             </div>
                         </div>
 
@@ -117,7 +121,8 @@ export default {
                 ImagemAnuncio: null,
                 IdUtilizadorAnuncio: null
             },
-            categorias: []
+            categorias: [],
+            imagePreview: null
         }
     },
     methods: {
@@ -133,6 +138,11 @@ export default {
             const file = event.target.files[0];
             if (file) {
                 this.formData.ImagemAnuncio = file;
+                const reader = new FileReader();
+                reader.onload = e => {
+                    this.imagePreview = e.target.result;
+                };
+                reader.readAsDataURL(file);
             }
         },
         // In CreateAnuncio.vue, update the handleSubmit method
