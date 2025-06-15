@@ -155,7 +155,7 @@ const getUserDetails = async (req, res, next) => {
         });
 
         // Verifica se o utilizador estaá autenticado
-        if (!req.user || !req.user.IdUtilizador) {
+        if (!req.headers.authorization) {
             throw new ErrorHandler(401, 'Utilizador não autenticado');
         }
 
@@ -222,7 +222,7 @@ const updateUser = async (req, res, next) => {
         const utilizadorId = req.params.id;
 
         // Verifica se o utilizador está autenticado
-        if (!req.user || !req.user.IdUtilizador) {  
+        if (!req.headers.authorization) {  
             throw new ErrorHandler(401, "Utilizador não autenticado.");
         }
 
