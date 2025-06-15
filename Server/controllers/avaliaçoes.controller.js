@@ -36,6 +36,7 @@ const getAllAvaliacoes = async (req, res, next) => {
             ];
         });
 
+
         return res.status(200).json({
             totalPages: Math.ceil(avaliacoes.count / limit),
             currentPage: +page,
@@ -60,6 +61,11 @@ const createAvaliacao = async (req, res, next) => {
         // Validar dados obrigatórios
         if (!IdAnuncio || !IdAutor || !IdAvaliado || !Classificacao) {
             throw new ErrorHandler(400, 'Dados obrigatórios não fornecidos');
+        }
+
+        // Verificar se o utilizador está autenticado
+        if (!req.user || !req.user.IdUtilizador) {
+            throw new ErrorHandler(401, 'Utilizador não autenticado');
         }
 
         // Buscar o anúncio e verificar se está finalizado
@@ -110,6 +116,21 @@ const updateAvaliacao = async (req, res, next) => {
             throw new ErrorHandler(404, `Avaliação com ID ${req.params.id} não encontrada`);
         }
 
+        // Verificar se o utilizador está autenticado
+        if (!req.user || !req.user.IdUtilizador) {
+            throw new ErrorHandler(401, 'Utilizador não autenticado');
+        }
+
+        // Verificar se o utilizador é o autor da avaliação
+        if (avaliacao.IdAutor !== req.user.IdUtilizador) {
+            throw new ErrorHandler(403, 'Apenas o autor da avaliação pode editá-la');
+        }
+
+        // Validar dados obrigatórios
+        if (!req.body.Comentario || !req.body.Classificacao) {
+            throw new ErrorHandler(400, 'Dados obrigatórios não fornecidos');
+        }
+
         const { Comentario, Classificacao } = req.body;
 
         // Atualizar avaliação
@@ -139,6 +160,16 @@ const deleteAvaliacao = async (req, res, next) => {
 
         if (!avaliacao) {
             throw new ErrorHandler(404, `Avaliação com ID ${req.params.id} não encontrada`);
+        }
+
+        // Verificar se o utilizador está autenticado
+        if (!req.user || !req.user.IdUtilizador) {
+            throw new ErrorHandler(401, 'Utilizador não autenticado');
+        }
+
+        // Verificar se o utilizador é o autor da avaliação
+        if (avaliacao.IdAutor !== req.user.IdUtilizador) {
+            throw new ErrorHandler(403, 'Apenas o autor da avaliação pode eliminá-la');
         }
 
         await avaliacao.destroy();
