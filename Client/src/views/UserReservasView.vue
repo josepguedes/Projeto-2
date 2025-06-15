@@ -26,7 +26,6 @@
                         </router-link>
                     </div>
                     <div v-else>
-                        <!-- filepath: c:\Users\josep\OneDrive - Instituto Politécnico do Porto\Faculdade\2º ano\2º Semestre\Projeto-2\Client\src\views\UserReservasView.vue -->
                         <div class="row g-4">
                             <div class="col-12" v-for="reserva in reservas" :key="reserva.IdAnuncio">
                                 <UserReservaCard :reserva="reserva" @payment-success="fetchReservas"
