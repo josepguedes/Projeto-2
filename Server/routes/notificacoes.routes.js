@@ -7,5 +7,7 @@ router.get('/', notificacoesController.getAllNotificacoes);
 router.post('/', notificacoesController.createNotificacao);
 router.delete('/:id', notificacoesController.deleteNotificacao);
 router.put('/:id', notificacoesController.updateNotificacao);
+router.get('/user/by-recipient-id', notificacoesController.getNotificacoesByUserId);
+router.post('/associar', notificacoesController.associarNotificacaoAUtilizador);
 
 module.exports = router;

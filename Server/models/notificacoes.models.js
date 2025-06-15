@@ -5,10 +5,6 @@ module.exports = (sequelize, DataTypes) => {
             primaryKey: true,
             autoIncrement: true
         },
-        IdRecipiente: {
-            type: DataTypes.INTEGER,
-            allowNull: false
-        },
         Mensagem: {
             type: DataTypes.STRING,
             allowNull: false
@@ -22,7 +18,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.TIME,
             allowNull: false,
             defaultValue: DataTypes.NOW
-        }
+        },
+        IdRecipiente: {
+            type: DataTypes.INTEGER,
+            allowNull: true
+        },
     }, {
         tableName: 'notificacao',
         timestamps: false

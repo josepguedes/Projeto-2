@@ -1,6 +1,6 @@
 <template>
     <div class="admin-categorias-page d-flex">
-        <AdminSidebar active="admin-categorias" :userDetails="userDetails" />
+        <AdminSidebar v-if="userDetails" active="admin-denuncias" :userDetails="userDetails" />
 
         <div class="flex-grow-1 p-4 content">
             <h2 class="mb-4 fw-bold text-primary">Gestão de Categorias</h2>

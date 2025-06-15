@@ -105,6 +105,7 @@
 
 <script>
 import { paymentService } from '@/api/paypal.js';
+import { notificacoesService } from '@/api/notificacoes';
 
 export default {
   name: "UserReservaCard",
@@ -190,27 +191,44 @@ export default {
     async mountpaypalbutton() {
       try {
         const container = document.getElementById('paypal-button-container');
-        if (container) {
-          container.innerHTML = '';
-        }
+        if (container) container.innerHTML = '';
 
-        // Usar o serviço para criar os botões do PayPal
+        // Cria botões PayPal
         const paypalButtons = await paymentService.createPayPalOrder(
           Number(this.reserva.Preco).toFixed(2),
           async (order) => {
-            // Este callback será executado quando o pagamento for bem-sucedido
+            // Callback após pagamento bem-sucedido
             await paymentService.updateAnuncioAfterPayment(this.reserva.IdAnuncio);
 
             alert('Pagamento processado com sucesso!');
             this.showPayment = false;
             this.$emit('payment-success');
 
-            setTimeout(() => {
+            // Aguarda 3 segundos e associa notificação de reserva confirmada
+            setTimeout(async () => {
+              try {
+                // Busca notificações do utilizador autenticado
+                const notificacoes = await notificacoesService.getNotificacoesUser();
+                // Verifica se já existe notificação de ID 2
+                const existeNotificacao2 = notificacoes.some(n => n.IdNotificacao === 2);
+                if (!existeNotificacao2) {
+                  // Associa notificação de ID 2 ao utilizador autenticado
+                  const token = sessionStorage.getItem('token');
+                  const payload = JSON.parse(atob(token.split('.')[1]));
+                  await notificacoesService.associarNotificacaoAUtilizador({
+                    IdNotificacao: 2,
+                    IdUtilizador: payload.IdUtilizador
+                  });
+                  // Opcional: emitir evento para atualizar notificações em tempo real
+                  window.dispatchEvent(new Event('notifications-updated'));
+                }
+              } catch (e) {
+                // Silencia erro de notificação
+              }
               window.location.reload();
-            }, 500);
+            }, 3000);
           }
         );
-
         paypalButtons.render("#paypal-button-container");
       } catch (error) {
         console.error('Erro ao inicializar PayPal:', error);
