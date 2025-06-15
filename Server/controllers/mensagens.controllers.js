@@ -8,11 +8,21 @@ const getMensagensChat = async (req, res, next) => {
   try {
     const { idRemetente, idDestinatario, page = 1, limit = 50 } = req.query;
 
+    const authenticatedUserId = req.user.IdUtilizador;
+
     if (!idRemetente && !idDestinatario) {
       throw new ErrorHandler(
         400,
         "IDs de remetente e destinatário são obrigatórios"
       );
+    }
+
+    // Check if user is trying to access their own conversations
+    if (authenticatedUserId != idRemetente) {
+      return res.status(403).json({
+        message:
+          "Não tem permissão para aceder a conversas de outros utilizadores",
+      });
     }
 
     if (!idRemetente) {
@@ -150,8 +160,20 @@ const createMensagem = async (req, res, next) => {
   try {
     const { IdRemetente, IdDestinatario, Conteudo } = req.body;
 
-    if (!IdRemetente && !IdDestinatario && !Conteudo) {
+    // Verify authenticated user
+    const authenticatedUserId = req.user.IdUtilizador;
+
+    // Check if any required field is missing
+    if (!IdRemetente || !IdDestinatario || !Conteudo) {
       throw new ErrorHandler(400, "Todos os campos são obrigatórios");
+    }
+
+    // Check if user is trying to send message as someone else
+    if (authenticatedUserId != IdRemetente) {
+      return res.status(403).json({
+        message:
+          "Não tem permissão para enviar mensagens como outro utilizador",
+      });
     }
 
     if (!IdRemetente) {
@@ -303,56 +325,49 @@ const createMensagem = async (req, res, next) => {
 
 // Delete a message
 const deleteMensagem = async (req, res, next) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        // Find message
-        const mensagem = await Mensagem.findByPk(id);
-        if (!mensagem) {
-            throw new ErrorHandler(404, `Mensagem com ID ${id} não encontrada`);
-        }
+    // Get authenticated user ID
+    const authenticatedUserId = req.user.IdUtilizador;
 
-        // Check message ownership
-        if (!userId || mensagem.IdRemetente !== Number(userId)) {
-            return res.status(403).json({ 
-                message: "Apenas o remetente da mensagem pode apagá-la" 
-            });
-        }
+    // Validate message ID
+    if (!id) {
+      throw new ErrorHandler(400, "ID da mensagem é obrigatório");
+    }
 
-        // Delete message
-        await mensagem.destroy();
-        
-        return res.status(200).json({
-            message: "Mensagem apagada com sucesso"
-        });
+    // Validate ID format
+    if (isNaN(id)) {
+      throw new ErrorHandler(400, "ID da mensagem deve ser um número válido");
+    }
 
-    // Retornar resposta sem conteúdo
-    res.status(204).json();
+    // Find message
+    const mensagem = await Mensagem.findByPk(id);
+    if (!mensagem) {
+      throw new ErrorHandler(404, `Mensagem com ID ${id} não encontrada`);
+    }
+
+    // Check if user owns the message
+    if (authenticatedUserId != mensagem.IdRemetente) {
+      return res.status(403).json({
+        message:
+          "Não tem permissão para apagar mensagens de outros utilizadores",
+      });
+    }
+
+    // Delete message
+    await mensagem.destroy();
+
+    return res.status(200).json({
+      message: "Mensagem apagada com sucesso",
+    });
   } catch (err) {
-    // Log do erro no servidor
     console.error("Erro em deleteMensagem:", err);
 
-    // Se já for um ErrorHandler, passa adiante
     if (err instanceof ErrorHandler) {
       return next(err);
     }
 
-    // Erros específicos do Sequelize
-    if (err.name === "SequelizeValidationError") {
-      return next(new ErrorHandler(400, "Erro de validação dos dados"));
-    }
-
-    if (err.name === "SequelizeDatabaseError") {
-      return next(new ErrorHandler(500, "Erro de banco de dados"));
-    }
-
-    if (err.name === "SequelizeConnectionError") {
-      return next(
-        new ErrorHandler(503, "Erro de conexão com o banco de dados")
-      );
-    }
-
-    // Erro genérico para outros casos
     next(new ErrorHandler(500, "Erro interno do servidor ao deletar mensagem"));
   }
 };
@@ -361,9 +376,19 @@ const getUserConversations = async (req, res, next) => {
   try {
     const { userId } = req.params;
 
+    const authenticatedUserId = req.user.IdUtilizador;
+
     // Validar ID do utilizador
     if (!userId) {
       throw new ErrorHandler(400, "ID do utilizador é obrigatório");
+    }
+
+    // Check if user is trying to access their own conversations
+    if (authenticatedUserId != userId) {
+      return res.status(403).json({
+        message:
+          "Não tem permissão para aceder a conversas de outros utilizadores",
+      });
     }
 
     // Validar se ID é número válido
