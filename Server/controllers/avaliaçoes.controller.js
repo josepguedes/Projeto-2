@@ -64,7 +64,7 @@ const createAvaliacao = async (req, res, next) => {
         }
 
         // Verificar se o utilizador está autenticado
-        if (!req.user || !req.user.IdUtilizador) {
+        if (!req.headers.authorization) {
             throw new ErrorHandler(401, 'Utilizador não autenticado');
         }
 
@@ -117,7 +117,7 @@ const updateAvaliacao = async (req, res, next) => {
         }
 
         // Verificar se o utilizador está autenticado
-        if (!req.user || !req.user.IdUtilizador) {
+        if (!req.headers.authorization) {
             throw new ErrorHandler(401, 'Utilizador não autenticado');
         }
 
@@ -163,7 +163,7 @@ const deleteAvaliacao = async (req, res, next) => {
         }
 
         // Verificar se o utilizador está autenticado
-        if (!req.user || !req.user.IdUtilizador) {
+        if (!req.headers.authorization) {
             throw new ErrorHandler(401, 'Utilizador não autenticado');
         }
 
