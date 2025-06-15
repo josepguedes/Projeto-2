@@ -91,6 +91,27 @@ const loginUser = async (req, res, next) => {
         if (!passwordMatch) {
             throw new ErrorHandler(401, "Credenciais inválidas.");
         }
+        
+        // Verificar bloqueio administrativo
+        const bloqueio = await db.AdminBloqueio.findOne({
+            where: {
+                IdBloqueado: utilizador.IdUtilizador,
+                [db.Sequelize.Op.or]: [
+                    { DataFimBloqueio: null },
+                    { DataFimBloqueio: { [db.Sequelize.Op.gt]: new Date() } }
+                ]
+            }
+        });
+
+        if (bloqueio) {
+            let msg = "A sua conta está bloqueada";
+            if (bloqueio.DataFimBloqueio) {
+                msg += ` até ${new Date(bloqueio.DataFimBloqueio).toLocaleDateString('pt-PT')}`;
+            } else {
+                msg += " permanentemente";
+            }
+            return res.status(403).json({ message: msg });
+        }
 
         // Gera o token JWT
         const token = jwt.sign(
@@ -133,9 +154,21 @@ const getUserDetails = async (req, res, next) => {
             ]
         });
 
+        // Verifica se o utilizador estaá autenticado
+        if (!req.user || !req.user.IdUtilizador) {
+            throw new ErrorHandler(401, 'Utilizador não autenticado');
+        }
+
+        // Verifica se o utilizador é o mesmo que está a ser consultado
+        if (utilizador.IdUtilizador !== req.user.IdUtilizador) {
+            throw new ErrorHandler(403, 'Acesso negado. Não pode consultar detalhes de outro utilizador.');
+        }
+
+        // Verifica se o utilizador existe
         if (!utilizador) {
             throw new ErrorHandler(404, 'Utilizador não encontrado');
         }
+
         res.json(utilizador);
     } catch (err) {
         next(err);
@@ -153,6 +186,11 @@ const getAllUsers = async (req, res, next) => {
         if (isNaN(limit) || limit < 1) {
             throw new ErrorHandler(400, 'Limite inválido');
         }
+
+        // Verifica se o utilizador é administrador
+        if (!req.user || req.user.Funcao !== 'admin') {
+            throw new ErrorHandler(403, 'Acesso negado. Apenas administradores podem listar utilizadores.');
+        } 
 
         const utilizadores = await Utilizador.findAndCountAll({
             attributes: ['IdUtilizador', 'Nome', 'Email', 'Funcao', 'ImagemPerfil'],
@@ -182,6 +220,16 @@ const updateUser = async (req, res, next) => {
     try {
         const { Nome, Email, Password } = req.body;
         const utilizadorId = req.params.id;
+
+        // Verifica se o utilizador está autenticado
+        if (!req.user || !req.user.IdUtilizador) {  
+            throw new ErrorHandler(401, "Utilizador não autenticado.");
+        }
+
+        // Verifica se o utilizador é o mesmo que está a ser atualizado
+        if (utilizadorId !== req.user.IdUtilizador) {
+            throw new ErrorHandler(403, "Acesso negado. Não pode atualizar outro utilizador.");
+        }
 
         const utilizador = await Utilizador.findByPk(utilizadorId);
         if (!utilizador) {
