@@ -42,6 +42,7 @@ export const avaliacoesService = {
         const response = await fetch(`${API_URL}/avaliacoes`, {
             method: 'POST',
             headers: {
+                Authorization: `Bearer ${sessionStorage.getItem('token')}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -63,7 +64,11 @@ export const avaliacoesService = {
 
     async deleteAvaliacao(id) {
         const response = await fetch(`${API_URL}/avaliacoes/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${sessionStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            }
         });
         if (!response.ok) {
             throw new Error('Erro ao eliminar avaliação');
