@@ -6,6 +6,7 @@ export const denunciasService = {
       const response = await fetch(`${API_URL}/denuncias`, {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

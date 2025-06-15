@@ -215,7 +215,14 @@ export const anunciosService = {
     });
 
     const response = await fetch(
-      `${API_URL}/anuncios/utilizador/${userId}?${queryParams}`
+      `${API_URL}/anuncios/utilizador/${userId}?${queryParams}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      }
     );
     if (!response.ok) {
       throw new Error("Erro ao buscar anúncios do utilizador");
@@ -230,7 +237,14 @@ export const anunciosService = {
     });
 
     const response = await fetch(
-      `${API_URL}/anuncios/reservas/${userId}?${queryParams}`
+      `${API_URL}/anuncios/reservas/${userId}?${queryParams}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          "Content-Type": "application/json"
+        },
+      }
     );
     if (!response.ok) {
       throw new Error("Erro ao buscar reservas do utilizador");
