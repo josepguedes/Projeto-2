@@ -225,7 +225,7 @@ const associarNotificacaoAUtilizador = async (req, res, next) => {
             return next(new ErrorHandler(400, `Erro de referência a dados inexistentes: ${err.message}`));
         }
         // For other generic or database errors
-        console.error("Erro não tratado em associarNotificacaoAUtilizador:", err); // Log a more detailed error on the server
+        console.error("Erro não tratado em associarNotificacaoAUtilizador:", err);
         next(new ErrorHandler(500, "Ocorreu um erro interno ao tentar associar a notificação."));
     }
 };
