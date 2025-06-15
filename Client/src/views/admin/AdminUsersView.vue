@@ -12,10 +12,10 @@
                     <thead class="table-light">
                         <tr>
                             <th>ID</th>
-                            <th>Foto</th>
-                            <th>Nome</th>
+                            <th>Utilizador</th>
                             <th>Email</th>
                             <th>Função</th>
+                            <th>Estado</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -23,28 +23,46 @@
                         <tr v-for="user in users" :key="user.IdUtilizador">
                             <td>{{ user.IdUtilizador }}</td>
                             <td>
-                                <img :src="user.ImagemPerfil || 'https://via.placeholder.com/32'" alt="User"
-                                    class="rounded-circle" width="32" height="32" />
+                                <div class="d-flex align-items-center gap-2">
+                                    <img :src="user.ImagemPerfil || 'https://via.placeholder.com/32'" alt="Utilizador"
+                                        class="rounded-circle" width="32" height="32">
+                                    <div class="fw-medium">{{ user.Nome }}</div>
+                                </div>
                             </td>
-                            <td>{{ user.Nome }}</td>
                             <td>{{ user.Email }}</td>
-                            <td>
-                                <span :class="roleClass(user.Funcao)">
+                            <td> <span :class="roleClass(user.Funcao)">
                                     {{ user.Funcao }}
-                                </span>
+                                </span></td>
+                            <td>
+                                <div v-if="user.bloqueio" class="text-danger">
+                                    <span class="badge bg-danger">Bloqueado</span>
+                                    <small class="d-block">
+                                        Desde: {{ formatDate(user.bloqueio.DataBloqueio) }}<br>
+                                        {{ user.bloqueio.DataFimBloqueio ?
+                                            `Até: ${formatDate(user.bloqueio.DataFimBloqueio)}` :
+                                            'Bloqueio permanente' }}
+                                    </small>
+                                </div>
+                                <span v-else class="badge bg-success">Ativo</span>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary me-2" @click="openUserDetails(user)">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" @click="handleDelete(user)">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr v-if="users.length === 0">
-                            <td colspan="6" class="text-center text-muted py-4">
-                                <i class="bi bi-person-x me-2"></i>Nenhum utilizador encontrado.
+                                <div class="d-flex align-items-center gap-3"> <!-- Alterado para gap-3 -->
+                                    <button class="btn btn-sm btn-primary" @click="viewUserDetails(user)"
+                                        title="Ver Detalhes">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+
+                                    <button class="btn btn-sm btn-danger" @click="handleDelete(user)"
+                                        title="Eliminar Utilizador">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+
+                                    <button @click="handleBlockClick(user)"
+                                        :class="['btn btn-sm', user.bloqueio ? 'btn-success' : 'btn-danger']"
+                                        :title="user.bloqueio ? 'Desbloquear Utilizador' : 'Bloquear Utilizador'">
+                                        <i :class="['bi', user.bloqueio ? 'bi-unlock' : 'bi-lock']"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -74,7 +92,10 @@
         </div>
 
         <!-- User Details Modal -->
-        <AdminUserDetails v-if="selectedUser" :user="selectedUser" @close="selectedUser = null" />
+        <AdminUserDetails v-if="showDetailsModal" :user="selectedUser" @close="closeDetailsModal" />
+
+        <AdminBlockModal ref="blockModal" :user="selectedUserForBlock" :isBlocked="!!selectedUserForBlock?.bloqueio"
+            @submit="handleBlockSubmit" />
     </div>
 </template>
 
@@ -82,33 +103,79 @@
 import AdminSidebar from '@/components/AdminSidebar.vue';
 import AdminUserDetails from '@/components/AdminUserDetails.vue';
 import { utilizadorService } from '@/api/utilizador';
+import { adminBloqueiosService } from '@/api/adminBloqueios';
+import AdminBlockModal from '@/components/AdminBlockModal.vue';
 
 export default {
     name: 'AdminUsersView',
     components: {
         AdminSidebar,
-        AdminUserDetails
+        AdminUserDetails,
+        AdminBlockModal
     },
     data() {
         return {
             users: [],
             selectedUser: null,
-            userDetails: null, // adicionar esta linha
+            selectedUserForBlock: null,
+            showDetailsModal: false,
+            userDetails: {}, // Inicializar como objeto vazio em vez de null
             currentPage: 1,
             totalPages: 1,
-            itemsPerPage: 12, // número de utilizadores por página
+            itemsPerPage: 12,
         };
     },
     methods: {
+        viewUserDetails(user) {
+            this.selectedUser = user;
+            this.showDetailsModal = true;
+        },
+
+        closeDetailsModal() {
+            this.showDetailsModal = false;
+            this.selectedUser = null;
+        },
+
+        handleBlockClick(user) {
+            this.selectedUserForBlock = user;
+            this.$refs.blockModal.showModal();
+        },
+        roleClass(role) {
+            switch (role.toLowerCase()) {
+                case 'admin':
+                    return 'badge bg-danger';
+                case 'moderador':
+                    return 'badge bg-warning';
+                case 'utilizador':
+                    return 'badge bg-primary';
+                default:
+                    return 'badge bg-secondary';
+            }
+        },
         async fetchUsers(page = 1) {
             try {
                 const response = await utilizadorService.getAllUsers(page, this.itemsPerPage);
-                this.users = response.data;
+
+                // Buscar informações de bloqueio para cada usuário
+                const usersWithBlocks = await Promise.all(response.data.map(async user => {
+                    try {
+                        const bloqueioInfo = await adminBloqueiosService.checkBloqueio(user.IdUtilizador);
+                        return {
+                            ...user,
+                            bloqueio: bloqueioInfo.bloqueio
+                        };
+                    } catch (error) {
+                        console.error(`Erro ao buscar bloqueio para usuário ${user.IdUtilizador}:`, error);
+                        return user;
+                    }
+                }));
+
+                this.users = usersWithBlocks;
                 this.currentPage = response.currentPage;
                 this.totalPages = response.totalPages;
-            } catch (err) {
-                console.error('Error fetching users:', err);
-                this.users = [];
+            } catch (error) {
+                console.error('Erro ao buscar usuários:', error);
+                alert('Erro ao carregar usuários');
             }
         },
         goToPage(page) {
@@ -118,6 +185,27 @@ export default {
                 query: { ...this.$route.query, page }
             });
         },
+
+        async handleBlockSubmit(blockData) {
+            try {
+                if (this.selectedUserForBlock.bloqueio) {
+                    // Chamar deleteBloqueio com o ID do bloqueio, não do usuário
+                    await adminBloqueiosService.deleteBloqueio(this.selectedUserForBlock.bloqueio.IdAdminBloqueados);
+                } else {
+                    await adminBloqueiosService.createBloqueio(
+                        this.selectedUserForBlock.IdUtilizador,
+                        blockData.blockType === 'permanent' ? null : blockData.endDate
+                    );
+                }
+                await this.fetchUsers(this.currentPage);
+                this.$refs.blockModal.hideModal();
+                this.selectedUserForBlock = null;
+            } catch (error) {
+                console.error('Erro ao bloquear/desbloquear:', error);
+                alert('Erro ao processar a operação: ' + error.message);
+            }
+        },
+
         formatDate(date) {
             if (!date) return '';
             return new Date(date).toLocaleDateString('pt-PT');

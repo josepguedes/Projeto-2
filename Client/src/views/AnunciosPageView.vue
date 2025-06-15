@@ -174,15 +174,30 @@ export default {
             return 'Reservar Produto';
         },
         handleReport() {
-            this.reportReason = '';
-            this.reportModal.show();
+            const token = sessionStorage.getItem('token');
+            if (!token) {
+                alert('Por favor, faça login para denunciar');
+                this.$router.push('/login');
+                return;
+            }
+            this.reportModal.show(); // Abrir o modal diretamente
         },
         async submitReport() {
             try {
+                const token = sessionStorage.getItem('token');
+                if (!token) {
+                    alert('Por favor, faça login para denunciar');
+                    this.$router.push('/login');
+                    return;
+                }
+
+                // Obter o ID do utilizador denunciante do token
+                const payload = JSON.parse(atob(token.split('.')[1]));
+
                 await denunciasService.createDenuncia({
+                    IdUtilizadorDenunciante: payload.IdUtilizador, // Adicionar ID do denunciante
                     IdUtilizadorDenunciado: this.anuncio.IdUtilizadorAnuncio,
                     Motivo: this.reportReason,
-                    IdAnuncio: this.anuncio.IdAnuncio
                 });
 
                 alert('Denúncia enviada com sucesso!');

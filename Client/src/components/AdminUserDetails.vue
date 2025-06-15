@@ -1,5 +1,5 @@
 <template>
-    <div class="modal fade show" tabindex="-1" style="display: block;" v-if="user">
+    <div class="modal fade" :class="{ 'show d-block': user }" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <!-- Header -->
@@ -87,6 +87,28 @@ export default {
 </script>
 
 <style scoped>
+.modal {
+    background-color: rgba(0, 0, 0, 0.5);
+    transition: opacity 0.3s ease;
+}
+
+.modal.fade {
+    opacity: 0;
+}
+
+.modal.show {
+    opacity: 1;
+}
+
+.modal-dialog {
+    transform: translateY(-50px);
+    transition: transform 0.3s ease;
+}
+
+.modal.show .modal-dialog {
+    transform: translateY(0);
+}
+
 .modal-content {
     background: #fff;
     border-radius: 12px;

@@ -13,5 +13,6 @@ router.get('/admin', bloqueiosController.getAllAdminBloqueios);
 router.get('/admin/:id', bloqueiosController.getAdminBloqueioById);
 router.post('/admin', bloqueiosController.createAdminBloqueio);
 router.delete('/admin/:id', bloqueiosController.deleteAdminBloqueio);
+router.get('/admin/check/:id', bloqueiosController.checkAdminBloqueio);
 
 module.exports = router;

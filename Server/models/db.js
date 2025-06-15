@@ -79,6 +79,7 @@ db.Notificacao.belongsToMany(db.Utilizador, {
     otherKey: 'IdUtilizador',
     as: 'utilizadores'
 });
+
 db.Utilizador.belongsToMany(db.Notificacao, {
     through: db.NotificacaoUtilizador,
     foreignKey: 'IdUtilizador',
@@ -125,14 +126,10 @@ db.UtilizadorBloqueio.belongsTo(db.Utilizador, {
     foreignKey: 'IdBloqueador',
     as: 'bloqueador'
 });
+
 db.UtilizadorBloqueio.belongsTo(db.Utilizador, {
     foreignKey: 'IdBloqueado',
     as: 'bloqueado'
-});
-
-db.AdminBloqueio.belongsTo(db.Utilizador, {
-    foreignKey: 'IdBloqueado',
-    as: 'utilizadorBloqueado'
 });
 
 module.exports = db;

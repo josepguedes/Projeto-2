@@ -71,7 +71,6 @@ export default {
                     IdUtilizadorDenunciante: payload.IdUtilizador,
                     IdUtilizadorDenunciado: this.idDenunciado,
                     Motivo: this.reportReason,
-                    IdAnuncio: null // Como é denúncia via mensagens, não há anúncio associado
                 };
 
                 await denunciasService.createDenuncia(denunciaData);

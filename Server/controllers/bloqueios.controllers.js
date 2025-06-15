@@ -229,67 +229,50 @@ const deleteUtilizadorBloqueio = async (req, res, next) => {
 
 // Bloquear utilizador por administrador
 const createAdminBloqueio = async (req, res, next) => {
-  try {
-    const { IdUtilizadorBloqueado, Motivo, DataExpiracao } = req.body;
-    const novoBloqueio = await AdminBloqueio.create({
-      IdBloqueado,
-      DataBloqueio: new Date(),
-      DataFimBloqueio: DataFimBloqueio || null,
-    });
+    try {
+        const { IdBloqueado, DataFimBloqueio } = req.body;
 
-    // Verificar se usuário é admin
-    if (req.user.Funcao !== "admin") {
-      throw new ErrorHandler(403, "Acesso não autorizado");
+        // Validar dados obrigatórios
+        if (!IdBloqueado) {
+            throw new ErrorHandler(400, "ID do utilizador é obrigatório");
+        }
+
+        // Verificar se utilizador existe
+        const utilizador = await db.Utilizador.findByPk(IdBloqueado);
+        if (!utilizador) {
+            throw new ErrorHandler(404, "Utilizador não encontrado");
+        }
+
+        // Verificar se já existe bloqueio ativo
+        const bloqueioExistente = await AdminBloqueio.findOne({
+            where: {
+                IdBloqueado,
+                [Op.or]: [
+                    { DataFimBloqueio: null },
+                    { DataFimBloqueio: { [Op.gt]: new Date() } }
+                ]
+            }
+        });
+
+        if (bloqueioExistente) {
+            throw new ErrorHandler(409, "Este utilizador já está bloqueado por um administrador");
+        }
+
+        // Criar o bloqueio
+        const novoBloqueio = await AdminBloqueio.create({
+            IdBloqueado,
+            DataBloqueio: new Date(),
+            DataFimBloqueio: DataFimBloqueio || null
+        });
+
+        return res.status(201).json({
+            message: "Utilizador bloqueado com sucesso",
+            data: novoBloqueio
+        });
+
+    } catch (err) {
+        next(err);
     }
-
-    // Validar dados obrigatórios
-    if (!IdUtilizadorBloqueado) {
-      throw new ErrorHandler(400, "ID do utilizador é obrigatório");
-    }
-
-    // Verificar se utilizador existe
-    const utilizador = await Utilizador.findByPk(IdUtilizadorBloqueado);
-    if (!utilizador) {
-      throw new ErrorHandler(404, "Utilizador não encontrado");
-    }
-
-    // Verificar se já existe bloqueio administrativo
-    const bloqueioExistente = await AdminBloqueio.findOne({
-      where: {
-        IdUtilizadorBloqueado,
-        Ativo: true,
-      },
-    });
-
-    if (bloqueioExistente) {
-      throw new ErrorHandler(
-        409,
-        "Este utilizador já está bloqueado por um administrador"
-      );
-    }
-
-    // Atualizar estado do utilizador
-    await utilizador.update({ EstadoConta: "bloqueado" });
-
-    return res.status(201).json({
-      message: "Utilizador bloqueado com sucesso pelo administrador",
-      data: novoBloqueio,
-      links: [
-        {
-          rel: "self",
-          href: `/bloqueios/admin/${novoBloqueio.IdAdminBloqueio}`,
-          method: "GET",
-        },
-        {
-          rel: "delete",
-          href: `/bloqueios/admin/${novoBloqueio.IdAdminBloqueio}`,
-          method: "DELETE",
-        },
-      ],
-    });
-  } catch (err) {
-    next(err);
-  }
 };
 
 // Remover bloqueio administrativo
@@ -318,54 +301,32 @@ const deleteAdminBloqueio = async (req, res, next) => {
 
 // Listar todos os bloqueios administrativos
 const getAllAdminBloqueios = async (req, res, next) => {
-  try {
-    const { page = 1, limit = 10 } = req.query;
+    try {
+        const { page = 1, limit = 10 } = req.query;
+        
+        const bloqueios = await AdminBloqueio.findAndCountAll({
+            include: [{
+                model: db.Utilizador,
+                as: 'bloqueado',
+                attributes: ['Nome', 'ImagemPerfil', 'Email'],
+                required: true
+            }],
+            order: [['DataBloqueio', 'DESC']],
+            limit: parseInt(limit),
+            offset: (parseInt(page) - 1) * parseInt(limit)
+        });
 
-    const where = {
-      [Op.or]: [
-        { DataFimBloqueio: null },
-        { DataFimBloqueio: { [Op.gt]: new Date() } }
-      ]
-    };
+        return res.status(200).json({
+            data: bloqueios.rows,
+            totalPages: Math.ceil(bloqueios.count / parseInt(limit)),
+            currentPage: parseInt(page),
+            total: bloqueios.count
+        });
 
-    const bloqueios = await AdminBloqueio.findAndCountAll({
-      where,
-      include: [{
-        model: db.Utilizador,
-        as: "bloqueado", // Ajustar alias para match com modelo
-        foreignKey: 'IdBloqueado',
-        attributes: ["Nome", "ImagemPerfil", "Email"]
-      }],
-      order: [["DataBloqueio", "DESC"]],
-      limit: +limit,
-      offset: (+page - 1) * +limit
-    });
-
-    // Ajuste os links para usar o nome correto da chave primária
-    bloqueios.rows.forEach((bloqueio) => {
-      bloqueio.links = [
-        {
-          rel: "self",
-          href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`,
-          method: "GET",
-        },
-        {
-          rel: "delete",
-          href: `/bloqueios/admin/${bloqueio.IdAdminBloqueados}`,
-          method: "DELETE",
-        },
-      ];
-    });
-
-    return res.status(200).json({
-      totalPages: Math.ceil(bloqueios.count / limit),
-      currentPage: +page,
-      total: bloqueios.count,
-      data: bloqueios.rows,
-    });
-  } catch (err) {
-    next(err);
-  }
+    } catch (err) {
+        console.error('Erro ao buscar bloqueios:', err);
+        next(err);
+    }
 };
 
 // Obter detalhes de um bloqueio administrativo específico
@@ -373,19 +334,10 @@ const getAdminBloqueioById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Remover temporariamente a verificação de admin para fins de teste
-    // if (req.user && req.user.Funcao !== 'admin') {
-    //   throw new ErrorHandler(403, "Acesso não autorizado");
-    // }
 
     const bloqueio = await AdminBloqueio.findByPk(id, {
       include: [
-        // Remover temporariamente a associação com administrador se não existir
-        // {
-        //   model: db.Utilizador,
-        //   as: "administrador",
-        //   attributes: ["Nome", "ImagemPerfil", "Email"],
-        // },
+
         {
           model: db.Utilizador,
           as: "utilizadorBloqueado",
@@ -425,6 +377,30 @@ const getAdminBloqueioById = async (req, res, next) => {
   }
 };
 
+const checkAdminBloqueio = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const bloqueio = await AdminBloqueio.findOne({
+            where: {
+                IdBloqueado: id,
+                [Op.or]: [
+                    { DataFimBloqueio: null },
+                    { DataFimBloqueio: { [Op.gt]: new Date() } }
+                ]
+            }
+        });
+
+        return res.status(200).json({
+            bloqueio: bloqueio,
+            bloqueado: !!bloqueio
+        });
+
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
   // Bloqueios entre utilizadores
   getAllUtilizadorBloqueios,
@@ -437,4 +413,5 @@ module.exports = {
   deleteAdminBloqueio,
   getAllAdminBloqueios,
   getAdminBloqueioById,
+  checkAdminBloqueio
 };
