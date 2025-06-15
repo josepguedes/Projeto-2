@@ -4,6 +4,7 @@ const { ErrorHandler } = require("../utils/error.js");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { cloudinary, uploadToCloudinary } = require('../config/cloudinaryConfig');
+const { Op } = require('sequelize');
 
 // Função para criar um novo utilizador
 const createUser = async (req, res, next) => {
@@ -92,13 +93,12 @@ const loginUser = async (req, res, next) => {
             throw new ErrorHandler(401, "Credenciais inválidas.");
         }
         
-        // Verificar bloqueio administrativo
         const bloqueio = await db.AdminBloqueio.findOne({
             where: {
                 IdBloqueado: utilizador.IdUtilizador,
-                [db.Sequelize.Op.or]: [
+                [Op.or]: [
                     { DataFimBloqueio: null },
-                    { DataFimBloqueio: { [db.Sequelize.Op.gt]: new Date() } }
+                    { DataFimBloqueio: { [Op.gt]: new Date() } }
                 ]
             }
         });
