@@ -32,11 +32,33 @@ export const avaliacoesService = {
                 };
             })
         );
-
         return {
             ...data,
             data: avaliacoesComDetalhes
         };
+    },
+
+    async createAvaliacao({ IdAnuncio, IdAutor, IdAvaliado, Comentario, Classificacao }) {
+        const response = await fetch(`${API_URL}/avaliacoes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                IdAnuncio,
+                IdAutor,
+                IdAvaliado: IdAvaliado,
+                Comentario,
+                Classificacao
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Erro ao criar avaliação');
+        }
+
+        return response.json();
     },
 
     async deleteAvaliacao(id) {

@@ -68,7 +68,11 @@
               <span class="fw-bold">Código de Entrega:</span>
               <span class="codigo">{{ reserva.CodigoVerificacao || 'N/A' }}</span>
             </div>
-
+            <button
+              v-if="canEvaluate"
+              class="btn btn-outline-primary"
+              @click="showEvaluationModal = true"
+            >Avaliar vendedor</button>
             <button v-if="reserva.IdEstadoAnuncio === 6" @click="handlePayment"
               class="payment-badge rounded-3 px-3 py-2 d-inline-flex align-items-center gap-2">
               <i class="bi bi-credit-card-fill text-success"></i>
@@ -101,14 +105,27 @@
       </div>
     </div>
   </div>
+    <CreateEvaluationModal
+    v-if="showEvaluationModal"
+    :show="showEvaluationModal"
+    :anuncio-id="reserva.IdAnuncio"
+    :vendedor-id="reserva.IdUtilizadorAnuncio"
+    @close="showEvaluationModal = false"
+    @evaluated="onEvaluated"
+  />
 </template>
 
 <script>
 import { paymentService } from '@/api/paypal.js';
 import { notificacoesService } from '@/api/notificacoes';
+import CreateEvaluationModal from './CreateEvaluationModal.vue';
+import { avaliacoesService } from '@/api/avaliacoes';
 
 export default {
   name: "UserReservaCard",
+  components: {
+    CreateEvaluationModal
+  },
   emits: ['cancelar', 'payment-success'],
   props: {
     reserva: {
@@ -120,6 +137,8 @@ export default {
     return {
       showMenu: false,
       showPayment: false,
+      showEvaluationModal: false,
+      canEvaluate: false
     };
   },
   methods: {
@@ -234,10 +253,44 @@ export default {
         console.error('Erro ao inicializar PayPal:', error);
         alert('Erro ao inicializar o pagamento. Por favor, tente novamente.');
       }
+    },
+
+    async checkCanEvaluate() {
+      // Só permite avaliação se o anúncio está finalizado (IdEstadoAnuncio === 3)
+      if (this.reserva.IdEstadoAnuncio !== 3) {
+        this.canEvaluate = false;
+        return;
+      }
+      try {
+        const token = sessionStorage.getItem('token');
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        // Busca avaliações do utilizador logado para este anúncio
+        const response = await avaliacoesService.getAllAvaliacoes(1, 100);
+        this.canEvaluate = !response.data.some(
+          a => a.IdAnuncio === this.reserva.IdAnuncio && a.IdAutor === payload.IdUtilizador
+        );
+      } catch {
+        this.canEvaluate = false;
+      }
+    },
+    onEvaluated() {
+      this.showEvaluationModal = false;
+      this.canEvaluate = false;
     }
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleClickOutside);
+  },
+  mounted() {
+    this.checkCanEvaluate();
+  },
+  watch: {
+    'reserva.IdEstadoAnuncio': {
+      handler() {
+        this.checkCanEvaluate();
+      },
+      immediate: true
+    }
   }
 };
 </script>
