@@ -154,16 +154,6 @@ const getUserDetails = async (req, res, next) => {
             ]
         });
 
-        // Verifica se o utilizador estaá autenticado
-        if (!req.headers.authorization) {
-            throw new ErrorHandler(401, 'Utilizador não autenticado');
-        }
-
-        // Verifica se o utilizador é o mesmo que está a ser consultado
-        if (utilizador.IdUtilizador !== req.user.IdUtilizador) {
-            throw new ErrorHandler(403, 'Acesso negado. Não pode consultar detalhes de outro utilizador.');
-        }
-
         // Verifica se o utilizador existe
         if (!utilizador) {
             throw new ErrorHandler(404, 'Utilizador não encontrado');
