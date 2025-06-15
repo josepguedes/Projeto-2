@@ -52,27 +52,35 @@ const getAllAvaliacoes = async (req, res, next) => {
     }
 };
 
-// Criar uma nova avaliação
+// ...existing code...
 const createAvaliacao = async (req, res, next) => {
     try {
-        const { 
-            IdAnuncio,
-            IdAutor,
-            idAvaliado,
-            Comentario,
-            Classificacao
-        } = req.body;
+        const { IdAnuncio, IdAutor, IdAvaliado, Comentario, Classificacao } = req.body;
 
         // Validar dados obrigatórios
-        if (!IdAnuncio || !IdAutor || !idAvaliado || !Classificacao) {
+        if (!IdAnuncio || !IdAutor || !IdAvaliado || !Classificacao) {
             throw new ErrorHandler(400, 'Dados obrigatórios não fornecidos');
         }
 
+        // Buscar o anúncio e verificar se está finalizado
+        const anuncio = await db.Anuncio.findByPk(IdAnuncio);
+        if (!anuncio || anuncio.IdEstadoAnuncio !== 3) {
+            throw new ErrorHandler(400, 'A entrega ainda não foi finalizada');
+        }
+
+        // Verificar se já existe avaliação deste autor para este anúncio
+        const avaliacaoExistente = await db.Avaliacao.findOne({
+            where: { IdAnuncio, IdAutor }
+        });
+        if (avaliacaoExistente) {
+            throw new ErrorHandler(400, 'Já existe uma avaliação deste utilizador para este anúncio');
+        }
+
         // Criar nova avaliação
-        const novaAvaliacao = await Avaliacao.create({
+        const novaAvaliacao = await db.Avaliacao.create({
             IdAnuncio,
             IdAutor,
-            idAvaliado,
+            IdAvaliado,
             Comentario,
             Classificacao,
             DataAvaliacao: new Date()
@@ -91,6 +99,7 @@ const createAvaliacao = async (req, res, next) => {
         next(err);
     }
 };
+// ...existing code...
 
 // Editar uma avaliação
 const updateAvaliacao = async (req, res, next) => {
