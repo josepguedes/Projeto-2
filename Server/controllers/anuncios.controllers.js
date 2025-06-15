@@ -385,7 +385,7 @@ const deleteAnuncio = async (req, res, next) => {
     if (!anuncio) {
       throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
     }
-    
+
     const result = await Anuncio.destroy({
       where: { IdAnuncio: req.params.id },
     });
@@ -428,21 +428,7 @@ const getAnuncioById = async (req, res, next) => {
         ],
       });
     } catch (err) {
-      // Erro de conexão com o banco de dados
-      if (err.name === "SequelizeConnectionError") {
-        console.error("Erro de conexão com o banco de dados:", err);
-        return res.status(500).json({ message: "Erro de conexão com o banco de dados" });
-      }
-      // Erro de timeout
-      if (err.name === "SequelizeTimeoutError") {
-        console.error("Timeout ao buscar anúncio:", err);
-        return res.status(504).json({ message: "Timeout ao buscar anúncio" });
-      }
-      // Erro de validação do Sequelize
-      if (err.name === "SequelizeValidationError") {
-        console.error("Erro de validação ao buscar anúncio:", err);
-        return res.status(400).json({ message: "Erro de validação ao buscar anúncio", details: err.errors });
-      }
+
       // Outros erros
       console.error("Erro ao buscar anúncio:", err);
       return res.status(500).json({ message: "Erro ao buscar anúncio" });
@@ -474,14 +460,6 @@ const getAnuncioById = async (req, res, next) => {
   } catch (err) {
     // Erro inesperado
     if (err instanceof ErrorHandler) {
-      next(err);
-    } else if (err.name === "SyntaxError") {
-      console.error("Erro de sintaxe:", err);
-      next(new ErrorHandler(400, "Erro de sintaxe na requisição"));
-    } else if (err.name === "TypeError") {
-      console.error("Erro de tipo:", err);
-      next(new ErrorHandler(400, "Erro de tipo na requisição"));
-    } else {
       console.error("Erro inesperado em getAnuncioById:", err);
       next(new ErrorHandler(500, "Erro inesperado ao buscar anúncio"));
     }
@@ -528,21 +506,6 @@ const getAnunciosByUser = async (req, res, next) => {
       count = result.count;
       rows = result.rows;
     } catch (err) {
-      // Erro de conexão com o banco de dados
-      if (err.name === "SequelizeConnectionError") {
-        console.error("Erro de conexão com o banco de dados:", err);
-        return res.status(500).json({ message: "Erro de conexão com o banco de dados" });
-      }
-      // Erro de timeout
-      if (err.name === "SequelizeTimeoutError") {
-        console.error("Timeout ao buscar anúncios do utilizador:", err);
-        return res.status(504).json({ message: "Timeout ao buscar anúncios do utilizador" });
-      }
-      // Erro de validação do Sequelize
-      if (err.name === "SequelizeValidationError") {
-        console.error("Erro de validação ao buscar anúncios do utilizador:", err);
-        return res.status(400).json({ message: "Erro de validação ao buscar anúncios do utilizador", details: err.errors });
-      }
       // Outros erros
       console.error("Erro ao buscar anúncios do utilizador:", err);
       return res.status(500).json({ message: "Erro ao buscar anúncios do utilizador" });
