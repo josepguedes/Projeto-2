@@ -63,11 +63,6 @@ const createAvaliacao = async (req, res, next) => {
             throw new ErrorHandler(400, 'Dados obrigatórios não fornecidos');
         }
 
-        // Verificar se o utilizador está autenticado
-        if (!req.headers.authorization) {
-            throw new ErrorHandler(401, 'Utilizador não autenticado');
-        }
-
         // Buscar o anúncio e verificar se está finalizado
         const anuncio = await db.Anuncio.findByPk(IdAnuncio);
         if (!anuncio || anuncio.IdEstadoAnuncio !== 3) {
@@ -116,16 +111,6 @@ const updateAvaliacao = async (req, res, next) => {
             throw new ErrorHandler(404, `Avaliação com ID ${req.params.id} não encontrada`);
         }
 
-        // Verificar se o utilizador está autenticado
-        if (!req.headers.authorization) {
-            throw new ErrorHandler(401, 'Utilizador não autenticado');
-        }
-
-        // Verificar se o utilizador é o autor da avaliação
-        if (avaliacao.IdAutor !== req.user.IdUtilizador) {
-            throw new ErrorHandler(403, 'Apenas o autor da avaliação pode editá-la');
-        }
-
         // Validar dados obrigatórios
         if (!req.body.Comentario || !req.body.Classificacao) {
             throw new ErrorHandler(400, 'Dados obrigatórios não fornecidos');
@@ -160,11 +145,6 @@ const deleteAvaliacao = async (req, res, next) => {
 
         if (!avaliacao) {
             throw new ErrorHandler(404, `Avaliação com ID ${req.params.id} não encontrada`);
-        }
-
-        // Verificar se o utilizador está autenticado
-        if (!req.headers.authorization) {
-            throw new ErrorHandler(401, 'Utilizador não autenticado');
         }
 
         await avaliacao.destroy();
