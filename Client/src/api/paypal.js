@@ -49,6 +49,9 @@ export const paymentService = {
 
   async updateAnuncioAfterPayment(anuncioId, estadoAnuncio = 2) {
     const token = sessionStorage.getItem("token");
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const userId = payload.IdUtilizador;
+
     const response = await fetch(`${API_URL}/anuncios/${anuncioId}`, {
       method: "PUT",
       headers: {
@@ -57,6 +60,8 @@ export const paymentService = {
       },
       body: JSON.stringify({
         IdEstadoAnuncio: estadoAnuncio,
+        IdUtilizadorReserva: userId,
+        DataReserva: new Date().toISOString(),
       }),
     });
 

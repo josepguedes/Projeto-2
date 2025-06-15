@@ -44,36 +44,14 @@
         </div>
     </div>
 
+    <PaymentModal v-if="showPayment" :show="showPayment" :item="anuncio" @close="showPayment = false"
+        @payment-success="handlePaymentSuccess" />
+
     <!-- Modal de Denúncia -->
-    <div class="modal fade" id="reportModal" tabindex="-1" ref="reportModal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Denunciar Anúncio</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Utilizador Denunciado</label>
-                        <input type="text" class="form-control"
-                            :value="anuncio?.utilizador?.Nome || `Anunciante #${anuncio?.IdUtilizadorAnuncio}`"
-                            disabled>
-                    </div>
-                    <div class="mb-3">
-                        <label for="reportReason" class="form-label">Motivo da Denúncia</label>
-                        <textarea class="form-control" id="reportReason" v-model="reportReason" rows="3"
-                            placeholder="Descreva o motivo da denúncia"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-danger" @click="submitReport"
-                        :disabled="!reportReason">Confirmar
-                        Denúncia</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <DenunciaModal v-if="anuncio" ref="denunciaModal" :idDenunciado="anuncio.IdUtilizadorAnuncio"
+        :utilizadorDenunciado="anuncio.utilizador?.Nome || `Anunciante #${anuncio.IdUtilizadorAnuncio}`"
+        tipo="Anúncio" />
+
 </template>
 
 <script>
@@ -84,13 +62,17 @@ import { Modal } from 'bootstrap';
 import AnuncioDetail from '@/components/AnuncioDetail.vue';
 import SimilarAds from '@/components/SimilarAds.vue';
 import AvaliationsSection from '@/components/AvaliationsSection.vue';
+import DenunciaModal from '@/components/DenunciaModal.vue';
+import PaymentModal from '@/components/PaymentModal.vue';
 
 export default {
     name: 'AnunciosPageView',
     components: {
         AnuncioDetail,
         SimilarAds,
-        AvaliationsSection
+        AvaliationsSection,
+        DenunciaModal,
+        PaymentModal
     },
     data() {
         return {
@@ -98,7 +80,8 @@ export default {
             loading: true,
             error: null,
             reportReason: '',
-            reportModal: null
+            reportModal: null,
+            showPayment: false
         }
     },
     watch: {
@@ -167,12 +150,6 @@ export default {
             if (!timeString) return 'Horário não definido';
             return timeString.substring(0, 5);
         },
-        getReserveButtonText() {
-            if (!this.anuncio) return 'Carregando...';
-            if (this.anuncio.IdEstadoAnuncio === 2) return 'Já Reservado';
-            if (this.anuncio.IdEstadoAnuncio === 3) return 'Expirado';
-            return 'Reservar Produto';
-        },
         handleReport() {
             const token = sessionStorage.getItem('token');
             if (!token) {
@@ -180,7 +157,7 @@ export default {
                 this.$router.push('/login');
                 return;
             }
-            this.reportModal.show(); // Abrir o modal diretamente
+            this.$refs.denunciaModal.showModal();
         },
         async submitReport() {
             try {
@@ -229,47 +206,32 @@ export default {
                     return;
                 }
 
-                // Verifica se o anúncio já está reservado
                 if (this.anuncio.IdEstadoAnuncio === 2) {
                     alert('Este produto já está reservado.');
                     return;
                 }
 
-                // Verifica se o anúncio está expirado
                 if (this.anuncio.IdEstadoAnuncio === 3) {
                     alert('Este produto está expirado.');
                     return;
                 }
 
-                const confirmacao = confirm('Tem certeza que deseja reservar este produto?');
-                if (!confirmacao) return;
-
-                const response = await anunciosService.reservarAnuncio(this.anuncio.IdAnuncio);
-
-                if (response.data) {
-                    alert(`Produto reservado com sucesso!\nSeu código de verificação é: ${response.data.CodigoVerificacao}`);
-                    await this.fetchAnuncio();
-
-                    // Associar notificação de reserva confirmada (ID 2)
-                    const token = sessionStorage.getItem('token');
-                    const payload = JSON.parse(atob(token.split('.')[1]));
-                    await notificacoesService.associarNotificacaoAUtilizador({
-                        IdNotificacao: 2,
-                        IdUtilizador: payload.IdUtilizador
-                    });
-                }
+                // Mostrar modal de pagamento
+                this.showPayment = true;
             } catch (error) {
                 console.error('Erro ao reservar:', error);
-                alert(error.message || 'Erro ao reservar o produto. Por favor, tente novamente.');
+                alert(error.message || 'Erro ao reservar o produto.');
             }
-        }
+        },
+
+        async handlePaymentSuccess() {
+            await this.fetchAnuncio();
+            this.showPayment = false;
+        },
     },
     created() {
         this.fetchAnuncio();
     },
-    mounted() {
-        this.reportModal = new Modal(this.$refs.reportModal);
-    }
 }
 </script>
 

@@ -1,8 +1,7 @@
 <template>
     <div class="card border-0 shadow-lg overflow-hidden">
         <div class="position-relative">
-            <img :src="anuncio.ImagemAnuncio" :alt="anuncio.Nome"
-                class="card-img-top product-image object-fit-cover">
+            <img :src="anuncio.ImagemAnuncio" :alt="anuncio.Nome" class="card-img-top product-image object-fit-cover">
             <div class="image-overlay"></div>
             <span class="position-absolute top-0 end-0 m-4 badge bg-primary px-4 py-2 rounded-pill fs-5 shadow-sm">
                 {{ formatPrice(anuncio.Preco) }}
@@ -15,8 +14,7 @@
                 <h2 class="h3 mb-4 text-primary fw-bold">{{ anuncio.Nome }}</h2>
                 <div class="d-flex align-items-center gap-3 bg-light p-4 rounded-4">
                     <div class="position-relative">
-                        <img :src="anuncio.utilizador?.ImagemPerfil" alt="Profile"
-                            class="rounded-circle profile-image">
+                        <img :src="anuncio.utilizador?.ImagemPerfil" alt="Profile" class="rounded-circle profile-image">
                         <div class="profile-border"></div>
                     </div>
                     <div class="flex-grow-1">
@@ -102,8 +100,8 @@
 
             <!-- Action Buttons -->
             <div class="d-flex gap-3">
-                <button class="btn btn-primary flex-grow-1 d-flex align-items-center justify-content-center action-btn"
-                    @click="$emit('reserve')" :disabled="anuncio.IdEstadoAnuncio !== 1 || isMyAnnouncement">
+                <button class="btn btn-primary w-100" @click="$emit('reserve')"
+                    :disabled="isMyAnnouncement || anuncio.IdEstadoAnuncio === 2 || anuncio.IdEstadoAnuncio === 3">
                     <i class="bi bi-bag-check me-2"></i>
                     {{ getReserveButtonText }}
                 </button>
@@ -120,7 +118,6 @@
 <script>
 export default {
     name: 'AnuncioDetail',
-
     data() {
         return {
             showFullDescription: false,
@@ -204,12 +201,6 @@ export default {
         formatTime(timeString) {
             if (!timeString) return 'Horário não definido';
             return timeString.substring(0, 5);
-        },
-        getReserveButtonText() {
-            if (!this.anuncio) return 'Carregando...';
-            if (this.anuncio.IdEstadoAnuncio === 2) return 'Já Reservado';
-            if (this.anuncio.IdEstadoAnuncio === 3) return 'Expirado';
-            return 'Reservar Produto';
         },
         async startConversation() {
             try {
@@ -323,6 +314,7 @@ export default {
     text-decoration: underline;
     transition: color 0.2s;
 }
+
 .ver-mais-link:hover {
     color: #0a58ca;
     text-decoration: underline;
