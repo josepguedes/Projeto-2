@@ -135,10 +135,6 @@ export const anunciosService = {
         codigoVerificacao += chars[Math.floor(Math.random() * chars.length)];
       }
 
-      // Adicionar 1 hora à data atual
-      const dataReserva = new Date();
-      dataReserva.setHours(dataReserva.getHours() + 1);
-
       const response = await fetch(`${API_URL}/anuncios/${idAnuncio}`, {
         method: "PUT",
         headers: {
@@ -146,10 +142,10 @@ export const anunciosService = {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          IdEstadoAnuncio: 6, // Estado "Reservado"
-          CodigoVerificacao: codigoVerificacao,
+          IdEstadoAnuncio: 2,
           IdUtilizadorReserva: userId,
-          DataReserva: dataReserva.toISOString(),
+          DataReserva: new Date().toISOString(),
+          CodigoVerificacao: codigoVerificacao,
         }),
       });
 
@@ -243,19 +239,22 @@ export const anunciosService = {
   },
   confirmarCodigoEntrega: async (idAnuncio, codigo) => {
     const token = sessionStorage.getItem("token");
-    const response = await fetch(`${API_URL}/anuncios/${idAnuncio}/confirmarCodigo`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ codigo }),
-    });
+    const response = await fetch(
+      `${API_URL}/anuncios/${idAnuncio}/confirmarCodigo`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ codigo }),
+      }
+    );
 
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Erro ao confirmar código de entrega");
     }
     return response.json();
-},
+  },
 };
