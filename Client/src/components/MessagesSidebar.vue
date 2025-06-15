@@ -40,7 +40,6 @@ export default {
                 this.loading = true;
                 const token = sessionStorage.getItem('token');
 
-                // Add early return if no token exists
                 if (!token) {
                     this.conversations = [];
                     this.error = null;
@@ -51,16 +50,28 @@ export default {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 this.currentUserId = payload.IdUtilizador;
 
-                const response = await fetch(`http://localhost:3000/mensagens/conversations/${this.currentUserId}`);
+                const response = await fetch(`http://localhost:3000/mensagens/conversations/${this.currentUserId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}` // Adicionar header de autorização
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar conversas');
+                }
+
                 const data = await response.json();
 
-                // Rest of your existing code...
-                this.conversations = data.data.sort((a, b) => {
-                    if (!a.ultimaMensagem || !b.ultimaMensagem) return 0;
-                    const dateTimeA = new Date(`${a.ultimaMensagem.DataEnvio} ${a.ultimaMensagem.HoraEnvio}`);
-                    const dateTimeB = new Date(`${b.ultimaMensagem.DataEnvio} ${b.ultimaMensagem.HoraEnvio}`);
-                    return dateTimeA.getTime() - dateTimeB.getTime();
-                });
+                if (data && data.data) { // Verificar se data e data.data existem
+                    this.conversations = data.data.sort((a, b) => {
+                        if (!a.ultimaMensagem || !b.ultimaMensagem) return 0;
+                        const dateTimeA = new Date(`${a.ultimaMensagem.dataEnvio} ${a.ultimaMensagem.horaEnvio}`);
+                        const dateTimeB = new Date(`${b.ultimaMensagem.dataEnvio} ${b.ultimaMensagem.horaEnvio}`);
+                        return dateTimeB.getTime() - dateTimeA.getTime(); // Ordenar do mais recente para o mais antigo
+                    });
+                } else {
+                    this.conversations = [];
+                }
 
             } catch (err) {
                 this.error = 'Erro ao carregar conversas';
@@ -108,6 +119,12 @@ export default {
                     return;
                 }
 
+                const token = sessionStorage.getItem('token');
+                if (!token) {
+                    this.error = 'Autenticação necessária';
+                    return;
+                }
+
                 // Verificar bloqueio primeiro antes de tentar buscar mensagens
                 await this.checkBlockStatus();
 
@@ -118,7 +135,12 @@ export default {
                 }
 
                 const response = await fetch(
-                    `http://localhost:3000/mensagens?idRemetente=${this.currentUserId}&idDestinatario=${this.activeConversation.otherUser.id}&page=${this.currentPage}`
+                    `http://localhost:3000/mensagens?idRemetente=${this.currentUserId}&idDestinatario=${this.activeConversation.otherUser.id}&page=${this.currentPage}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
                 );
 
                 const data = await response.json();
@@ -151,10 +173,17 @@ export default {
                     return;
                 }
 
+                const token = sessionStorage.getItem('token');
+                if (!token) {
+                    this.error = 'Autenticação necessária';
+                    return;
+                }
+
                 const response = await fetch('http://localhost:3000/mensagens', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` // Add this line
                     },
                     body: JSON.stringify({
                         IdRemetente: this.currentUserId,
@@ -182,6 +211,10 @@ export default {
                 console.error('Erro ao enviar mensagem:', error);
                 this.error = error.message;
             }
+        },
+        handleDenunciaEnviada() {
+            alert('Denúncia enviada com sucesso!');
+            this.$refs.denunciaModal?.hideModal();
         },
         async deleteMessage(messageId) {
             try {

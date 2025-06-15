@@ -184,28 +184,31 @@ export default {
                                 </div>
 
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <!-- Admin Menu -->
+                                    <!-- Profile link for all users -->
+                                    <li>
+                                        <router-link class="dropdown-item" :to="{ name: 'profile' }">
+                                            <i class="bi bi-person me-2"></i>Meu Perfil
+                                        </router-link>
+                                    </li>
+
+                                    <!-- Admin Menu - Only shown for admin users -->
                                     <template v-if="isAdmin">
-                                        <li>
-                                            <router-link class="dropdown-item" :to="{ name: 'profile' }">
-                                                <i class="bi bi-person me-2"></i>Meu Perfil
-                                            </router-link>
-                                        </li>
                                         <li>
                                             <router-link class="dropdown-item" :to="{ name: 'admin-utilizadores' }">
                                                 <i class="bi bi-people me-2"></i>Painel Admin
                                             </router-link>
                                         </li>
-
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
-                                        <li>
-                                            <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
-                                                <i class="bi bi-box-arrow-right me-2"></i>Terminar Sessão
-                                            </a>
-                                        </li>
                                     </template>
+
+                                    <!-- Logout for all users -->
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
+                                            <i class="bi bi-box-arrow-right me-2"></i>Sair
+                                        </a>
+                                    </li>
                                 </ul>
                             </div>
                         </li>
