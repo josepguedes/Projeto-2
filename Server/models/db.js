@@ -44,6 +44,7 @@ db.ProdutoCategoria = require('./produtoCategoria.models.js')(sequelize, Sequeli
 db.Mensagem = require('./mensagens.models.js')(sequelize, Sequelize.DataTypes);
 db.UtilizadorBloqueio = require("./utilizadoresBloqueios.model.js")(sequelize, Sequelize.DataTypes);
 db.AdminBloqueio = require("./adminBloqueios.model.js")(sequelize, Sequelize.DataTypes);
+db.NotificacaoUtilizador = require('./notificacoesUtilizador.models.js')(sequelize, Sequelize.DataTypes);
 
 db.Anuncio.belongsTo(db.Utilizador, {
     foreignKey: 'IdUtilizadorAnuncio',
@@ -51,10 +52,10 @@ db.Anuncio.belongsTo(db.Utilizador, {
     attributes: ['Nome', 'ImagemPerfil', 'Classificacao']
 });
 
-db.Anuncio.belongsTo(db.Utilizador, { 
-    as: "reservador", 
+db.Anuncio.belongsTo(db.Utilizador, {
+    as: "reservador",
     foreignKey: "IdUtilizadorReserva"
- });
+});
 
 db.Avaliacao.belongsTo(db.Utilizador, {
     foreignKey: 'IdAutor',
@@ -72,17 +73,43 @@ db.Denuncia.belongsTo(db.Anuncio, {
 });
 
 // Add this association
-db.Notificacao.belongsTo(db.Utilizador, {
-    foreignKey: 'IdRecipiente',
-    as: 'recipiente',
-    attributes: ['Nome', 'ImagemPerfil']
+db.Notificacao.belongsToMany(db.Utilizador, {
+    through: db.NotificacaoUtilizador,
+    foreignKey: 'IdNotificacao',
+    otherKey: 'IdUtilizador',
+    as: 'utilizadores'
 });
 
-db.ProdutoCategoria.belongsToMany(db.Anuncio, {
-    through: 'AnuncioProdutoCategoria',
+db.Utilizador.belongsToMany(db.Notificacao, {
+    through: db.NotificacaoUtilizador,
+    foreignKey: 'IdUtilizador',
+    otherKey: 'IdNotificacao',
+    as: 'notificacoes'
+});
+
+db.NotificacaoUtilizador.belongsTo(db.Notificacao, { 
+    foreignKey: 'IdNotificacao', 
+    as: 'notificacao' 
+});
+
+db.NotificacaoUtilizador.belongsTo(db.Utilizador, { 
+    foreignKey: 'IdUtilizador', 
+    as: 'utilizador' 
+});
+
+db.Notificacao.belongsTo(db.Utilizador, { 
+    foreignKey: 'IdRecipiente', 
+    as: 'recipiente' 
+});
+
+db.ProdutoCategoria.hasMany(db.Anuncio, {
     foreignKey: 'IdProdutoCategoria',
-    otherKey: 'IdAnuncio',
-    as: 'anuncio'
+    as: 'anuncios'
+});
+
+db.Anuncio.belongsTo(db.ProdutoCategoria, {
+    foreignKey: 'IdProdutoCategoria',
+    as: 'categoria'
 });
 
 db.Mensagem.belongsTo(db.Utilizador, {
@@ -95,18 +122,14 @@ db.Mensagem.belongsTo(db.Utilizador, {
     as: 'destinatario'
 });
 
-db.UtilizadorBloqueio.belongsTo(db.Utilizador, { 
-    foreignKey: 'IdBloqueador', 
-    as: 'bloqueador' 
-});
-db.UtilizadorBloqueio.belongsTo(db.Utilizador, { 
-    foreignKey: 'IdBloqueado', 
-    as: 'bloqueado' 
+db.UtilizadorBloqueio.belongsTo(db.Utilizador, {
+    foreignKey: 'IdBloqueador',
+    as: 'bloqueador'
 });
 
-db.AdminBloqueio.belongsTo(db.Utilizador, { 
+db.UtilizadorBloqueio.belongsTo(db.Utilizador, {
     foreignKey: 'IdBloqueado',
-    as: 'bloqueado' 
+    as: 'bloqueado'
 });
 
 module.exports = db;

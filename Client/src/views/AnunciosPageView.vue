@@ -79,6 +79,7 @@
 <script>
 import { anunciosService } from '@/api/anuncio';
 import { denunciasService } from '@/api/denuncia';
+import { notificacoesService } from '@/api/notificacoes';
 import { Modal } from 'bootstrap';
 import AnuncioDetail from '@/components/AnuncioDetail.vue';
 import SimilarAds from '@/components/SimilarAds.vue';
@@ -247,7 +248,15 @@ export default {
 
                 if (response.data) {
                     alert(`Produto reservado com sucesso!\nSeu código de verificação é: ${response.data.CodigoVerificacao}`);
-                    await this.fetchAnuncio(); // Atualiza os dados do anúncio
+                    await this.fetchAnuncio();
+
+                    // Associar notificação de reserva confirmada (ID 2)
+                    const token = sessionStorage.getItem('token');
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    await notificacoesService.associarNotificacaoAUtilizador({
+                        IdNotificacao: 2,
+                        IdUtilizador: payload.IdUtilizador
+                    });
                 }
             } catch (error) {
                 console.error('Erro ao reservar:', error);

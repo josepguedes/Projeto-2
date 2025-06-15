@@ -1,7 +1,7 @@
 <template>
     <div class="admin-avaliacoes-page d-flex">
         <!-- Admin Sidebar -->
-        <AdminSidebar active="admin-avaliacoes" :userDetails="userDetails" />
+        <AdminSidebar v-if="userDetails" active="admin-denuncias" :userDetails="userDetails" />
 
         <!-- Main Content -->
         <div class="flex-grow-1 p-4 content">

@@ -6,12 +6,12 @@ const { ErrorHandler } = require("../utils/error.js");
 // Listar todas as notificações com paginação
 const getAllNotificacoes = async (req, res, next) => {
     try {
-        const { 
+        const {
             idRecipiente,
-            page = 1, 
-            limit = 10 
+            page = 1,
+            limit = 10
         } = req.query;
-        
+
         // Validar página e limite
         if (isNaN(page) || page < 1) {
             throw new ErrorHandler(400, 'Página inválida');
@@ -81,8 +81,7 @@ const createNotificacao = async (req, res, next) => {
             IdRecipiente,
             Mensagem,
             DataNotificacao: new Date(),
-            HoraNotificacao: new Date(),
-            Estado: 'não lida'
+            HoraNotificacao: new Date()
         });
 
         return res.status(201).json({
@@ -142,9 +141,101 @@ const updateNotificacao = async (req, res, next) => {
     }
 };
 
+// Exibir notificações do usuário autenticado
+const getNotificacoesByUserId = async (req, res, next) => {
+    console.log("Backend: getNotificacoesByUserId - Recebido pedido."); // Log 1
+    try {
+        const userId = req.query.idUtilizador;
+        console.log("Backend: getNotificacoesByUserId - idUtilizador recebido:", userId); // Log 2
+
+        if (!userId) {
+            console.log("Backend: getNotificacoesByUserId - idUtilizador em falta."); // Log 3
+            return res.status(400).json({ message: 'idUtilizador é obrigatório como query parameter' });
+        }
+
+        const userNotifications = await db.NotificacaoUtilizador.findAll({
+            where: { IdUtilizador: userId },
+            include: [{
+                model: db.Notificacao,
+                as: 'notificacao',
+            }],
+            order: [['DataRececao', 'DESC']],
+        });
+        console.log("Backend: getNotificacoesByUserId - Notificações encontradas na BD:", JSON.stringify(userNotifications, null, 2)); // Log 4
+
+        const formattedNotificacoes = userNotifications.map(nu => {
+            if (!nu.notificacao) {
+                console.error(`Backend: NotificacaoUtilizador ID ${nu.IdNotificacaoUtilizador} não tem 'notificacao' associada ou 'notificacao' é null.`);
+                return null; // Será filtrado mais tarde
+            }
+            return {
+                IdAssociacao: nu.IdNotificacaoUtilizador,
+                Mensagem: nu.notificacao.Mensagem,
+                DataRececaoPeloUtilizador: nu.DataRececao,
+                HoraNotificacaoOriginal: nu.notificacao.HoraNotificacao,
+                DataNotificacaoOriginal: nu.notificacao.DataNotificacao
+            };
+        }).filter(n => n !== null);
+        console.log("Backend: getNotificacoesByUserId - Notificações formatadas para enviar:", JSON.stringify(formattedNotificacoes, null, 2)); // Log 5
+
+        return res.status(200).json({ data: formattedNotificacoes });
+
+    } catch (err) {
+        console.error("Backend: Erro em getNotificacoesByUserId:", err); // Log 6
+        next(err);
+    }
+};
+
+const associarNotificacaoAUtilizador = async (req, res, next) => {
+    try {
+        const { IdNotificacao, IdUtilizador } = req.body;
+        if (!IdNotificacao || !IdUtilizador) {
+            throw new ErrorHandler(400, "IdNotificacao e IdUtilizador são obrigatórios");
+        }
+
+        const notificacaoExiste = await Notificacao.findByPk(IdNotificacao);
+        if (!notificacaoExiste) {
+            throw new ErrorHandler(404, `Notificação com ID ${IdNotificacao} não encontrada.`);
+        }
+
+        const utilizadorExiste = await db.Utilizador.findByPk(IdUtilizador);
+        if (!utilizadorExiste) {
+            throw new ErrorHandler(404, `Utilizador com ID ${IdUtilizador} não encontrado.`);
+        }
+
+        const novaAssociacao = await db.NotificacaoUtilizador.create({
+            IdNotificacao,
+            IdUtilizador,
+            DataRececao: new Date(),
+        });
+
+        res.status(201).json({ message: "Notificação associada ao utilizador com sucesso", data: novaAssociacao });
+    } catch (err) {
+        // Check if it's already an ErrorHandler instance
+        if (err instanceof ErrorHandler) {
+            return next(err);
+        }
+        // Handle Sequelize validation errors specifically
+        if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
+            const messages = err.errors.map(e => e.message).join(', ');
+            return next(new ErrorHandler(400, `Erro de validação: ${messages}`));
+        }
+        // Handle Sequelize foreign key constraint errors
+        if (err.name === 'SequelizeForeignKeyConstraintError') {
+            return next(new ErrorHandler(400, `Erro de referência a dados inexistentes: ${err.message}`));
+        }
+        // For other generic or database errors
+        console.error("Erro não tratado em associarNotificacaoAUtilizador:", err); // Log a more detailed error on the server
+        next(new ErrorHandler(500, "Ocorreu um erro interno ao tentar associar a notificação."));
+    }
+};
+
+
 module.exports = {
     getAllNotificacoes,
     createNotificacao,
     deleteNotificacao,
-    updateNotificacao
+    updateNotificacao,
+    getNotificacoesByUserId,
+    associarNotificacaoAUtilizador
 };
