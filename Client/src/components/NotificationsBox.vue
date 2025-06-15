@@ -1,35 +1,38 @@
 <template>
-    <div class="notifications-box" v-if="isOpen" ref="notificationBoxRef">
+    <div class="notifications-box" v-if="isOpen" ref="notificationBoxRef" tabindex="0">
         <div class="notifications-header">
             <h4>Notificações</h4>
-            <button @click="closeBox" class="close-btn">&times;</button>
+            <button @click="closeBox" class="close-btn" aria-label="Fechar notificações">&times;</button>
         </div>
-        <div v-if="loading" class="loading-state">A carregar...</div>
-        <div v-if="error" class="error-state">{{ error }}</div>
+        <div v-if="loading" class="loading-state">
+            <span class="spinner-border spinner-border-sm me-2"></span>
+            A carregar...
+        </div>
+        <div v-if="error" class="error-state">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+        </div>
         <div v-if="!loading && !error && notificacoes.length === 0" class="empty-state">
-            Não tem notificações.
+            <i class="bi bi-bell-slash me-2"></i>Não tem notificações.
         </div>
         <ul v-if="!loading && !error && notificacoes.length > 0" class="notifications-list">
             <li v-for="notificacao in notificacoes" :key="notificacao.IdAssociacao"
                 :class="['notification-item', notificacao.Estado === 'lida' ? 'read' : 'unread']">
                 <div class="notification-content">
-                    <p class="message">{{ notificacao.Mensagem }}</p>
+                    <p class="message mb-1">
+                        <i class="bi bi-info-circle me-1"></i>{{ notificacao.Mensagem }}
+                    </p>
                     <small class="date-time">
-                        Recebida em: {{ formatDate(notificacao.DataRececaoPeloUtilizador) }}
-                        <span v-if="notificacao.HoraNotificacaoOriginal">às {{
-                            formatTime(notificacao.HoraNotificacaoOriginal) }}</span>
+                        Recebida em: {{ formatDateTime(notificacao.DataRececaoPeloUtilizador) }}
                     </small>
                 </div>
-                <div class="notification-actions">
+                <div class="notification-actions ms-2">
                     <button v-if="notificacao.Estado === 'não lida'" @click="marcarComoLida(notificacao.IdAssociacao)"
                         class="btn btn-sm btn-outline-primary">
-                        Marcar como lida
+                        <i class="bi bi-check2-circle me-1"></i>Marcar como lida
                     </button>
-                    <!-- Poderia adicionar um botão para apagar a associação da notificação aqui se desejado -->
                 </div>
             </li>
         </ul>
-        <!-- Adicionar paginação se necessário -->
     </div>
 </template>
 
@@ -50,10 +53,6 @@ export default {
             loading: false,
             error: null,
             currentUserId: null,
-            // Para paginação (exemplo básico)
-            // currentPage: 1,
-            // totalPages: 1,
-            // itemsPerPage: 10,
         };
     },
     watch: {
@@ -62,12 +61,15 @@ export default {
                 this.getUserIdFromToken();
                 if (this.currentUserId) {
                     this.fetchMinhasNotificacoes();
+                    document.addEventListener('click', this.handleClickOutside, true);
                 } else {
                     this.error = "Utilizador não autenticado.";
                     this.notificacoes = [];
                 }
+            } else {
+                document.removeEventListener('click', this.handleClickOutside, true);
             }
-        }
+        },
     },
     methods: {
         getUserIdFromToken() {
@@ -94,12 +96,15 @@ export default {
             this.error = null;
             try {
                 const response = await notificacoesService.getNotificacoesByUserId(this.currentUserId);
-                this.notificacoes = response.data.map(n => ({
-                    IdAssociacao: n.IdAssociacao,
-                    Mensagem: n.Mensagem,
-                    DataRececaoPeloUtilizador: n.DataRececaoPeloUtilizador, 
-                    HoraNotificacaoOriginal: n.HoraNotificacaoOriginal
-                }));
+                // Limita às 4 mais recentes
+                this.notificacoes = response.data
+                    .slice(0, 4)
+                    .map(n => ({
+                        IdAssociacao: n.IdAssociacao,
+                        Mensagem: n.Mensagem,
+                        Estado: n.Estado,
+                        DataRececaoPeloUtilizador: n.DataRececaoPeloUtilizador,
+                    }));
             } catch (err) {
                 this.error = err.message || 'Erro ao carregar notificações';
                 this.notificacoes = [];
@@ -120,83 +125,116 @@ export default {
                 alert(err.message || 'Não foi possível marcar a notificação como lida.');
             }
         },
-        formatDate(dateString) {
+        formatDateTime(dateString) {
             if (!dateString) return '';
-            const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
-            return new Date(dateString).toLocaleDateString('pt-PT', options);
-        },
-        formatTime(timeString) {
-            if (!timeString) return '';
-            return timeString.substring(0, 5);
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-PT', { year: 'numeric', month: '2-digit', day: '2-digit' }) +
+                ' ' +
+                date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         },
         closeBox() {
             this.$emit('close');
         },
         handleClickOutside(event) {
-            if (this.isOpen && this.$refs.notificationBoxRef && !this.$refs.notificationBoxRef.contains(event.target)) {
-                
-                const toggler = document.getElementById('notification-icon-toggler'); 
+            if (
+                this.isOpen &&
+                this.$refs.notificationBoxRef &&
+                !this.$refs.notificationBoxRef.contains(event.target)
+            ) {
+                const toggler = document.getElementById('notification-icon-toggler');
                 if (toggler && toggler.contains(event.target)) {
                     return;
                 }
                 this.closeBox();
             }
-        }
+        },
     },
     mounted() {
-        document.addEventListener('click', this.handleClickOutside, true);
+        this.getUserIdFromToken();
+        if (this.currentUserId) {
+            this.fetchMinhasNotificacoes();
+        }
+        if (this.isOpen) {
+            document.addEventListener('click', this.handleClickOutside, true);
+        }
     },
     beforeUnmount() {
         document.removeEventListener('click', this.handleClickOutside, true);
-    }
+    },
 };
 </script>
+
 
 <style scoped>
 .notifications-box {
     position: absolute;
-    top: 60px;
-    /* Ajuste conforme a altura da sua navbar */
-    right: 20px;
-    width: 350px;
-    max-height: 400px;
-    background-color: white;
-    border: 1px solid #ddd;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    border-radius: 8px;
-    z-index: 1000;
+    top: 30px;
+    right: 24px;
+    width: 370px;
+    max-height: 420px;
+    background: #fff;
+    border: 1px solid #e3e6ed;
+    box-shadow: 0 8px 32px rgba(44, 62, 80, 0.13);
+    border-radius: 12px;
+    z-index: 1200;
     display: flex;
     flex-direction: column;
+    animation: fadeIn 0.2s;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .notifications-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid #eee;
+    padding: 14px 20px 12px 20px;
+    border-bottom: 1px solid #f1f3f7;
+    background: #f8f9fa;
+    border-radius: 12px 12px 0 0;
 }
 
 .notifications-header h4 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.08rem;
     font-weight: 600;
+    color: #2a8873;
+    letter-spacing: 0.5px;
 }
 
 .close-btn {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 1.7rem;
     cursor: pointer;
-    color: #777;
+    color: #888;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    color: #2a8873;
 }
 
 .loading-state,
 .error-state,
 .empty-state {
-    padding: 20px;
+    padding: 32px 0 32px 0;
     text-align: center;
-    color: #777;
+    color: #888;
+    font-size: 1rem;
+    background: #fff;
 }
 
 .notifications-list {
@@ -210,10 +248,11 @@ export default {
 .notification-item {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    border-bottom: 1px solid #f0f0f0;
-    transition: background-color 0.2s;
+    align-items: flex-start;
+    padding: 16px 20px 14px 20px;
+    border-bottom: 1px solid #f4f4f4;
+    transition: background-color 0.18s;
+    gap: 8px;
 }
 
 .notification-item:last-child {
@@ -221,17 +260,14 @@ export default {
 }
 
 .notification-item.unread {
-    background-color: #f8f9fa;
-    /* Um pouco destacado para não lidas */
-    font-weight: 500;
+    background-color: #f3f8f6;
+    font-weight: 600;
 }
 
 .notification-item.read {
     background-color: #fff;
     color: #6c757d;
-    /* Cor mais suave para lidas */
 }
-
 
 .notification-item:hover {
     background-color: #e9ecef;
@@ -239,22 +275,38 @@ export default {
 
 .notification-content .message {
     margin: 0 0 4px 0;
-    font-size: 0.9rem;
+    font-size: 0.97rem;
     color: #333;
+    word-break: break-word;
+    line-height: 1.4;
 }
 
 .notification-item.read .notification-content .message {
     color: #555;
 }
 
-
 .notification-content .date-time {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     color: #888;
 }
 
 .notification-actions .btn {
-    font-size: 0.8rem;
-    padding: 0.2rem 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.22rem 0.7rem;
+    border-radius: 6px;
+    margin-top: 2px;
+    transition: background 0.18s, color 0.18s;
+}
+
+.notification-actions .btn-outline-primary {
+    border-color: #2a8873;
+    color: #2a8873;
+    background: #fff;
+}
+
+.notification-actions .btn-outline-primary:hover {
+    background: #2a8873;
+    color: #fff;
+    border-color: #2a8873;
 }
 </style>

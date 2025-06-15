@@ -164,13 +164,17 @@ const getNotificacoesByUserId = async (req, res, next) => {
         console.log("Backend: getNotificacoesByUserId - Notificações encontradas na BD:", JSON.stringify(userNotifications, null, 2)); // Log 4
 
         const formattedNotificacoes = userNotifications.map(nu => {
-        return {
-            IdAssociacao: nu.notificacao.IdNotificacao,
-            Mensagem: nu.notificacao.Mensagem,
-            DataRececaoPeloUtilizador: nu.DataRececao,
-            HoraNotificacaoOriginal: nu.notificacao.HoraNotificacao,
-            DataNotificacaoOriginal: nu.notificacao.DataNotificacao
-        };
+            if (!nu.notificacao) {
+                console.error(`Backend: NotificacaoUtilizador ID ${nu.IdNotificacaoUtilizador} não tem 'notificacao' associada ou 'notificacao' é null.`);
+                return null; // Será filtrado mais tarde
+            }
+            return {
+                IdAssociacao: nu.IdNotificacaoUtilizador,
+                Mensagem: nu.notificacao.Mensagem,
+                DataRececaoPeloUtilizador: nu.DataRececao,
+                HoraNotificacaoOriginal: nu.notificacao.HoraNotificacao,
+                DataNotificacaoOriginal: nu.notificacao.DataNotificacao
+            };
         }).filter(n => n !== null);
         console.log("Backend: getNotificacoesByUserId - Notificações formatadas para enviar:", JSON.stringify(formattedNotificacoes, null, 2)); // Log 5
 
@@ -198,13 +202,13 @@ const associarNotificacaoAUtilizador = async (req, res, next) => {
         if (!utilizadorExiste) {
             throw new ErrorHandler(404, `Utilizador com ID ${IdUtilizador} não encontrado.`);
         }
-    
+
         const novaAssociacao = await db.NotificacaoUtilizador.create({
             IdNotificacao,
             IdUtilizador,
-            DataRececao: new Date()
+            DataRececao: new Date(),
         });
-        
+
         res.status(201).json({ message: "Notificação associada ao utilizador com sucesso", data: novaAssociacao });
     } catch (err) {
         // Check if it's already an ErrorHandler instance

@@ -1,13 +1,16 @@
 module.exports = (sequelize, DataTypes) => {
     return sequelize.define("NotificacaoUtilizador", {
-        IdUtilizador: {
+        IdNotificacaoUtilizador: {
             type: DataTypes.INTEGER,
             primaryKey: true,
+            autoIncrement: true
+        },
+        IdUtilizador: {
+            type: DataTypes.INTEGER,
             allowNull: false
         },
         IdNotificacao: {
             type: DataTypes.INTEGER,
-            primaryKey: true,
             allowNull: false
         },
         DataRececao: {

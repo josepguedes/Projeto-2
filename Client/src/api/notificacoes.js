@@ -59,7 +59,8 @@ export const notificacoesService = {
         const response = await fetch(`${API_URL}/notificacoes/user/by-recipient-id?idUtilizador=${idUtilizador}`);
         if (!response.ok) {
             console.error('Erro ao buscar notificações do usuário (por recipiente)');
-            throw new Error('Erro ao buscar notificações do usuário (por recipiente)');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Erro ao buscar notificações do usuário (por recipiente)');
         }
         const data = await response.json();
         console.log('Notificações encontradas:', data);
