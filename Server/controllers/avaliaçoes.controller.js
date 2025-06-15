@@ -167,11 +167,6 @@ const deleteAvaliacao = async (req, res, next) => {
             throw new ErrorHandler(401, 'Utilizador não autenticado');
         }
 
-        // Verificar se o utilizador é o autor da avaliação
-        if (avaliacao.IdAutor !== req.user.IdUtilizador) {
-            throw new ErrorHandler(403, 'Apenas o autor da avaliação pode eliminá-la');
-        }
-
         await avaliacao.destroy();
 
         return res.status(200).json({

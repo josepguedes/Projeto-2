@@ -40,7 +40,6 @@ app.use((req, res, next) => {
     res.status(404).json({ message: `The requested resource was not found: ${req.method} ${req.originalUrl}` });
 });
 
-
 // error middleware (always at the end of the file)
 app.use((err, req, res, next) => {
     // !Uncomment this line to log the error details to the server console!
