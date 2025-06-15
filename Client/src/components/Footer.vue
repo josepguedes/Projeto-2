@@ -50,8 +50,9 @@ import { RouterLink } from "vue-router";
 .footer {
     margin-top: auto;
     border-top: 1px solid #e9ecef;
-    z-index: 2000 !important;
+    z-index: 1; /* Changed from 2000 to 1 */
     position: relative;
+    background-color: #fff;
 }
 
 .footer-link {
