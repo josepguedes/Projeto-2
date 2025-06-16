@@ -390,7 +390,10 @@ const deleteAnuncio = async (req, res, next) => {
       where: { IdAnuncio: req.params.id },
     });
 
-    res.status(204).json();
+    res.status(200).json({
+      message: "Anúncio eliminado com sucesso",
+      data: anuncio,
+    });
   } catch (err) {
     next(err);
   }
