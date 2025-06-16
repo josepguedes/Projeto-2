@@ -268,15 +268,17 @@ const updateAnuncio = async (req, res, next) => {
       return res.status(404).json({ message: `Anúncio com ID ${req.params.id} não encontrado` });
     }
 
+    if (!req.user || anuncio.IdUtilizadorAnuncio !== req.user.IdUtilizador) {
+      return res.status(403).json({ message: "Apenas o dono do anúncio pode editar este anúncio." });
+    }
+
     if (req.file) {
       try {
-        // Remove old image from Cloudinary if exists
         if (anuncio.CloudinaryId) {
           try {
             await cloudinary.uploader.destroy(anuncio.CloudinaryId);
           } catch (cloudErr) {
             console.error("Erro ao remover imagem antiga do Cloudinary:", cloudErr);
-            // Não bloqueia a atualização, apenas loga o erro
           }
         }
 
@@ -386,6 +388,14 @@ const deleteAnuncio = async (req, res, next) => {
       throw new ErrorHandler(404, `Anúncio com ID ${req.params.id} não encontrado`);
     }
 
+    if (anuncio.IdEstadoAnuncio === 2) {
+      throw new ErrorHandler(400, "Não é possível eliminar um anúncio que está reservado.");
+    }
+
+    if (anuncio.IdEstadoAnuncio === 3) {
+      throw new ErrorHandler(400, "Não é possível eliminar um anúncio que já foi concluído.");
+    }
+
     const result = await Anuncio.destroy({
       where: { IdAnuncio: req.params.id },
     });
@@ -402,7 +412,6 @@ const deleteAnuncio = async (req, res, next) => {
 // Obter anúncio por ID
 const getAnuncioById = async (req, res, next) => {
   try {
-    // Validação do parâmetro ID
     if (!req.params.id || isNaN(req.params.id)) {
       return res.status(400).json({ message: "ID do anúncio é obrigatório e deve ser um número" });
     }
@@ -552,10 +561,6 @@ const getAnunciosByCategory = async (req, res, next) => {
   try {
     const { categoryId } = req.params;
 
-    if (!categoryId) {
-      throw new ErrorHandler(400, "ID da categoria é obrigatório");
-    }
-
     const anuncios = await Anuncio.findAll({
       where: { IdProdutoCategoria: categoryId },
       include: [
@@ -591,43 +596,74 @@ const getAnunciosByCategory = async (req, res, next) => {
   }
 };
 
-// Server/controllers/anuncios.controllers.js
+
 const getReservasByUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
-    if (!userId) {
-      throw new ErrorHandler(400, "ID do utilizador é obrigatório");
+    if (isNaN(page) || page < 1) {
+      return res.status(400).json({ message: "Página inválida" });
+    }
+    if (isNaN(limit) || limit < 1) {
+      return res.status(400).json({ message: "Limite inválido" });
     }
 
-    const { count, rows } = await Anuncio.findAndCountAll({
-      where: { IdUtilizadorReserva: userId },
-      include: [
-        {
-          model: db.Utilizador,
-          as: "utilizador",
-          attributes: ["Nome", "ImagemPerfil"],
-        },
-        {
-          model: db.Utilizador,
-          as: "reservador",
-          attributes: ["Nome", "ImagemPerfil"],
-        },
-      ],
-      order: [["DataReserva", "DESC"]],
-      limit: Math.min(+limit || 10, 100),
-      offset: (Math.max(+page, 1) - 1) * (+limit || 10),
-    });
+    let count, rows;
+    try {
+      const result = await Anuncio.findAndCountAll({
+        where: { IdUtilizadorReserva: userId },
+        include: [
+          {
+            model: db.Utilizador,
+            as: "utilizador",
+            attributes: ["Nome", "ImagemPerfil"],
+          },
+          {
+            model: db.Utilizador,
+            as: "reservador",
+            attributes: ["Nome", "ImagemPerfil"],
+          },
+        ],
+        order: [["DataReserva", "DESC"]],
+        limit: Math.min(+limit || 10, 100),
+        offset: (Math.max(+page, 1) - 1) * (+limit || 10),
+      });
+      count = result.count;
+      rows = result.rows;
+    } catch (err) {
+      console.error("Erro ao buscar reservas do utilizador:", err);
+      return res.status(500).json({ message: "Erro ao buscar reservas do utilizador" });
+    }
+
+    // Se não encontrar reservas
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ message: "Nenhuma reserva encontrada para este utilizador" });
+    }
 
     res.status(200).json({
       totalPages: Math.ceil(count / (+limit || 10)),
       currentPage: +page || 1,
       total: count,
       data: rows,
+      links: [
+        { rel: "self", href: `/anuncios/reservas/${userId}?page=${page}&limit=${limit}`, method: "GET" },
+        { rel: "all", href: "/anuncios", method: "GET" },
+      ],
     });
   } catch (err) {
-    next(err);
+    if (err instanceof ErrorHandler) {
+      next(err);
+    } else if (err.name === "SyntaxError") {
+      console.error("Erro de sintaxe:", err);
+      next(new ErrorHandler(400, "Erro de sintaxe na requisição"));
+    } else if (err.name === "TypeError") {
+      console.error("Erro de tipo:", err);
+      next(new ErrorHandler(400, "Erro de tipo na requisição"));
+    } else {
+      console.error("Erro inesperado em getReservasByUser:", err);
+      next(new ErrorHandler(500, "Erro inesperado ao buscar reservas do utilizador"));
+    }
   }
 };
 
@@ -637,21 +673,67 @@ const confirmarCodigoEntrega = async (req, res, next) => {
     const { id } = req.params;
     const { codigo } = req.body;
 
-    const anuncio = await Anuncio.findByPk(id);
+    //Validação de parâmetros
+    if (!id || isNaN(id)) {
+      return next(new ErrorHandler(400, "ID da reserva é obrigatório e deve ser um número"));
+    }
+    if (!codigo || typeof codigo !== "string" || codigo.trim() === "") {
+      return next(new ErrorHandler(400, "Código de verificação é obrigatório"));
+    }
+
+    // Buscar anúncio
+    let anuncio;
+    try {
+      anuncio = await Anuncio.findByPk(id);
+    } catch (err) {
+      console.error("Erro ao buscar anúncio:", err);
+      return next(new ErrorHandler(500, "Erro ao buscar anúncio"));
+    }
+
     if (!anuncio) {
-      return res.status(404).json({ message: "Anúncio não encontrado" });
+      return next(new ErrorHandler(404, "Anúncio não encontrado"));
     }
 
+    // Verifica se já está concluído
+    if (anuncio.IdEstadoAnuncio === 3) {
+      return next(new ErrorHandler(409, "Este anúncio já foi concluído"));
+    }
+
+    // Verifica se existe código de verificação
+    if (!anuncio.CodigoVerificacao) {
+      return next(new ErrorHandler(400, "Este anúncio não possui código de verificação"));
+    }
+
+    // Verifica o código
     if (anuncio.CodigoVerificacao !== codigo) {
-      return res.status(400).json({ message: "Código incorreto" });
+      return next(new ErrorHandler(400, "Código incorreto"));
     }
 
-    anuncio.IdEstadoAnuncio = 3; // Concluído
-    await anuncio.save();
+    // Atualiza estado do anúncio
+    try {
+      anuncio.IdEstadoAnuncio = 3; // Finalizador
+      await anuncio.save();
+    } catch (err) {
+      console.error("Erro ao atualizar estado do anúncio:", err);
+      return next(new ErrorHandler(500, "Erro ao atualizar estado do anúncio"));
+    }
 
-    return res.status(200).json({ message: "Entrega confirmada com sucesso", data: anuncio });
+    return res.status(200).json({
+      message: "Entrega confirmada com sucesso",
+      data: anuncio,
+      links: [
+        { rel: "self", href: `/anuncios/${anuncio.IdAnuncio}`, method: "GET" },
+        { rel: "avaliar", href: `/avaliacoes`, method: "POST" },
+        { rel: "all", href: "/anuncios", method: "GET" }
+      ]
+    });
   } catch (err) {
-    next(err);
+    console.error("Erro inesperado em confirmarCodigoEntrega:", err);
+    if (err instanceof ErrorHandler) {
+      next(err);
+    } else {
+      next(new ErrorHandler(500, "Erro inesperado ao confirmar entrega"));
+    }
   }
 };
 
