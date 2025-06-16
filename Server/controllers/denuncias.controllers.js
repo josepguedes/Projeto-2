@@ -129,17 +129,6 @@ const createDenuncia = async (req, res, next) => {
   try {
     const { IdUtilizadorDenunciado, Motivo } = req.body;
 
-    // Get denunciante ID from JWT token
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      throw new ErrorHandler(401, "Token não fornecido");
-    }
-
-    const payload = JSON.parse(
-      Buffer.from(token.split(".")[1], "base64").toString()
-    );
-    const IdUtilizadorDenunciante = payload.IdUtilizador;
-
     // Validate required fields
     if (!IdUtilizadorDenunciado) {
       throw new ErrorHandler(400, "ID do utilizador denunciado é obrigatório");
@@ -153,44 +142,20 @@ const createDenuncia = async (req, res, next) => {
       throw new ErrorHandler(400, "ID do denunciado inválido");
     }
 
-    // Cannot report yourself
-    if (IdUtilizadorDenunciante === IdUtilizadorDenunciado) {
-      throw new ErrorHandler(400, "Não é possível denunciar a si mesmo");
-    }
-
     // Validate motivo
     if (!Motivo || typeof Motivo !== "string" || Motivo.trim().length === 0) {
       throw new ErrorHandler(400, "Motivo da denúncia é obrigatório");
     }
 
-    if (Motivo.length > 500) {
+    if (Motivo.length > 255) {
       throw new ErrorHandler(
         400,
-        "Motivo da denúncia excede o limite de 500 caracteres"
+        "Motivo da denúncia excede o limite de 255 caracteres"
       );
-    }
-
-    // Check if denunciado exists
-    const denunciado = await db.Utilizador.findByPk(IdUtilizadorDenunciado);
-    if (!denunciado) {
-      throw new ErrorHandler(404, "Utilizador denunciado não encontrado");
-    }
-
-    // Check if same denuncia already exists
-    const existingDenuncia = await Denuncia.findOne({
-      where: {
-        IdUtilizadorDenunciante,
-        IdUtilizadorDenunciado,
-      },
-    });
-
-    if (existingDenuncia) {
-      throw new ErrorHandler(409, "Já existe uma denúncia similar");
     }
 
     // Create denuncia
     const newDenuncia = await Denuncia.create({
-      IdUtilizadorDenunciante,
       IdUtilizadorDenunciado,
       Motivo,
       DataDenuncia: new Date(),
@@ -210,17 +175,45 @@ const deleteDenuncia = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Verificar se a denúncia existe
+    // 2. Validate ID format
+    if (!id || isNaN(id) || Number(id) <= 0) {
+      throw new ErrorHandler(400, "ID da denúncia inválido");
+    }
+
+    // 3. Find the denuncia
     const denuncia = await Denuncia.findByPk(id);
     if (!denuncia) {
       throw new ErrorHandler(404, "Denúncia não encontrada");
     }
 
-    // Deletar denúncia
-    await denuncia.destroy();
+    // 4. Authorization check - only admin can delete denuncias
+    if (req.user.Funcao !== "admin") {
+      throw new ErrorHandler(
+        403,
+        "Apenas administradores podem eliminar denúncias"
+      );
+    }
 
-    return res.status(204).json();
+    // 5. Delete the denuncia
+    await denuncia.destroy().catch((error) => {
+      throw new ErrorHandler(500, "Erro ao eliminar a denúncia");
+    });
+    res.status(200).json({
+      message: "Denúncia eliminada com sucesso",
+    });
   } catch (err) {
+    // 7. Error handling
+    console.error("Error in deleteDenuncia:", err);
+
+    // Handle specific database errors
+    if (err.name === "SequelizeDatabaseError") {
+      return next(new ErrorHandler(500, "Erro na base de dados"));
+    }
+
+    if (err.name === "SequelizeConnectionError") {
+      return next(new ErrorHandler(503, "Erro de conexão com a base de dados"));
+    }
+
     next(err);
   }
 };

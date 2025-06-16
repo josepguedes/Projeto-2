@@ -30,58 +30,27 @@ export const denunciasService = {
   },
 
   async getAllDenuncias(page = 1, limit = 10) {
-    const token = sessionStorage.getItem("token");
-    const response = await fetch(
-      `${API_URL}/denuncias?page=${page}&limit=${limit}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Erro ao buscar denúncias");
-    }
-
-    const data = await response.json();
+    try {
+      const response = await fetch(
+        `${API_URL}/denuncias?page=${page}&limit=${limit}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Erro ao buscar denúncias");
       }
 
-        if (denuncia.IdAnuncio) {
-          promises.push(
-            fetch(`${API_URL}/anuncios/${denuncia.IdAnuncio}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            })
-              .then((res) => res.json())
-              .then((data) => (anuncio = data.data))
-              .catch((err) =>
-                console.error(
-                  `Erro ao buscar anúncio ${denuncia.IdAnuncio}:`,
-                  err
-                )
-              )
-          );
-        }
+      const data = await response.json();
 
-        if (denuncia.IdUtilizadorDenunciado) {
-          promises.push(
-            fetch(`${API_URL}/utilizadores/${denuncia.IdUtilizadorDenunciado}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            })
-              .then((res) => res.json())
-              .then((data) => (utilizador = data))
-              .catch((err) =>
-                console.error(
-                  `Erro ao buscar utilizador ${denuncia.IdUtilizadorDenunciado}:`,
-                  err
-                )
-              )
-          );
-        }
+      // Buscar detalhes apenas dos utilizadores para cada denúncia
+      const denunciasComDetalhes = await Promise.all(
+        data.data.map(async (denuncia) => {
+          let utilizador = null;
 
           if (denuncia.IdUtilizadorDenunciado) {
             try {
@@ -124,6 +93,10 @@ export const denunciasService = {
   async deleteDenuncia(id) {
     const response = await fetch(`${API_URL}/denuncias/${id}`, {
       method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
     });
     if (!response.ok) {
       throw new Error("Erro ao eliminar denúncia");
