@@ -17,11 +17,17 @@ const getAllAvaliacoes = async (req, res, next) => {
             throw new ErrorHandler(400, "Limite inválido. Deve ser um número entre 1 e 100");
         }
 
-        // 2. Validate idAvaliado if provided
         if (idAvaliado) {
             if (!Number.isInteger(Number(idAvaliado)) || Number(idAvaliado) <= 0) {
                 throw new ErrorHandler(400, "ID do avaliado inválido");
             }
+            
+            // Check if avaliado exists
+            const avaliado = await db.Utilizador.findByPk(idAvaliado);
+            if (!avaliado) {
+                throw new ErrorHandler(404, `Utilizador com ID ${idAvaliado} não encontrado`);
+            }
+
             where.IdAvaliado = idAvaliado;
         }
 
@@ -103,27 +109,72 @@ const createAvaliacao = async (req, res, next) => {
     try {
         const { IdAnuncio, IdAutor, IdAvaliado, Comentario, Classificacao } = req.body;
 
-        // Validar dados obrigatórios
-        if (!IdAnuncio || !IdAutor || !IdAvaliado || !Classificacao) {
-            throw new ErrorHandler(400, 'Dados obrigatórios não fornecidos');
+        // Check if user is authenticated and is the author
+        if (req.user.IdUtilizador != IdAutor) {
+            return res.status(403).json({
+                message: "Não tem permissão para criar avaliações em nome de outro utilizador"
+            });
         }
 
-        // Buscar o anúncio e verificar se está finalizado
+        // Validate required fields
+        if (!IdAnuncio || !IdAutor || !IdAvaliado || !Comentario || !Classificacao) {
+            throw new ErrorHandler(400, "Todos os campos são obrigatórios");
+        }
+
+        // Validate IDs format
+        if (!Number.isInteger(Number(IdAnuncio)) || Number(IdAnuncio) <= 0) {
+            throw new ErrorHandler(400, "ID do anúncio inválido");
+        }
+
+        if (!Number.isInteger(Number(IdAutor)) || Number(IdAutor) <= 0) {
+            throw new ErrorHandler(400, "ID do autor inválido");
+        }
+
+        if (!Number.isInteger(Number(IdAvaliado)) || Number(IdAvaliado) <= 0) {
+            throw new ErrorHandler(400, "ID do avaliado inválido");
+        }
+
+        // Validate classification range
+        if (!Number.isInteger(Number(Classificacao)) || Classificacao < 1 || Classificacao > 5) {
+            throw new ErrorHandler(400, "Classificação deve ser um número entre 1 e 5");
+        }
+
+        // Validate comment length
+        if (Comentario.length < 3 || Comentario.length > 300) {
+            throw new ErrorHandler(400, "Comentário deve ter entre 3 e 300 caracteres");
+        }
+
+        // Check if users exist
+        const [autor, avaliado] = await Promise.all([
+            db.Utilizador.findByPk(IdAutor),
+            db.Utilizador.findByPk(IdAvaliado)
+        ]);
+
+        if (!autor || !avaliado) {
+            throw new ErrorHandler(404, "Autor ou avaliado não encontrado");
+        }
+
+        // Check if anuncio exists and is finalized
         const anuncio = await db.Anuncio.findByPk(IdAnuncio);
-        if (!anuncio || anuncio.IdEstadoAnuncio !== 3) {
-            throw new ErrorHandler(400, 'A entrega ainda não foi finalizada');
+        if (!anuncio) {
+            throw new ErrorHandler(404, "Anúncio não encontrado");
         }
 
-        // Verificar se já existe avaliação deste autor para este anúncio
-        const avaliacaoExistente = await db.Avaliacao.findOne({
+        if (anuncio.IdEstadoAnuncio !== 3) {
+            throw new ErrorHandler(400, "Só é possível avaliar anúncios finalizados");
+        }
+
+        // Check if user already evaluated this announcement
+        const avaliacaoExistente = await Avaliacao.findOne({
             where: { IdAnuncio, IdAutor }
         });
+
         if (avaliacaoExistente) {
-            throw new ErrorHandler(400, 'Já existe uma avaliação deste utilizador para este anúncio');
+            throw new ErrorHandler(409, "Já existe uma avaliação sua para este anúncio");
         }
 
-        // Criar nova avaliação
-        const novaAvaliacao = await db.Avaliacao.create({
+        // Create evaluation
+        const novaAvaliacao = await Avaliacao.create({
             IdAnuncio,
             IdAutor,
             IdAvaliado,
@@ -133,44 +184,88 @@ const createAvaliacao = async (req, res, next) => {
         });
 
         return res.status(201).json({
-            message: 'Avaliação criada com sucesso',
-            data: novaAvaliacao,
-            links: [
-                { rel: "self", href: `/avaliacoes/${novaAvaliacao.IdAvaliacao}`, method: "GET" },
-                { rel: "delete", href: `/avaliacoes/${novaAvaliacao.IdAvaliacao}`, method: "DELETE" },
-                { rel: "modify", href: `/avaliacoes/${novaAvaliacao.IdAvaliacao}`, method: "PUT" }
-            ]
+            message: "Avaliação criada com sucesso",
+            data: novaAvaliacao
         });
+
     } catch (err) {
-        next(err);
+        console.error("Erro em createAvaliacao:", err);
+
+        if (err instanceof ErrorHandler) {
+            return next(err);
+        }
+
+        if (err.name === 'SequelizeValidationError') {
+            return next(new ErrorHandler(400, "Erro de validação dos dados"));
+        }
+
+        if (err.name === 'SequelizeUniqueConstraintError') {
+            return next(new ErrorHandler(409, "Avaliação duplicada"));
+        }
+
+        if (err.name === 'SequelizeForeignKeyConstraintError') {
+            return next(new ErrorHandler(400, "Referência inválida: anúncio ou utilizador não existe"));
+        }
+
+        if (err.name === 'SequelizeDatabaseError') {
+            return next(new ErrorHandler(500, "Erro de banco de dados"));
+        }
+
+        next(new ErrorHandler(500, "Erro interno do servidor ao criar avaliação"));
     }
 };
-// ...existing code...
 
 // Editar uma avaliação
 const updateAvaliacao = async (req, res, next) => {
     try {
-        const avaliacao = await Avaliacao.findByPk(req.params.id);
-
-        if (!avaliacao) {
-            throw new ErrorHandler(404, `Avaliação com ID ${req.params.id} não encontrada`);
-        }
-
-        // Validar dados obrigatórios
-        if (!req.body.Comentario || !req.body.Classificacao) {
-            throw new ErrorHandler(400, 'Dados obrigatórios não fornecidos');
-        }
-
+        const { id } = req.params;
         const { Comentario, Classificacao } = req.body;
 
-        // Atualizar avaliação
+        // Validate if id exists and is valid
+        if (!id || isNaN(id)) {
+            throw new ErrorHandler(400, "ID da avaliação inválido");
+        }
+
+        // Find avaliacao
+        const avaliacao = await Avaliacao.findByPk(id);
+        if (!avaliacao) {
+            throw new ErrorHandler(404, `Avaliação com ID ${id} não encontrada`);
+        }
+
+        // Check if user owns the evaluation
+        if (req.user.IdUtilizador != avaliacao.IdAutor) {
+            return res.status(403).json({
+                message: "Não tem permissão para editar avaliações de outros utilizadores"
+            });
+        }
+
+        // Validate required fields
+        if (!Comentario && !Classificacao) {
+            throw new ErrorHandler(400, "Nenhum campo para atualizar foi fornecido");
+        }
+
+        // Validate Comentario if provided
+        if (Comentario !== undefined) {
+            if (Comentario.length < 3 || Comentario.length > 300) {
+                throw new ErrorHandler(400, "Comentário deve ter entre 3 e 300 caracteres");
+            }
+        }
+
+        // Validate Classificacao if provided
+        if (Classificacao !== undefined) {
+            if (!Number.isInteger(Number(Classificacao)) || Classificacao < 1 || Classificacao > 5) {
+                throw new ErrorHandler(400, "Classificação deve ser um número entre 1 e 5");
+            }
+        }
+
+        // Update avaliacao
         await avaliacao.update({
-            Comentario,
-            Classificacao
+            Comentario: Comentario || avaliacao.Comentario,
+            Classificacao: Classificacao || avaliacao.Classificacao
         });
 
         return res.status(200).json({
-            message: 'Avaliação atualizada com sucesso',
+            message: "Avaliação atualizada com sucesso",
             data: avaliacao,
             links: [
                 { rel: "self", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "GET" },
@@ -178,20 +273,54 @@ const updateAvaliacao = async (req, res, next) => {
                 { rel: "modify", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "PUT" }
             ]
         });
+
     } catch (err) {
-        next(err);
+        console.error("Erro em updateAvaliacao:", err);
+
+        if (err instanceof ErrorHandler) {
+            return next(err);
+        }
+
+        if (err.name === 'SequelizeValidationError') {
+            return next(new ErrorHandler(400, "Erro de validação dos dados"));
+        }
+
+        if (err.name === 'SequelizeUniqueConstraintError') {
+            return next(new ErrorHandler(409, "Avaliação duplicada"));
+        }
+
+        if (err.name === 'SequelizeDatabaseError') {
+            return next(new ErrorHandler(500, "Erro de banco de dados"));
+        }
+
+        next(new ErrorHandler(500, "Erro interno do servidor ao atualizar avaliação"));
     }
 };
 
 // Eliminar uma avaliação
 const deleteAvaliacao = async (req, res, next) => {
     try {
-        const avaliacao = await Avaliacao.findByPk(req.params.id);
+        const { id } = req.params;
 
-        if (!avaliacao) {
-            throw new ErrorHandler(404, `Avaliação com ID ${req.params.id} não encontrada`);
+        // Validate if ID exists and is valid
+        if (!id || isNaN(id)) {
+            throw new ErrorHandler(400, "ID da avaliação inválido");
         }
 
+        // Find avaliacao
+        const avaliacao = await Avaliacao.findByPk(id);
+        if (!avaliacao) {
+            throw new ErrorHandler(404, `Avaliação com ID ${id} não encontrada`);
+        }
+
+        // Check if user owns the evaluation or is admin
+        if (!req.user.IsAdmin && req.user.IdUtilizador != avaliacao.IdAutor) {
+            return res.status(403).json({
+                message: "Não tem permissão para eliminar avaliações de outros utilizadores"
+            });
+        }
+
+        // Delete evaluation
         await avaliacao.destroy();
 
         return res.status(200).json({
@@ -201,8 +330,27 @@ const deleteAvaliacao = async (req, res, next) => {
                 { rel: "listar-avaliacoes", href: `/avaliacoes`, method: "GET" }
             ]
         });
+
     } catch (err) {
-        next(err);
+        console.error("Erro em deleteAvaliacao:", err);
+
+        if (err instanceof ErrorHandler) {
+            return next(err);
+        }
+
+        if (err.name === 'SequelizeValidationError') {
+            return next(new ErrorHandler(400, "Erro de validação dos dados"));
+        }
+
+        if (err.name === 'SequelizeForeignKeyConstraintError') {
+            return next(new ErrorHandler(400, "Erro: A avaliação não pode ser eliminada devido a dependências"));
+        }
+
+        if (err.name === 'SequelizeDatabaseError') {
+            return next(new ErrorHandler(500, "Erro de banco de dados"));
+        }
+
+        next(new ErrorHandler(500, "Erro interno do servidor ao eliminar avaliação"));
     }
 };
 
