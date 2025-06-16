@@ -47,13 +47,9 @@ export const denunciasService = {
 
     const data = await response.json();
 
-    // Buscar detalhes dos anúncios e utilizadores para cada denúncia
-    const denunciasComDetalhes = await Promise.all(
-      data.data.map(async (denuncia) => {
-        // Only fetch if IdAnuncio and IdUtilizadorDenunciado are not null
-        const promises = [];
-        let anuncio = null;
-        let utilizador = null;
+      if (!response.ok) {
+        throw new Error("Erro ao buscar denúncias");
+      }
 
         if (denuncia.IdAnuncio) {
           promises.push(
@@ -87,20 +83,42 @@ export const denunciasService = {
           );
         }
 
-        await Promise.all(promises);
+          if (denuncia.IdUtilizadorDenunciado) {
+            try {
+              const userResponse = await fetch(
+                `${API_URL}/utilizadores/${denuncia.IdUtilizadorDenunciado}`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+                  },
+                }
+              );
+              if (userResponse.ok) {
+                utilizador = await userResponse.json();
+              }
+            } catch (err) {
+              console.error(
+                `Erro ao buscar utilizador ${denuncia.IdUtilizadorDenunciado}:`,
+                err
+              );
+            }
+          }
 
-        return {
-          ...denuncia,
-          anuncio: anuncio,
-          utilizadorDenunciado: utilizador,
-        };
-      })
-    );
+          return {
+            ...denuncia,
+            utilizadorDenunciado: utilizador,
+          };
+        })
+      );
 
-    return {
-      ...data,
-      data: denunciasComDetalhes,
-    };
+      return {
+        ...data,
+        data: denunciasComDetalhes,
+      };
+    } catch (error) {
+      console.error("Error in getAllDenuncias:", error);
+      throw error;
+    }
   },
 
   async deleteDenuncia(id) {
