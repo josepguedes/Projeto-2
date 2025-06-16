@@ -10,21 +10,21 @@
                 </div>
                 <div class="modal-body">
                     <p>Utilizador: <strong>{{ user?.Nome }}</strong></p>
-                    
+
                     <form @submit.prevent="handleSubmit" id="blockForm">
                         <div v-if="!isBlocked">
                             <div class="mb-3">
                                 <label class="form-label">Tipo de Bloqueio:</label>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" v-model="blockType" 
-                                        id="permanent" value="permanent">
+                                    <input class="form-check-input" type="radio" v-model="blockType" id="permanent"
+                                        value="permanent">
                                     <label class="form-check-label" for="permanent">
                                         Permanente
                                     </label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" v-model="blockType" 
-                                        id="temporary" value="temporary">
+                                    <input class="form-check-input" type="radio" v-model="blockType" id="temporary"
+                                        value="temporary">
                                     <label class="form-check-label" for="temporary">
                                         Temporário
                                     </label>
@@ -33,13 +33,7 @@
 
                             <div v-if="blockType === 'temporary'" class="mb-3">
                                 <label class="form-label">Data de Término:</label>
-                                <input 
-                                    type="date" 
-                                    class="form-control" 
-                                    v-model="endDate" 
-                                    :min="tomorrow"
-                                    required
-                                >
+                                <input type="date" class="form-control" v-model="endDate" :min="tomorrow" required>
                             </div>
                         </div>
                         <div v-else>
@@ -89,15 +83,16 @@ export default {
             this.modal.show();
         },
         hideModal() {
+            document.activeElement && document.activeElement.blur();
             if (this.modal) {
                 this.modal.hide();
             }
         },
         handleSubmit() {
             if (this.blockType === 'temporary' && !this.endDate) {
-                return; // The form won't submit due to HTML5 validation
+                return;
             }
-            
+
             this.$emit('submit', {
                 blockType: this.blockType,
                 endDate: this.blockType === 'temporary' ? this.endDate : null

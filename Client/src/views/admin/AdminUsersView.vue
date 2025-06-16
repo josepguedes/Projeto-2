@@ -159,7 +159,7 @@ export default {
                 // Buscar informações de bloqueio para cada usuário
                 const usersWithBlocks = await Promise.all(response.data.map(async user => {
                     try {
-                        const bloqueioInfo = await adminBloqueiosService.checkBloqueio(user.IdUtilizador);
+                        const bloqueioInfo = await adminBloqueiosService.checkAdminBlock(user.IdUtilizador);
                         return {
                             ...user,
                             bloqueio: bloqueioInfo.bloqueio

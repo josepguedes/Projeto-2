@@ -15,7 +15,7 @@ router.post('/login', utilizadoresController.loginUser);
 router.put('/:id', autenticarJWT,upload.single('ImagemPerfil'), utilizadoresController.updateUser);
 
 // Listar todos os utilizadores
-router.get('/', utilizadoresController.getAllUsers);
+router.get('/',(req, res, next) => autenticarJWT(req, res, next, true), utilizadoresController.getAllUsers);
 
 // Rota para obter detalhes do utilizador
 router.get('/:id', autenticarJWT,utilizadoresController.getUserDetails);

@@ -30,11 +30,13 @@ export const denunciasService = {
   },
 
   async getAllDenuncias(page = 1, limit = 10) {
+    const token = sessionStorage.getItem("token");
     const response = await fetch(
       `${API_URL}/denuncias?page=${page}&limit=${limit}`,
       {
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       }
     );
@@ -55,7 +57,9 @@ export const denunciasService = {
 
         if (denuncia.IdAnuncio) {
           promises.push(
-            fetch(`${API_URL}/anuncios/${denuncia.IdAnuncio}`)
+            fetch(`${API_URL}/anuncios/${denuncia.IdAnuncio}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
               .then((res) => res.json())
               .then((data) => (anuncio = data.data))
               .catch((err) =>
@@ -69,7 +73,9 @@ export const denunciasService = {
 
         if (denuncia.IdUtilizadorDenunciado) {
           promises.push(
-            fetch(`${API_URL}/utilizadores/${denuncia.IdUtilizadorDenunciado}`)
+            fetch(`${API_URL}/utilizadores/${denuncia.IdUtilizadorDenunciado}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
               .then((res) => res.json())
               .then((data) => (utilizador = data))
               .catch((err) =>
