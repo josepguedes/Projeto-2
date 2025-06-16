@@ -268,7 +268,11 @@ const updateAnuncio = async (req, res, next) => {
       return res.status(404).json({ message: `Anúncio com ID ${req.params.id} não encontrado` });
     }
 
-    if (!req.user || anuncio.IdUtilizadorAnuncio !== req.user.IdUtilizador) {
+    // Permitir atualização se for o dono OU se for atualização após pagamento (IdEstadoAnuncio == 2 e está a reservar)
+    if (!req.user || (anuncio.IdUtilizadorAnuncio !== req.user.IdUtilizador && !(req.body.IdEstadoAnuncio == 2 && req.body.IdUtilizadorReserva && anuncio.IdEstadoAnuncio !== 2 // só permite a transição para reservado
+    )
+    )
+    ) {
       return res.status(403).json({ message: "Apenas o dono do anúncio pode editar este anúncio." });
     }
 
@@ -394,6 +398,17 @@ const deleteAnuncio = async (req, res, next) => {
 
     if (anuncio.IdEstadoAnuncio === 3) {
       throw new ErrorHandler(400, "Não é possível eliminar um anúncio que já foi concluído.");
+    }
+
+    // Permitir eliminação se for o dono OU se for admin
+    if (
+      !req.user ||
+      (
+        anuncio.IdUtilizadorAnuncio !== req.user.IdUtilizador &&
+        req.user.Funcao !== 'admin'
+      )
+    ) {
+      return res.status(403).json({ message: "Apenas o dono do anúncio ou um administrador pode eliminar este anúncio." });
     }
 
     const result = await Anuncio.destroy({
@@ -602,12 +617,19 @@ const getReservasByUser = async (req, res, next) => {
     const { userId } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
+    // Validação do parâmetro userId
+    if (!userId || isNaN(userId)) {
+      return res.status(400).json({ message: "ID do utilizador é obrigatório e deve ser um número" });
+    }
+
     if (isNaN(page) || page < 1) {
       return res.status(400).json({ message: "Página inválida" });
     }
     if (isNaN(limit) || limit < 1) {
       return res.status(400).json({ message: "Limite inválido" });
     }
+
+
 
     let count, rows;
     try {
@@ -653,14 +675,6 @@ const getReservasByUser = async (req, res, next) => {
     });
   } catch (err) {
     if (err instanceof ErrorHandler) {
-      next(err);
-    } else if (err.name === "SyntaxError") {
-      console.error("Erro de sintaxe:", err);
-      next(new ErrorHandler(400, "Erro de sintaxe na requisição"));
-    } else if (err.name === "TypeError") {
-      console.error("Erro de tipo:", err);
-      next(new ErrorHandler(400, "Erro de tipo na requisição"));
-    } else {
       console.error("Erro inesperado em getReservasByUser:", err);
       next(new ErrorHandler(500, "Erro inesperado ao buscar reservas do utilizador"));
     }
@@ -698,11 +712,17 @@ const confirmarCodigoEntrega = async (req, res, next) => {
     if (anuncio.IdEstadoAnuncio === 3) {
       return next(new ErrorHandler(409, "Este anúncio já foi concluído"));
     }
-
+    
+    // Verifica se o anúncio está reservado
+    if (anuncio.IdEstadoAnuncio !== 2) {
+      return next(new ErrorHandler(400, "Este anúncio não está reservado"));
+    }
+    
     // Verifica se existe código de verificação
     if (!anuncio.CodigoVerificacao) {
       return next(new ErrorHandler(400, "Este anúncio não possui código de verificação"));
     }
+
 
     // Verifica o código
     if (anuncio.CodigoVerificacao !== codigo) {
@@ -737,6 +757,57 @@ const confirmarCodigoEntrega = async (req, res, next) => {
   }
 };
 
+
+// Listar todas as reservas existentes (todos os anúncios que têm IdUtilizadorReserva não nulo)
+const getAllReservas = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+
+    if (isNaN(page) || page < 1) {
+      return res.status(400).json({ message: "Página inválida" });
+    }
+    if (isNaN(limit) || limit < 1) {
+      return res.status(400).json({ message: "Limite inválido" });
+    }
+
+
+
+    let result;
+    try {
+      result = await Anuncio.findAndCountAll({
+        where: { IdUtilizadorReserva: { [Op.ne]: null } },
+        include: [
+          { model: db.Utilizador, as: "utilizador", attributes: ["Nome", "ImagemPerfil"] },
+          { model: db.Utilizador, as: "reservador", attributes: ["Nome", "ImagemPerfil"] },
+          { model: db.EstadoAnuncio, as: "estado", attributes: ["EstadoAnuncio"] },
+        ],
+        order: [["DataReserva", "DESC"]],
+        limit: Math.min(+limit || 10, 100),
+        offset: (Math.max(+page, 1) - 1) * (+limit || 10),
+      });
+    } catch (err) {
+      return res.status(500).json({ message: "Erro ao buscar reservas" });
+    }
+
+    if (!result.rows || result.rows.length === 0) {
+      return res.status(404).json({ message: "Nenhuma reserva encontrada" });
+    }
+
+    res.status(200).json({
+      totalPages: Math.ceil(result.count / (+limit || 10)),
+      currentPage: +page || 1,
+      total: result.count,
+      data: result.rows,
+      links: [
+        { rel: "self", href: `/anuncios/reservas?page=${page}&limit=${limit}`, method: "GET" },
+        { rel: "all", href: "/anuncios", method: "GET" },
+      ],
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getAllAnuncios,
   getAnuncioById,
@@ -747,4 +818,5 @@ module.exports = {
   getAnunciosByCategory,
   getReservasByUser,
   confirmarCodigoEntrega,
+  getAllReservas
 };

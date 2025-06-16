@@ -140,8 +140,8 @@ const createAvaliacao = async (req, res, next) => {
         }
 
         // Validate comment length
-        if (Comentario.length < 3 || Comentario.length > 300) {
-            throw new ErrorHandler(400, "Comentário deve ter entre 3 e 300 caracteres");
+        if (Comentario.length <= 1 || Comentario.length > 255) {
+            throw new ErrorHandler(400, "Comentário deve ter no máximo 255 caracteres");
         }
 
         // Check if users exist
@@ -246,8 +246,8 @@ const updateAvaliacao = async (req, res, next) => {
 
         // Validate Comentario if provided
         if (Comentario !== undefined) {
-            if (Comentario.length < 3 || Comentario.length > 300) {
-                throw new ErrorHandler(400, "Comentário deve ter entre 3 e 300 caracteres");
+            if (Comentario.length < 3 || Comentario.length > 255) {
+                throw new ErrorHandler(400, "Comentário deve ter no máximo 255 caracteres");
             }
         }
 
@@ -316,7 +316,7 @@ const deleteAvaliacao = async (req, res, next) => {
         // Check if user owns the evaluation or is admin
         if (!req.user.IsAdmin && req.user.IdUtilizador != avaliacao.IdAutor) {
             return res.status(403).json({
-                message: "Não tem permissão para eliminar avaliações de outros utilizadores"
+                message: "Apenas o autor da avaliação ou um administrador pode eliminá-la"
             });
         }
 
