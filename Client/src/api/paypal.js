@@ -48,27 +48,73 @@ export const paymentService = {
   },
 
   async updateAnuncioAfterPayment(anuncioId, estadoAnuncio = 2) {
-    const token = sessionStorage.getItem("token");
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const userId = payload.IdUtilizador;
+    try {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
+        throw new Error("Token não encontrado");
+      }
 
-    const response = await fetch(`${API_URL}/anuncios/${anuncioId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        IdEstadoAnuncio: estadoAnuncio,
-        IdUtilizadorReserva: userId,
-        DataReserva: new Date().toISOString(),
-      }),
-    });
+      // Get anuncio details first
+      const anuncioResponse = await fetch(`${API_URL}/anuncios/${anuncioId}`);
+      if (!anuncioResponse.ok) {
+        throw new Error("Erro ao buscar dados do anúncio");
+      }
+      const anuncioData = await anuncioResponse.json();
+      const anuncio = anuncioData.data;
 
-    if (!response.ok) {
-      throw new Error("Erro ao atualizar o estado da reserva");
+      // Get user ID from token
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const userId = payload.IdUtilizador;
+
+      // Format dates to YYYY-MM-DD
+      const formatDate = (date) => {
+        if (!date) return null;
+        const d = new Date(date);
+        return d.toISOString().split("T")[0];
+      };
+
+      // Generate verification code
+      const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+      let codigoVerificacao = "";
+      for (let i = 0; i < 6; i++) {
+        codigoVerificacao += chars[Math.floor(Math.random() * chars.length)];
+      }
+
+      // Send update request with formatted dates
+      const response = await fetch(`${API_URL}/anuncios/${anuncioId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          Nome: anuncio.Nome,
+          Descricao: anuncio.Descricao,
+          LocalRecolha: anuncio.LocalRecolha,
+          HorarioRecolha: anuncio.HorarioRecolha,
+          DataRecolha: formatDate(anuncio.DataRecolha),
+          Preco: anuncio.Preco,
+          DataValidade: formatDate(anuncio.DataValidade),
+          Quantidade: anuncio.Quantidade,
+          IdProdutoCategoria: anuncio.IdProdutoCategoria,
+          IdEstadoAnuncio: estadoAnuncio,
+          IdUtilizadorReserva: userId,
+          DataReserva: formatDate(new Date()),
+          CodigoVerificacao: codigoVerificacao,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(
+          error.message || "Erro ao atualizar o estado da reserva"
+        );
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("Erro em updateAnuncioAfterPayment:", error);
+      throw error;
     }
-
-    return response.json();
   },
 };
