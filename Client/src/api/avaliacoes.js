@@ -2,9 +2,11 @@ const API_URL = 'http://localhost:3000';
 
 export const avaliacoesService = {
     async getAllAvaliacoes(page = 1, limit = 10) {
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${API_URL}/avaliacoes?page=${page}&limit=${limit}`, {
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             }
         });
 
@@ -18,8 +20,12 @@ export const avaliacoesService = {
         const avaliacoesComDetalhes = await Promise.all(
             data.data.map(async (avaliacao) => {
                 const [autorResponse, avaliadoResponse] = await Promise.all([
-                    fetch(`${API_URL}/utilizadores/${avaliacao.IdAutor}`),
-                    fetch(`${API_URL}/utilizadores/${avaliacao.IdAvaliado}`)
+                    fetch(`${API_URL}/utilizadores/${avaliacao.IdAutor}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(`${API_URL}/utilizadores/${avaliacao.IdAvaliado}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
                 ]);
 
                 const autor = await autorResponse.json();

@@ -42,6 +42,10 @@ const getAllNotificacoes = async (req, res, next) => {
             offset: (+page - 1) * +limit,
         });
 
+        if (!req.user || req.user.Funcao !== 'admin') {
+            throw new ErrorHandler(403, 'Acesso negado. Apenas administradores podem listar utilizadores.');
+        }
+
         // Adicionar links HATEOAS para cada notificação
         notificacoes.rows.forEach(notificacao => {
             notificacao.links = [

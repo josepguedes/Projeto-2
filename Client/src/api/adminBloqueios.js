@@ -1,23 +1,22 @@
 const API_URL = "http://localhost:3000";
 
 export const adminBloqueiosService = {
-    async checkBloqueio(idUtilizador) {
-        const token = sessionStorage.getItem("token");
-        if (!token) {
-            throw new Error("Token não encontrado");
-        }
-
-        const response = await fetch(`${API_URL}/bloqueios/admin/check/${idUtilizador}`, {
-            headers: {
-                Authorization: `Bearer ${token}`
+    async checkAdminBlock(userId) {
+        try {
+            const token = sessionStorage.getItem("token");
+            const response = await fetch(`http://localhost:3000/bloqueios/admin/check/${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            if (!response.ok) {
+                throw new Error('Erro ao verificar bloqueio');
             }
-        });
-
-        if (!response.ok) {
-            throw new Error("Erro ao verificar bloqueio");
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            throw error;
         }
-
-        return response.json();
     },
 
     async createBloqueio(idUtilizador, dataFimBloqueio = null) {
