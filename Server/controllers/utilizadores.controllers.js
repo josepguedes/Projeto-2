@@ -217,8 +217,9 @@ const updateUser = async (req, res, next) => {
         }
 
         // Verifica se o utilizador é o mesmo que está a ser atualizado
-        if (utilizadorId !== req.user.IdUtilizador) {
-            throw new ErrorHandler(403, "Acesso negado. Não pode atualizar outro utilizador.");
+        // Permitir que apenas o próprio utilizador OU um admin atualize o perfil
+        if (utilizadorId !== req.user.IdUtilizador && req.user.Funcao !== 'admin') {
+            throw new ErrorHandler(403, `Acesso negado. Não pode atualizar outro utilizador. (Id autenticado: ${req.user.IdUtilizador}) ${utilizadorId}`);
         }
 
         const utilizador = await Utilizador.findByPk(utilizadorId);
