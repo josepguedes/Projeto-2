@@ -8,10 +8,24 @@ const getAllAvaliacoes = async (req, res, next) => {
         const { idAvaliado, page = 1, limit = 10 } = req.query;
         const where = {};
 
+        // 1. Validate pagination parameters
+        if (isNaN(page) || page <= 0) {
+            throw new ErrorHandler(400, "Número de página inválido. Deve ser um número positivo");
+        }
+
+        if (isNaN(limit) || limit < 1 || limit > 100) {
+            throw new ErrorHandler(400, "Limite inválido. Deve ser um número entre 1 e 100");
+        }
+
+        // 2. Validate idAvaliado if provided
         if (idAvaliado) {
+            if (!Number.isInteger(Number(idAvaliado)) || Number(idAvaliado) <= 0) {
+                throw new ErrorHandler(400, "ID do avaliado inválido");
+            }
             where.IdAvaliado = idAvaliado;
         }
 
+        // 3. Try to fetch avaliacoes
         const avaliacoes = await Avaliacao.findAndCountAll({
             where,
             include: [{
@@ -25,20 +39,44 @@ const getAllAvaliacoes = async (req, res, next) => {
             order: [['DataAvaliacao', 'ASC']],
             limit: +limit,
             offset: (+page - 1) * +limit,
+        }).catch(error => {
+            console.error('Database error:', error);
+            throw new ErrorHandler(500, "Erro ao buscar avaliações na base de dados");
         });
 
-        // Links HATEOAS para cada avaliação
-        avaliacoes.rows.forEach(avaliacao => {
-            avaliacao.links = [
-                { rel: "self", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "GET" }, // Corrigido de IdDenuncia
-                { rel: "delete", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "DELETE" },
-                { rel: "modify", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "PUT" }
-            ];
-        });
+        // 4. Check if there are any avaliacoes
+        if (avaliacoes.count === 0) {
+            return res.status(204).json({
+                message: "Nenhuma avaliação encontrada",
+                totalPages: 0,
+                currentPage: +page,
+                total: 0,
+                data: []
+            });
+        }
 
+        // 5. Check if requested page exists
+        const totalPages = Math.ceil(avaliacoes.count / limit);
+        if (page > totalPages) {
+            throw new ErrorHandler(404, `Página ${page} não existe. Total de páginas: ${totalPages}`);
+        }
 
+        // 6. Add HATEOAS links
+        try {
+            avaliacoes.rows.forEach(avaliacao => {
+                avaliacao.links = [
+                    { rel: "self", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "GET" },
+                    { rel: "delete", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "DELETE" },
+                    { rel: "modify", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "PUT" }
+                ];
+            });
+        } catch (error) {
+            console.error('Error adding HATEOAS links:', error);
+        }
+
+        // 7. Return success response
         return res.status(200).json({
-            totalPages: Math.ceil(avaliacoes.count / limit),
+            totalPages,
             currentPage: +page,
             total: avaliacoes.count,
             data: avaliacoes.rows,
@@ -48,12 +86,19 @@ const getAllAvaliacoes = async (req, res, next) => {
                 ...(avaliacoes.count > page * limit ? [{ rel: "proxima-pagina", href: `/avaliacoes?limit=${limit}&page=${+page + 1}`, method: "GET" }] : [])
             ]
         });
+
     } catch (err) {
+        // 8. Error handling
+        if (err.name === 'SequelizeConnectionError') {
+            return next(new ErrorHandler(503, "Erro de conexão com a base de dados"));
+        }
+        if (err.name === 'SequelizeDatabaseError') {
+            return next(new ErrorHandler(500, "Erro na base de dados"));
+        }
         next(err);
     }
 };
 
-// ...existing code...
 const createAvaliacao = async (req, res, next) => {
     try {
         const { IdAnuncio, IdAutor, IdAvaliado, Comentario, Classificacao } = req.body;
