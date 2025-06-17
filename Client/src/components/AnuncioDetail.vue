@@ -101,7 +101,8 @@
             <!-- Action Buttons -->
             <div class="d-flex gap-3">
                 <button class="btn btn-primary w-100" @click="$emit('reserve')"
-                    :disabled="isMyAnnouncement || anuncio.IdEstadoAnuncio === 2 || anuncio.IdEstadoAnuncio === 3">
+                    :disabled="isMyAnnouncement || anuncio.IdEstadoAnuncio === 2 || anuncio.IdEstadoAnuncio === 3 || isBlockedByOwner"
+                    :title="buttonTitle">
                     <i class="bi bi-bag-check me-2"></i>
                     {{ getReserveButtonText }}
                 </button>
@@ -121,7 +122,8 @@ export default {
     data() {
         return {
             showFullDescription: false,
-            maxWords: 30
+            maxWords: 30,
+            isBlockedByOwner: false
         }
     },
     props: {
@@ -131,6 +133,12 @@ export default {
         }
     },
     computed: {
+        buttonTitle() {
+            if (this.isBlockedByOwner) {
+                return 'Não pode reservar este anúncio pois foi bloqueado pelo vendedor';
+            }
+            return 'Clique para reservar este anúncio';
+        },
         details() {
             if (!this.anuncio) return [];
             return [
@@ -176,6 +184,9 @@ export default {
             return payload.IdUtilizador === this.anuncio.IdUtilizadorAnuncio;
         },
         getReserveButtonText() {
+            if (this.isBlockedByOwner) {
+                return 'Reserva indisponível - Bloqueado pelo vendedor';
+            }
             if (!this.anuncio) return 'Carregando...';
             if (this.isMyAnnouncement) return 'Este é o teu anúncio';
             if (this.anuncio.IdEstadoAnuncio === 2) return 'Já Reservado';
@@ -184,6 +195,15 @@ export default {
         }
     },
     methods: {
+        getShortDescription(desc) {
+            if (!desc) return 'Sem descrição disponível.';
+            const words = desc.split(' ');
+            if (words.length <= this.maxWords) return desc;
+            return words.slice(0, this.maxWords).join(' ') + '...';
+        },
+        toggleDescription() {
+            this.showFullDescription = !this.showFullDescription;
+        },
         formatPrice(price) {
             return Number(price).toLocaleString('pt-BR', {
                 style: 'currency',
@@ -227,18 +247,32 @@ export default {
                 alert('Erro ao abrir conversa. Por favor, tente novamente.');
             }
         },
+        async checkIfBlocked() {
+            try {
+                const token = sessionStorage.getItem('token');
+                if (!token) return;
 
-        getShortDescription(desc) {
-            if (!desc) return 'Sem descrição disponível.';
-            const words = desc.split(' ');
-            if (words.length <= this.maxWords) return desc;
-            return words.slice(0, this.maxWords).join(' ') + '...';
-        },
-        toggleDescription() {
-            this.showFullDescription = !this.showFullDescription;
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const response = await fetch(
+                    `http://localhost:3000/bloqueios/utilizador/check?idBloqueador=${this.anuncio.IdUtilizadorAnuncio}&idBloqueado=${payload.IdUtilizador}`
+                );
+
+                if (!response.ok) {
+                    throw new Error('Erro ao verificar bloqueios');
+                }
+
+                const data = await response.json();
+                this.isBlockedByOwner = data.bloqueado;
+            } catch (error) {
+                console.error('Erro ao verificar bloqueios:', error);
+            }
         }
-    }
+    },
+    async mounted() {
+        await this.checkIfBlocked();
+    },
 }
+
 </script>
 
 <style scoped>
@@ -375,6 +409,10 @@ export default {
 
 .message-btn:hover i {
     transform: translateX(-2px);
+}
+
+button:disabled {
+    cursor: not-allowed;
 }
 
 @media (max-width: 576px) {

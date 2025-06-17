@@ -85,13 +85,27 @@ export default {
                             this.$emit('payment-success');
                             this.$emit('close');
 
-                            // Associar notificação
-                            const token = sessionStorage.getItem('token');
-                            const payload = JSON.parse(atob(token.split('.')[1]));
-                            await notificacoesService.associarNotificacaoAUtilizador({
-                                IdNotificacao: 2,
-                                IdUtilizador: payload.IdUtilizador
-                            });
+                            try {
+                                // Verificar primeiro se a notificação já existe
+                                const token = sessionStorage.getItem('token');
+                                const payload = JSON.parse(atob(token.split('.')[1]));
+                                const notificacoes = await notificacoesService.getNotificacoesByUserId(payload.IdUtilizador);
+
+                                // Verifica se já existe uma notificação com ID 2 para este usuário
+                                const notificacaoExistente = notificacoes.data.some(n =>
+                                    n.IdAssociacao && n.IdAssociacao.toString() === '2'
+                                );
+
+                                if (!notificacaoExistente) {
+                                    await notificacoesService.associarNotificacaoAUtilizador({
+                                        IdNotificacao: 2,
+                                        IdUtilizador: payload.IdUtilizador
+                                    });
+                                }
+                            } catch (notifError) {
+                                console.warn('Aviso: Erro ao processar notificação:', notifError);
+                                // Não bloqueia o fluxo principal mesmo se houver erro na notificação
+                            }
 
                             alert('Pagamento processado com sucesso!');
                             window.location.reload();

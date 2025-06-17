@@ -89,28 +89,38 @@ export default {
         },
         async handleCancelarReserva(reserva) {
             try {
+                // Formatar as datas corretamente
+                const formatDate = (date) => {
+                    if (!date) return null;
+                    const d = new Date(date);
+                    return d instanceof Date && !isNaN(d)
+                        ? d.toISOString().split('T')[0]
+                        : null;
+                };
+
                 await anunciosService.updateAnuncio(reserva.IdAnuncio, {
                     Nome: reserva.Nome,
                     Descricao: reserva.Descricao,
                     LocalRecolha: reserva.LocalRecolha,
                     HorarioRecolha: reserva.HorarioRecolha,
-                    Preco: reserva.Preco,
-                    DataRecolha: reserva.DataRecolha,
-                    DataValidade: reserva.DataValidade,
-                    Quantidade: reserva.Quantidade,
-                    IdProdutoCategoria: reserva.IdProdutoCategoria,
+                    Preco: Number(reserva.Preco),
+                    DataRecolha: formatDate(reserva.DataRecolha),
+                    DataValidade: formatDate(reserva.DataValidade),
+                    Quantidade: Number(reserva.Quantidade),
+                    IdProdutoCategoria: Number(reserva.IdProdutoCategoria),
                     IdEstadoAnuncio: 1,
                     IdUtilizadorReserva: null,
                     DataReserva: null,
                     CodigoVerificacao: null
                 });
+
+                // Atualiza a lista de reservas removendo a reserva cancelada
                 this.reservas = this.reservas.filter(r => r.IdAnuncio !== reserva.IdAnuncio);
             } catch (err) {
-                console.log(reserva);
-
-                alert('Erro ao cancelar reserva');
+                console.error('Erro ao cancelar reserva:', err);
+                alert('Erro ao cancelar reserva: ' + (err.message || 'Erro desconhecido'));
             }
-        }
+        },
     },
     created() {
         this.fetchUserDetailsAndReservas();

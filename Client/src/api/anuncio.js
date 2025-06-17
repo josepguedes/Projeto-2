@@ -168,23 +168,33 @@ export const anunciosService = {
         throw new Error("Token não encontrado");
       }
 
-      // Usar FormData para enviar imagem
       const formData = new FormData();
+
+      // Campos obrigatórios
       formData.append("Nome", anuncioData.Nome);
       formData.append("Descricao", anuncioData.Descricao);
       formData.append("LocalRecolha", anuncioData.LocalRecolha);
       formData.append("HorarioRecolha", anuncioData.HorarioRecolha);
-      formData.append("Preco", anuncioData.Preco);
-      formData.append("DataRecolha", anuncioData.DataRecolha);
-      formData.append("DataValidade", anuncioData.DataValidade);
-      formData.append("Quantidade", anuncioData.Quantidade);
-      formData.append("IdProdutoCategoria", anuncioData.IdProdutoCategoria);
-      formData.append("IdEstadoAnuncio", anuncioData.IdEstadoAnuncio);
-      formData.append("IdUtilizadorReserva", anuncioData.IdUtilizadorReserva);
-      formData.append("DataReserva", anuncioData.DataReserva);
-      formData.append("CodigoVerificacao", anuncioData.CodigoVerificacao);
+      formData.append("Preco", Number(anuncioData.Preco));
+      formData.append("Quantidade", Number(anuncioData.Quantidade));
+      formData.append(
+        "IdProdutoCategoria",
+        Number(anuncioData.IdProdutoCategoria)
+      );
+      formData.append("IdEstadoAnuncio", Number(anuncioData.IdEstadoAnuncio));
 
-      // Só adiciona imagem se existir
+      // Tratamento especial para campos que podem ser nulos
+      formData.append(
+        "IdUtilizadorReserva",
+        anuncioData.IdUtilizadorReserva === null
+          ? ""
+          : Number(anuncioData.IdUtilizadorReserva)
+      );
+      formData.append("DataReserva", anuncioData.DataReserva || "");
+      formData.append("DataValidade", anuncioData.DataValidade || "");
+      formData.append("DataRecolha", anuncioData.DataRecolha || "");
+      formData.append("CodigoVerificacao", anuncioData.CodigoVerificacao || "");
+
       if (anuncioData.ImagemAnuncio) {
         formData.append("ImagemAnuncio", anuncioData.ImagemAnuncio);
       }
@@ -242,7 +252,7 @@ export const anunciosService = {
         method: "GET",
         headers: {
           Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
       }
     );
