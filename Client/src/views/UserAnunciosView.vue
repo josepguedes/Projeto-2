@@ -88,6 +88,9 @@ export default {
             showCreate: false,
             showConfirmCodeModal: false,
             confirmCodeAnuncioId: null,
+            currentPage: 1,
+            totalPages: 1, // Add this line
+            itemsPerPage: 12 // Add this line
         }
     },
     methods: {

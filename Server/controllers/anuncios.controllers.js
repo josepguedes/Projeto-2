@@ -157,7 +157,6 @@ const createAnuncio = async (req, res, next) => {
       "DataValidade",
       "Quantidade",
       "IdProdutoCategoria",
-      "ImagemAnuncio",
     ];
 
     // Check for missing or empty required fields
@@ -267,6 +266,22 @@ const updateAnuncio = async (req, res, next) => {
       return res
         .status(404)
         .json({ message: `Anúncio com ID ${req.params.id} não encontrado` });
+    }
+
+    if (Number(req.body.Preco) > 100) {
+      throw new ErrorHandler(400, "O preço máximo permitido é 100€");
+    }
+
+    if (
+      isNaN(Number(req.body.IdUtilizadorAnuncio)) ||
+      isNaN(Number(req.body.Preco)) ||
+      isNaN(Number(req.body.Quantidade)) ||
+      isNaN(Number(req.body.IdProdutoCategoria))
+    ) {
+      throw new ErrorHandler(
+        400,
+        "IdUtilizadorAnuncio, Preço, Quantidade e IdProdutoCategoria devem ser números válidos"
+      );
     }
 
     // Permitir atualização se for o dono OU se for atualização após pagamento (IdEstadoAnuncio == 2 e está a reservar)

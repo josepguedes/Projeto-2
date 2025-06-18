@@ -183,7 +183,26 @@ export default {
             try {
                 this.isSubmitting = true;
                 this.error = null;
-                await anunciosService.updateAnuncio(this.anuncio.IdAnuncio, this.formData);
+
+                const updateData = {
+                    Nome: this.formData.Nome,
+                    Descricao: this.formData.Descricao,
+                    LocalRecolha: this.formData.LocalRecolha,
+                    HorarioRecolha: this.formData.HorarioRecolha,
+                    Preco: Number(this.formData.Preco),
+                    Quantidade: Number(this.formData.Quantidade),
+                    IdProdutoCategoria: Number(this.formData.IdProdutoCategoria),
+                    DataRecolha: this.formData.DataRecolha,
+                    DataValidade: this.formData.DataValidade,
+                    IdUtilizadorAnuncio: Number(this.anuncio.IdUtilizadorAnuncio),
+                    IdEstadoAnuncio: this.anuncio.IdEstadoAnuncio,
+                    // Maintain existing reservation data if any
+                    IdUtilizadorReserva: this.anuncio.IdUtilizadorReserva,
+                    DataReserva: this.anuncio.DataReserva,
+                    CodigoVerificacao: this.anuncio.CodigoVerificacao
+                };
+
+                await anunciosService.updateAnuncio(this.anuncio.IdAnuncio, updateData);
                 this.$emit('updated');
                 this.$emit('close');
             } catch (error) {

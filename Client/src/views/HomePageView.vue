@@ -111,21 +111,21 @@ export default {
   components: { FoodCard },
   data() {
     return {
-        searchTerm: "",
-        filterCategoria: "",
-        filterPreco: null,
-        filterData: "",
-        anuncios: [],
-        categorias: [],
-        loading: true,
-        error: null,
-        links: [],
-        currentPage: 1,
-        totalPages: 1,
-        itemsPerPage: 12,
-        searchQuery: '',
-        selectedFilter: 'all',
-        sortOrder: 'desc'
+      searchTerm: "",
+      filterCategoria: "",
+      filterPreco: null,
+      filterData: "",
+      anuncios: [],
+      categorias: [],
+      loading: true,
+      error: null,
+      links: [],
+      currentPage: 1,
+      totalPages: 1,
+      itemsPerPage: 12,
+      searchQuery: '',
+      selectedFilter: 'all',
+      sortOrder: 'desc'
     };
   },
   methods: {
@@ -249,10 +249,10 @@ export default {
       });
     },
     formatPrice(price) {
-      if (!price) return "0,00€";
-      return Number(price).toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "EUR",
+      if (Number(price) === 0) return 'Grátis';
+      return Number(price).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'EUR'
       });
     },
   },

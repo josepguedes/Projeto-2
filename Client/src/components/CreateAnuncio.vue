@@ -27,7 +27,7 @@
                             <div class="col-md-6">
                                 <label for="preco" class="form-label">Preço (€)</label>
                                 <input type="number" class="form-control" id="preco" v-model="formData.Preco"
-                                    step="0.01" min="0" required>
+                                    step="0.01" min="0" max ="100" required>
                             </div>
                             <div class="col-md-6">
                                 <label for="quantidade" class="form-label">Quantidade</label>

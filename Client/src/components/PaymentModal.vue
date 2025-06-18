@@ -75,6 +75,37 @@ export default {
                 const container = document.getElementById('paypal-button-container');
                 if (container) container.innerHTML = '';
 
+                if (Number(this.item.Preco) === 0) {
+                    try {
+                        await paymentService.updateAnuncioAfterPayment(this.item.IdAnuncio);
+
+                        // Notify success
+                        this.$emit('payment-success');
+                        this.$emit('close');
+
+                        // Handle notification
+                        const token = sessionStorage.getItem('token');
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+
+                        try {
+                            await notificacoesService.associarNotificacaoAUtilizador({
+                                IdNotificacao: 2,
+                                IdUtilizador: payload.IdUtilizador
+                            });
+                        } catch (notifError) {
+                            console.warn('Warning: Error processing notification:', notifError);
+                        }
+
+                        alert('Item reservado com sucesso!');
+                        window.location.reload();
+                        return;
+                    } catch (error) {
+                        console.error('Error processing free item:', error);
+                        alert('Erro ao processar item gratuito.');
+                        return;
+                    }
+                }
+
                 const paypalButtons = await paymentService.createPayPalOrder(
                     this.item.Preco,
                     async (order) => {
