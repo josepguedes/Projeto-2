@@ -92,28 +92,35 @@ const loginUser = async (req, res, next) => {
         if (!passwordMatch) {
             throw new ErrorHandler(401, "Credenciais inválidas.");
         }
-        
+
+        // Verificar e remover bloqueios expirados
         const bloqueio = await db.AdminBloqueio.findOne({
             where: {
-                IdBloqueado: utilizador.IdUtilizador,
-                [Op.or]: [
-                    { DataFimBloqueio: null },
-                    { DataFimBloqueio: { [Op.gt]: new Date() } }
-                ]
+                IdBloqueado: utilizador.IdUtilizador
             }
         });
 
-        if (bloqueio) {
-            let msg = "A sua conta está bloqueada";
-            if (bloqueio.DataFimBloqueio) {
-                msg += ` até ${new Date(bloqueio.DataFimBloqueio).toLocaleDateString('pt-PT')}`;
+        if (bloqueio && bloqueio.DataFimBloqueio) {
+            const agora = new Date();
+            const dataFim = new Date(bloqueio.DataFimBloqueio);
+
+            if (dataFim <= agora) {
+                // Remove o bloqueio expirado
+                await bloqueio.destroy();
             } else {
-                msg += " permanentemente";
+                // Bloqueio ainda ativo
+                return res.status(403).json({ 
+                    message: `Conta bloqueada até ${dataFim.toLocaleDateString('pt-PT')}`
+                });
             }
-            return res.status(403).json({ message: msg });
+        } else if (bloqueio && !bloqueio.DataFimBloqueio) {
+            // Bloqueio permanente
+            return res.status(403).json({ 
+                message: "Conta bloqueada permanentemente" 
+            });
         }
 
-        // Gera o token JWT
+        // Continua com o login normal...
         const token = jwt.sign(
             {
                 IdUtilizador: utilizador.IdUtilizador,
