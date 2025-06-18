@@ -78,7 +78,8 @@ export default {
     },
     methods: {
         formatPrice(price) {
-            return Number(price).toLocaleString('pt-PT', {
+            if (Number(price) === 0) return 'Grátis';
+            return Number(price).toLocaleString('pt-BR', {
                 style: 'currency',
                 currency: 'EUR'
             });
@@ -155,6 +156,7 @@ export default {
     padding: 0.5rem 0.5rem;
     transition: background 0.2s, color 0.2s;
 }
+
 .card-footer .btn i {
     font-size: 1.1rem;
 }

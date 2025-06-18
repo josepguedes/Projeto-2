@@ -66,13 +66,6 @@ export const paymentService = {
       const payload = JSON.parse(atob(token.split(".")[1]));
       const userId = payload.IdUtilizador;
 
-      // Format dates to YYYY-MM-DD
-      const formatDate = (date) => {
-        if (!date) return null;
-        const d = new Date(date);
-        return d.toISOString().split("T")[0];
-      };
-
       // Generate verification code
       const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
       let codigoVerificacao = "";
@@ -80,32 +73,50 @@ export const paymentService = {
         codigoVerificacao += chars[Math.floor(Math.random() * chars.length)];
       }
 
-      // Send update request with formatted dates
+      // Format dates properly
+      const now = new Date();
+      const dataReserva = now.toISOString().split("T")[0];
+
+      // Ensure DataValidade and DataRecolha are in YYYY-MM-DD format
+      const formatDate = (date) => {
+        if (!date) return null;
+        const d = new Date(date);
+        return d instanceof Date && !isNaN(d)
+          ? d.toISOString().split("T")[0]
+          : null;
+      };
+
+      // Prepare update data with formatted dates
+      const updateData = {
+        Nome: anuncio.Nome,
+        Descricao: anuncio.Descricao,
+        LocalRecolha: anuncio.LocalRecolha,
+        HorarioRecolha: anuncio.HorarioRecolha,
+        Preco: Number(anuncio.Preco),
+        DataRecolha: formatDate(anuncio.DataRecolha),
+        DataValidade: formatDate(anuncio.DataValidade),
+        Quantidade: Number(anuncio.Quantidade),
+        IdProdutoCategoria: Number(anuncio.IdProdutoCategoria),
+        IdUtilizadorAnuncio: Number(anuncio.IdUtilizadorAnuncio),
+        IdEstadoAnuncio: Number(estadoAnuncio),
+        IdUtilizadorReserva: Number(userId),
+        DataReserva: dataReserva,
+        CodigoVerificacao: codigoVerificacao,
+      };
+
+      // Send update request
       const response = await fetch(`${API_URL}/anuncios/${anuncioId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          Nome: anuncio.Nome,
-          Descricao: anuncio.Descricao,
-          LocalRecolha: anuncio.LocalRecolha,
-          HorarioRecolha: anuncio.HorarioRecolha,
-          DataRecolha: formatDate(anuncio.DataRecolha),
-          Preco: anuncio.Preco,
-          DataValidade: formatDate(anuncio.DataValidade),
-          Quantidade: anuncio.Quantidade,
-          IdProdutoCategoria: anuncio.IdProdutoCategoria,
-          IdEstadoAnuncio: estadoAnuncio,
-          IdUtilizadorReserva: userId,
-          DataReserva: formatDate(new Date()),
-          CodigoVerificacao: codigoVerificacao,
-        }),
+        body: JSON.stringify(updateData),
       });
 
       if (!response.ok) {
         const error = await response.json();
+        console.error("Server response:", error);
         throw new Error(
           error.message || "Erro ao atualizar o estado da reserva"
         );

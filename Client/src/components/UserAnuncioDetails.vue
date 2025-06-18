@@ -6,16 +6,13 @@
                     <h5 class="modal-title">Detalhes do Anúncio</h5>
                     <button type="button" class="btn-close" @click="$emit('close')"></button>
                 </div>
-                
+
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-5">
                             <div class="product-image-container">
-                                <img 
-                                    :src="anuncio.ImagemAnuncio || 'https://via.placeholder.com/500'" 
-                                    :alt="anuncio.Nome"
-                                    class="img-fluid rounded"
-                                >
+                                <img :src="anuncio.ImagemAnuncio || 'https://via.placeholder.com/500'"
+                                    :alt="anuncio.Nome" class="img-fluid rounded">
                                 <span :class="['status-badge', getStatusClass(anuncio.IdEstadoAnuncio)]">
                                     {{ getStatusText(anuncio.IdEstadoAnuncio) }}
                                 </span>
@@ -24,7 +21,7 @@
                         <div class="col-md-7">
                             <div class="product-info">
                                 <h4 class="product-title mb-3">{{ anuncio.Nome }}</h4>
-                                
+
                                 <div class="price-section mb-4">
                                     <h5 class="price">{{ formatPrice(anuncio.Preco) }}</h5>
                                     <span class="quantity">Quantidade disponível: {{ anuncio.Quantidade }}</span>
@@ -38,7 +35,7 @@
                                             <span>{{ anuncio.LocalRecolha }}</span>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="info-item">
                                         <i class="fas fa-clock"></i>
                                         <div>
@@ -46,7 +43,7 @@
                                             <span>{{ anuncio.HorarioRecolha }}</span>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="info-item">
                                         <i class="fas fa-calendar-plus"></i>
                                         <div>
@@ -54,7 +51,7 @@
                                             <span>{{ formatDate(anuncio.DataAnuncio) }}</span>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="info-item">
                                         <i class="fas fa-calendar-times"></i>
                                         <div>
@@ -92,6 +89,7 @@ export default {
     },
     methods: {
         formatPrice(price) {
+            if (Number(price) === 0) return 'Grátis';
             return Number(price).toLocaleString('pt-PT', {
                 style: 'currency',
                 currency: 'EUR'
@@ -224,8 +222,8 @@ export default {
     color: #2c3e50;
     line-height: 1.6;
 }
+
 .info-item i {
     color: #27ae60 !important;
 }
-
 </style>

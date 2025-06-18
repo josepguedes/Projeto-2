@@ -133,6 +133,7 @@ export default {
     },
     methods: {
         formatPrice(price) {
+            if (Number(price) === 0) return 'Grátis';
             return Number(price).toLocaleString('pt-BR', {
                 style: 'currency',
                 currency: 'EUR'

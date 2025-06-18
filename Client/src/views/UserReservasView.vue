@@ -89,16 +89,17 @@ export default {
         },
         async handleCancelarReserva(reserva) {
             try {
-                // Formatar as datas corretamente
+                // Format dates properly
                 const formatDate = (date) => {
-                    if (!date) return null;
+                    if (!date) return '';
                     const d = new Date(date);
                     return d instanceof Date && !isNaN(d)
                         ? d.toISOString().split('T')[0]
-                        : null;
+                        : '';
                 };
 
-                await anunciosService.updateAnuncio(reserva.IdAnuncio, {
+                // Prepare update data with all required fields
+                const updateData = {
                     Nome: reserva.Nome,
                     Descricao: reserva.Descricao,
                     LocalRecolha: reserva.LocalRecolha,
@@ -108,13 +109,23 @@ export default {
                     DataValidade: formatDate(reserva.DataValidade),
                     Quantidade: Number(reserva.Quantidade),
                     IdProdutoCategoria: Number(reserva.IdProdutoCategoria),
-                    IdEstadoAnuncio: 1,
+                    IdUtilizadorAnuncio: Number(reserva.IdUtilizadorAnuncio),
+                    IdEstadoAnuncio: 1, // Set back to available
                     IdUtilizadorReserva: null,
                     DataReserva: null,
                     CodigoVerificacao: null
+                };
+
+                // Filter out any undefined or null fields
+                Object.keys(updateData).forEach(key => {
+                    if (updateData[key] === undefined) {
+                        delete updateData[key];
+                    }
                 });
 
-                // Atualiza a lista de reservas removendo a reserva cancelada
+                await anunciosService.updateAnuncio(reserva.IdAnuncio, updateData);
+
+                // Update UI after successful cancellation
                 this.reservas = this.reservas.filter(r => r.IdAnuncio !== reserva.IdAnuncio);
             } catch (err) {
                 console.error('Erro ao cancelar reserva:', err);

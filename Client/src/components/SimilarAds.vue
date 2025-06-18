@@ -3,19 +3,13 @@
         <div class="card-body">
             <h2 class="h5 mb-3 fw-bold text-primary">Outros Anúncios Similares</h2>
             <div class="similar-ads-grid">
-                <router-link
-                    v-for="item in similarAnuncios"
-                    :key="item.IdAnuncio"
+                <router-link v-for="item in similarAnuncios" :key="item.IdAnuncio"
                     :to="{ name: 'anuncio-detail', params: { id: item.IdAnuncio } }"
-                    class="text-decoration-none similar-item"
-                >
+                    class="text-decoration-none similar-item">
                     <div class="card border-0 shadow-sm hover-lift">
                         <div class="position-relative similar-image-container">
-                            <img
-                                :src="item.ImagemAnuncio || 'https://via.placeholder.com/500'"
-                                :alt="item.Nome"
-                                class="card-img-top similar-image"
-                            >
+                            <img :src="item.ImagemAnuncio || 'https://via.placeholder.com/500'" :alt="item.Nome"
+                                class="card-img-top similar-image">
                             <span class="position-absolute top-0 end-0 m-2 badge bg-primary price-badge">
                                 {{ formatPrice(item.Preco) }}
                             </span>
@@ -64,6 +58,7 @@ export default {
     },
     methods: {
         formatPrice(price) {
+            if (Number(price) === 0) return 'Grátis';
             return Number(price).toLocaleString('pt-BR', {
                 style: 'currency',
                 currency: 'EUR'
@@ -145,7 +140,7 @@ export default {
     font-size: 1rem;
     padding: 0.45em 0.9em;
     border-radius: 0.7rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     position: absolute;
     top: 10px;
     right: 10px;
