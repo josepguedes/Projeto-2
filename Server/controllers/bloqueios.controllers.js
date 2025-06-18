@@ -461,37 +461,54 @@ const checkAdminBloqueio = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Validate if id exists and is valid
     if (!id) {
       throw new ErrorHandler(400, "ID do utilizador é obrigatório");
     }
 
-    // Validate if id is a number
     if (isNaN(id) || Number(id) <= 0) {
       throw new ErrorHandler(400, "ID do utilizador deve ser um número válido");
     }
 
-    // Check if user exists
-    const utilizador = await db.Utilizador.findByPk(id);
+    const utilizador = await Utilizador.findByPk(id);
     if (!utilizador) {
       throw new ErrorHandler(404, "Utilizador não encontrado");
     }
 
-    // Find active block
     const bloqueio = await AdminBloqueio.findOne({
       where: {
-        IdBloqueado: id,
-        [Op.or]: [
-          { DataFimBloqueio: null },
-          { DataFimBloqueio: { [Op.gt]: new Date() } },
-        ],
-      },
+        IdBloqueado: id
+      }
     });
+
+    // Verifica se existe bloqueio e se tem data de fim
+    if (bloqueio && bloqueio.DataFimBloqueio) {
+      const agora = new Date();
+      const dataFim = new Date(bloqueio.DataFimBloqueio);
+
+      // Se a data de fim já passou, remove o bloqueio
+      if (dataFim <= agora) {
+        await AdminBloqueio.destroy({
+          where: { IdAdminBloqueados: bloqueio.IdAdminBloqueados }
+        });
+
+        return res.status(200).json({
+          bloqueio: null,
+          bloqueado: false,
+          message: "Bloqueio expirado e removido automaticamente"
+        });
+      }
+    }
 
     return res.status(200).json({
       bloqueio: bloqueio,
       bloqueado: !!bloqueio,
+      message: bloqueio ? 
+        (bloqueio.DataFimBloqueio ? 
+          `Utilizador bloqueado até ${new Date(bloqueio.DataFimBloqueio).toLocaleDateString('pt-PT')}` : 
+          "Utilizador bloqueado permanentemente") : 
+        "Utilizador não está bloqueado"
     });
+
   } catch (err) {
     console.error("Erro em checkAdminBloqueio:", err);
 
@@ -500,18 +517,14 @@ const checkAdminBloqueio = async (req, res, next) => {
     }
 
     if (err.name === "SequelizeConnectionError") {
-      return next(
-        new ErrorHandler(503, "Erro de conexão com o banco de dados")
-      );
+      return next(new ErrorHandler(503, "Erro de conexão com o banco de dados"));
     }
 
     if (err.name === "SequelizeDatabaseError") {
       return next(new ErrorHandler(500, "Erro de banco de dados"));
     }
 
-    next(
-      new ErrorHandler(500, "Erro interno do servidor ao verificar bloqueio")
-    );
+    next(new ErrorHandler(500, "Erro interno do servidor ao verificar bloqueio"));
   }
 };
 
