@@ -80,19 +80,23 @@ export default {
                 this.loading = false;
             }
         },
-        async selectConversation(conversation) {
-            this.selectedUser = conversation.otherUser; // Atualizar selectedUser
+        selectConversation(conversation) {
+            this.selectedUser = conversation.otherUser;
             this.activeConversation = conversation;
-            await this.fetchMessages();
-            await this.checkBlockStatus();
+            this.messages = []; // Clear messages before loading new ones
+            this.error = null;
+            this.fetchMessages();
+            this.checkBlockStatus();
+            this.startPolling(); // Start polling when conversation is selected
         },
-        async closeActiveConversation() {
+
+        closeActiveConversation() {
+            this.stopPolling(); // Stop polling when conversation is closed
             this.activeConversation = null;
             this.selectedUser = null;
             this.messages = [];
             this.error = null;
-            this.stopPolling();
-            await this.fetchConversations(); // Recarrega a lista de conversas
+            this.fetchConversations();
         },
         startPolling() {
             if (this.pollingInterval) {
@@ -100,12 +104,14 @@ export default {
             }
             this.pollingInterval = setInterval(async () => {
                 if (this.activeConversation && !this.isUserScrolling) {
-                    await this.checkBlockStatus();
-                    if (!this.isUserBlocked) {
+                    try {
                         await this.fetchMessages();
+                        await this.fetchConversations(); // Add this to refresh conversation list
+                    } catch (error) {
+                        console.error('Erro no polling:', error);
                     }
                 }
-            }, this.pollTime);
+            }, 3000); // Poll every 3 seconds
         },
         stopPolling() {
             if (this.pollingInterval) {

@@ -163,60 +163,45 @@ export const anunciosService = {
 
   async updateAnuncio(id, anuncioData) {
     try {
-      const token = sessionStorage.getItem("token");
-      if (!token) {
-        throw new Error("Token não encontrado");
-      }
+        const token = sessionStorage.getItem("token");
+        if (!token) {
+            throw new Error("Token não encontrado");
+        }
 
-      const formData = new FormData();
+        // Format dates properly
+        const formattedData = {
+            ...anuncioData,
+            DataRecolha: anuncioData.DataRecolha ? anuncioData.DataRecolha.substring(0, 10) : null,
+            DataValidade: anuncioData.DataValidade ? anuncioData.DataValidade.substring(0, 10) : null,
+            DataReserva: anuncioData.DataReserva ? anuncioData.DataReserva.substring(0, 10) : null,
+            // Ensure numeric fields are numbers
+            Preco: Number(anuncioData.Preco),
+            Quantidade: Number(anuncioData.Quantidade),
+            IdProdutoCategoria: Number(anuncioData.IdProdutoCategoria),
+            IdEstadoAnuncio: Number(anuncioData.IdEstadoAnuncio),
+            IdUtilizadorAnuncio: Number(anuncioData.IdUtilizadorAnuncio)
+        };
 
-      // Campos obrigatórios
-      formData.append("Nome", anuncioData.Nome);
-      formData.append("Descricao", anuncioData.Descricao);
-      formData.append("LocalRecolha", anuncioData.LocalRecolha);
-      formData.append("HorarioRecolha", anuncioData.HorarioRecolha);
-      formData.append("Preco", Number(anuncioData.Preco));
-      formData.append("Quantidade", Number(anuncioData.Quantidade));
-      formData.append(
-        "IdProdutoCategoria",
-        Number(anuncioData.IdProdutoCategoria)
-      );
-      formData.append("IdEstadoAnuncio", Number(anuncioData.IdEstadoAnuncio));
+        const response = await fetch(`${API_URL}/anuncios/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(formattedData)
+        });
 
-      // Tratamento especial para campos que podem ser nulos
-      formData.append(
-        "IdUtilizadorReserva",
-        anuncioData.IdUtilizadorReserva === null
-          ? ""
-          : Number(anuncioData.IdUtilizadorReserva)
-      );
-      formData.append("DataReserva", anuncioData.DataReserva || "");
-      formData.append("DataValidade", anuncioData.DataValidade || "");
-      formData.append("DataRecolha", anuncioData.DataRecolha || "");
-      formData.append("CodigoVerificacao", anuncioData.CodigoVerificacao || "");
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Erro ao atualizar anúncio");
+        }
 
-      if (anuncioData.ImagemAnuncio) {
-        formData.append("ImagemAnuncio", anuncioData.ImagemAnuncio);
-      }
-
-      const response = await fetch(`${API_URL}/anuncios/${id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Erro ao atualizar anúncio");
-      }
-
-      return response.json();
+        return response.json();
     } catch (error) {
-      throw new Error(`Erro ao atualizar anúncio: ${error.message}`);
+        console.error("Erro em updateAnuncio:", error);
+        throw new Error(`Erro ao atualizar anúncio: ${error.message}`);
     }
-  },
+},
 
   getUserAnuncios: async (userId, page = 1, limit = 6) => {
     const queryParams = new URLSearchParams({

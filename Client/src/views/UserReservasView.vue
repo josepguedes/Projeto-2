@@ -87,49 +87,42 @@ export default {
                 this.loading = false;
             }
         },
+        // In Client/src/views/UserReservasView.vue
         async handleCancelarReserva(reserva) {
             try {
-                // Format dates properly
-                const formatDate = (date) => {
-                    if (!date) return '';
-                    const d = new Date(date);
-                    return d instanceof Date && !isNaN(d)
-                        ? d.toISOString().split('T')[0]
-                        : '';
-                };
+                if (!confirm('Tem certeza que deseja cancelar esta reserva?')) {
+                    return;
+                }
 
-                // Prepare update data with all required fields
+                // Get current anuncio data
+                const response = await anunciosService.getAnuncioById(reserva.IdAnuncio);
+                const anuncioAtual = response.data;
+
                 const updateData = {
-                    Nome: reserva.Nome,
-                    Descricao: reserva.Descricao,
-                    LocalRecolha: reserva.LocalRecolha,
-                    HorarioRecolha: reserva.HorarioRecolha,
-                    Preco: Number(reserva.Preco),
-                    DataRecolha: formatDate(reserva.DataRecolha),
-                    DataValidade: formatDate(reserva.DataValidade),
-                    Quantidade: Number(reserva.Quantidade),
-                    IdProdutoCategoria: Number(reserva.IdProdutoCategoria),
-                    IdUtilizadorAnuncio: Number(reserva.IdUtilizadorAnuncio),
-                    IdEstadoAnuncio: 1, // Set back to available
+                    Nome: anuncioAtual.Nome,
+                    Descricao: anuncioAtual.Descricao,
+                    LocalRecolha: anuncioAtual.LocalRecolha,
+                    HorarioRecolha: anuncioAtual.HorarioRecolha,
+                    Preco: anuncioAtual.Preco,
+                    Quantidade: anuncioAtual.Quantidade,
+                    IdProdutoCategoria: anuncioAtual.IdProdutoCategoria,
+                    DataRecolha: anuncioAtual.DataRecolha,
+                    DataValidade: anuncioAtual.DataValidade,
+                    IdUtilizadorAnuncio: anuncioAtual.IdUtilizadorAnuncio,
+                    // Reset reservation fields
+                    IdEstadoAnuncio: 1,
                     IdUtilizadorReserva: null,
                     DataReserva: null,
                     CodigoVerificacao: null
                 };
 
-                // Filter out any undefined or null fields
-                Object.keys(updateData).forEach(key => {
-                    if (updateData[key] === undefined) {
-                        delete updateData[key];
-                    }
-                });
-
                 await anunciosService.updateAnuncio(reserva.IdAnuncio, updateData);
+                await this.fetchReservas(this.userDetails.IdUtilizador);
+                alert('Reserva cancelada com sucesso!');
 
-                // Update UI after successful cancellation
-                this.reservas = this.reservas.filter(r => r.IdAnuncio !== reserva.IdAnuncio);
             } catch (err) {
                 console.error('Erro ao cancelar reserva:', err);
-                alert('Erro ao cancelar reserva: ' + (err.message || 'Erro desconhecido'));
+                alert('Erro ao cancelar reserva. Por favor, tente novamente.');
             }
         },
     },
