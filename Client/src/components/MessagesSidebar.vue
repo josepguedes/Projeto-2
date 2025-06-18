@@ -98,20 +98,60 @@ export default {
             this.error = null;
             this.fetchConversations();
         },
-        startPolling() {
+        async startPolling() {
             if (this.pollingInterval) {
                 clearInterval(this.pollingInterval);
             }
+
             this.pollingInterval = setInterval(async () => {
                 if (this.activeConversation && !this.isUserScrolling) {
                     try {
-                        await this.fetchMessages();
-                        await this.fetchConversations(); // Add this to refresh conversation list
+                        const container = this.$refs.messagesContainer;
+                        const currentScroll = container ? container.scrollTop : 0;
+                        const scrollHeight = container ? container.scrollHeight : 0;
+                        const isAtBottom = container ?
+                            (container.scrollHeight - container.scrollTop - container.clientHeight < 100) :
+                            false;
+
+                        // Fetch new messages without changing loading state
+                        const token = sessionStorage.getItem('token');
+                        const response = await fetch(
+                            `http://localhost:3000/mensagens?idRemetente=${this.currentUserId}&idDestinatario=${this.activeConversation.otherUser.id}&page=${this.currentPage}`,
+                            {
+                                headers: {
+                                    'Authorization': `Bearer ${token}`
+                                }
+                            }
+                        );
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const newMessages = data.data;
+
+                            // Only update if there are actual changes
+                            if (JSON.stringify(newMessages) !== JSON.stringify(this.messages)) {
+                                this.messages = newMessages;
+
+                                // Maintain scroll position after update
+                                this.$nextTick(() => {
+                                    if (container) {
+                                        if (isAtBottom) {
+                                            container.scrollTop = container.scrollHeight;
+                                        } else {
+                                            // Calculate and maintain relative scroll position
+                                            const newScrollHeight = container.scrollHeight;
+                                            const scrollDiff = newScrollHeight - scrollHeight;
+                                            container.scrollTop = currentScroll + scrollDiff;
+                                        }
+                                    }
+                                });
+                            }
+                        }
                     } catch (error) {
                         console.error('Erro no polling:', error);
                     }
                 }
-            }, 3000); // Poll every 3 seconds
+            }, 3000);
         },
         stopPolling() {
             if (this.pollingInterval) {
@@ -179,6 +219,11 @@ export default {
                     return;
                 }
 
+                const container = this.$refs.messagesContainer;
+                const isAtBottom = container ?
+                    (container.scrollHeight - container.scrollTop - container.clientHeight < 100) :
+                    false;
+
                 const token = sessionStorage.getItem('token');
                 if (!token) {
                     this.error = 'Autenticação necessária';
@@ -189,7 +234,7 @@ export default {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` // Add this line
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
                         IdRemetente: this.currentUserId,
@@ -200,12 +245,10 @@ export default {
 
                 if (!response.ok) {
                     const errorData = await response.json();
-
                     if (response.status === 403) {
                         this.error = 'Não é possível enviar mensagens para utilizadores bloqueados';
                         return;
                     }
-
                     throw new Error(errorData.message || 'Erro ao enviar mensagem');
                 }
 
@@ -213,6 +256,15 @@ export default {
                 this.error = null;
                 await this.fetchMessages();
                 await this.fetchConversations();
+
+                // Scroll to bottom only if was at bottom before sending
+                if (isAtBottom) {
+                    this.$nextTick(() => {
+                        if (container) {
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    });
+                }
             } catch (error) {
                 console.error('Erro ao enviar mensagem:', error);
                 this.error = error.message;
@@ -224,18 +276,55 @@ export default {
         },
         async deleteMessage(messageId) {
             try {
-                const response = await fetch(`http://localhost:3000/mensagens/${messageId}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok) {
-                    throw new Error('Erro ao apagar mensagem');
+                const token = sessionStorage.getItem('token');
+                if (!token) {
+                    throw new Error('Autenticação necessária');
                 }
 
-                await this.fetchMessages();
+                // Save scroll position before deletion
+                const container = this.$refs.messagesContainer;
+                const currentScroll = container ? container.scrollTop : 0;
+                const scrollHeight = container ? container.scrollHeight : 0;
+                const isAtBottom = container ?
+                    (container.scrollHeight - container.scrollTop - container.clientHeight < 100) :
+                    false;
+
+                const response = await fetch(`http://localhost:3000/mensagens/${messageId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Erro ao apagar mensagem');
+                }
+
+                // Remove message from local state
+                this.messages = this.messages.filter(m => m.IdMensagem !== messageId);
+
+                // Update conversations list
                 await this.fetchConversations();
+
+                // Restore scroll position after deletion
+                this.$nextTick(() => {
+                    if (container) {
+                        if (isAtBottom) {
+                            container.scrollTop = container.scrollHeight;
+                        } else {
+                            // Calculate and maintain relative scroll position
+                            const newScrollHeight = container.scrollHeight;
+                            const scrollDiff = newScrollHeight - scrollHeight;
+                            container.scrollTop = currentScroll + scrollDiff;
+                        }
+                    }
+                });
             } catch (err) {
                 console.error('Erro ao apagar mensagem:', err);
+                alert(err.message || 'Erro ao apagar mensagem');
             }
         },
         scrollToBottom() {
