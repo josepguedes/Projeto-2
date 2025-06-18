@@ -30,7 +30,7 @@ const getAllAvaliacoes = async (req, res, next) => {
         // Links HATEOAS para cada avaliação
         avaliacoes.rows.forEach(avaliacao => {
             avaliacao.links = [
-                { rel: "self", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "GET" }, // Corrigido de IdDenuncia
+                { rel: "self", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "GET" },
                 { rel: "delete", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "DELETE" },
                 { rel: "modify", href: `/avaliacoes/${avaliacao.IdAvaliacao}`, method: "PUT" }
             ];
@@ -53,7 +53,7 @@ const getAllAvaliacoes = async (req, res, next) => {
     }
 };
 
-// ...existing code...
+
 const createAvaliacao = async (req, res, next) => {
     try {
         const { IdAnuncio, IdAutor, IdAvaliado, Comentario, Classificacao } = req.body;
@@ -100,7 +100,6 @@ const createAvaliacao = async (req, res, next) => {
         next(err);
     }
 };
-// ...existing code...
 
 // Editar uma avaliação
 const updateAvaliacao = async (req, res, next) => {

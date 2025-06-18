@@ -31,7 +31,7 @@
                                 <UserReservaCard :reserva="reserva" @payment-success="fetchReservas"
                                     @cancelar="handleCancelarReserva" />
                             </div>
-                        </div>«
+                        </div>
                     </div>
                 </div>
             </div>

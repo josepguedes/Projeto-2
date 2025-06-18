@@ -285,7 +285,7 @@ const deleteAdminBloqueio = async (req, res, next) => {
       throw new ErrorHandler(404, "Bloqueio não encontrado");
     }
 
-    // Usar destroy() em vez de update pois não temos campo Ativo
+    // Verificar se o bloqueio está ativo
     await bloqueio.destroy();
 
     return res.status(200).json({
@@ -342,7 +342,7 @@ const getAdminBloqueioById = async (req, res, next) => {
           model: db.Utilizador,
           as: "utilizadorBloqueado",
           attributes: ["Nome", "ImagemPerfil", "Email"],
-          required: false, // Tornando o join opcional para debugging
+          required: false,
         },
       ],
     });

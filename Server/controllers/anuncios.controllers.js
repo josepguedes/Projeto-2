@@ -160,7 +160,7 @@ const createAnuncio = async (req, res, next) => {
       "ImagemAnuncio",
     ];
 
-    // Check for missing or empty required fields
+    // Verificar campos obrigatórios
     const missingFields = requiredFields.filter(
       (field) =>
         req.body[field] === undefined ||
@@ -174,7 +174,7 @@ const createAnuncio = async (req, res, next) => {
       );
     }
 
-    // Validate numeric fields
+    // Validar campos numéricos
     if (
       isNaN(Number(req.body.IdUtilizadorAnuncio)) ||
       isNaN(Number(req.body.Preco)) ||
@@ -187,7 +187,7 @@ const createAnuncio = async (req, res, next) => {
       );
     }
 
-    // Validate date fields
+    // Validar campos de data
     const dateFields = ["DataRecolha", "DataValidade"];
     for (const field of dateFields) {
       if (
@@ -215,7 +215,7 @@ const createAnuncio = async (req, res, next) => {
       }
     }
 
-    // Prepare data for creation, ensuring correct types
+    // Preparar os dados do anúncio
     const anuncioData = {
       IdUtilizadorAnuncio: Number(req.body.IdUtilizadorAnuncio),
       Nome: req.body.Nome,
@@ -270,17 +270,16 @@ const updateAnuncio = async (req, res, next) => {
 
     if (req.file) {
       try {
-        // Remove old image from Cloudinary if exists
+        // Remoover imagem antiga do Cloudinary, se existir
         if (anuncio.CloudinaryId) {
           try {
             await cloudinary.uploader.destroy(anuncio.CloudinaryId);
           } catch (cloudErr) {
             console.error("Erro ao remover imagem antiga do Cloudinary:", cloudErr);
-            // Não bloqueia a atualização, apenas loga o erro
           }
         }
 
-        // Upload new image
+        // Upload imagem
         const result = await uploadToCloudinary(req.file);
         anuncio.ImagemAnuncio = result.secure_url;
         anuncio.CloudinaryId = result.public_id;
@@ -312,7 +311,7 @@ const updateAnuncio = async (req, res, next) => {
       }
     });
 
-    // Validate numeric fields if present
+    // Validar campos numéricos
     if (updateData.Preco !== undefined && isNaN(Number(updateData.Preco))) {
       return res.status(400).json({ message: "Preço deve ser um número válido" });
     }
@@ -329,7 +328,7 @@ const updateAnuncio = async (req, res, next) => {
       return res.status(400).json({ message: "IdUtilizadorReserva deve ser um número válido ou nulo" });
     }
 
-    // Validate date fields if present
+    // Validar data
     const dateFields = ["DataValidade", "DataReserva"];
     for (const field of dateFields) {
       if (updateData[field] !== undefined && updateData[field] !== null && updateData[field] !== "") {
@@ -339,7 +338,6 @@ const updateAnuncio = async (req, res, next) => {
       }
     }
 
-    // Convert empty string or "null" to null
     Object.keys(updateData).forEach((key) => {
       if (updateData[key] === "null" || updateData[key] === "") updateData[key] = null;
     });
@@ -376,7 +374,7 @@ const updateAnuncio = async (req, res, next) => {
   }
 };
 
-// Deletar anúncio
+// Eliminar anúncio
 const deleteAnuncio = async (req, res, next) => {
   try {
 
@@ -519,7 +517,7 @@ const getAnunciosByUser = async (req, res, next) => {
       return res.status(404).json({ message: "Nenhum anúncio encontrado para este utilizador" });
     }
 
-    // Resposta
+    
     res.status(200).json({
       totalPages: Math.ceil(count / (+limit || 10)),
       currentPage: +page || 1,
@@ -533,14 +531,7 @@ const getAnunciosByUser = async (req, res, next) => {
   } catch (err) {
     // Erro inesperado
     if (err instanceof ErrorHandler) {
-      next(err);
-    } else if (err.name === "SyntaxError") {
-      console.error("Erro de sintaxe:", err);
-      next(new ErrorHandler(400, "Erro de sintaxe na requisição"));
-    } else if (err.name === "TypeError") {
-      console.error("Erro de tipo:", err);
-      next(new ErrorHandler(400, "Erro de tipo na requisição"));
-    } else {
+
       console.error("Erro inesperado em getAnunciosByUser:", err);
       next(new ErrorHandler(500, "Erro inesperado ao buscar anúncios do utilizador"));
     }
@@ -591,7 +582,7 @@ const getAnunciosByCategory = async (req, res, next) => {
   }
 };
 
-// Server/controllers/anuncios.controllers.js
+// Obter reservas por utilizador
 const getReservasByUser = async (req, res, next) => {
   try {
     const { userId } = req.params;

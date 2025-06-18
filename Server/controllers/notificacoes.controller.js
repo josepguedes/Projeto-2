@@ -12,7 +12,6 @@ const getAllNotificacoes = async (req, res, next) => {
             limit = 10
         } = req.query;
 
-        // Validar página e limite
         if (isNaN(page) || page < 1) {
             throw new ErrorHandler(400, 'Página inválida');
         }
@@ -46,7 +45,6 @@ const getAllNotificacoes = async (req, res, next) => {
             throw new ErrorHandler(403, 'Acesso negado. Apenas administradores podem listar utilizadores.');
         }
 
-        // Adicionar links HATEOAS para cada notificação
         notificacoes.rows.forEach(notificacao => {
             notificacao.links = [
                 { rel: "self", href: `/notificacoes/${notificacao.IdNotificacao}`, method: "GET" },
@@ -76,7 +74,6 @@ const createNotificacao = async (req, res, next) => {
     try {
         const { IdRecipiente, Mensagem } = req.body;
 
-        // Validar campos obrigatórios
         if (!IdRecipiente || !Mensagem) {
             throw new ErrorHandler(400, "IdRecipiente e Mensagem são obrigatórios");
         }
@@ -147,13 +144,13 @@ const updateNotificacao = async (req, res, next) => {
 
 // Exibir notificações do usuário autenticado
 const getNotificacoesByUserId = async (req, res, next) => {
-    console.log("Backend: getNotificacoesByUserId - Recebido pedido."); // Log 1
+    console.log("Backend: getNotificacoesByUserId - Recebido pedido.");
     try {
         const userId = req.query.idUtilizador;
-        console.log("Backend: getNotificacoesByUserId - idUtilizador recebido:", userId); // Log 2
+        console.log("Backend: getNotificacoesByUserId - idUtilizador recebido:", userId);
 
         if (!userId) {
-            console.log("Backend: getNotificacoesByUserId - idUtilizador em falta."); // Log 3
+            console.log("Backend: getNotificacoesByUserId - idUtilizador em falta.");
             return res.status(400).json({ message: 'idUtilizador é obrigatório como query parameter' });
         }
 
@@ -165,12 +162,12 @@ const getNotificacoesByUserId = async (req, res, next) => {
             }],
             order: [['DataRececao', 'DESC']],
         });
-        console.log("Backend: getNotificacoesByUserId - Notificações encontradas na BD:", JSON.stringify(userNotifications, null, 2)); // Log 4
+        console.log("Backend: getNotificacoesByUserId - Notificações encontradas na BD:", JSON.stringify(userNotifications, null, 2));
 
         const formattedNotificacoes = userNotifications.map(nu => {
             if (!nu.notificacao) {
                 console.error(`Backend: NotificacaoUtilizador ID ${nu.IdNotificacaoUtilizador} não tem 'notificacao' associada ou 'notificacao' é null.`);
-                return null; // Será filtrado mais tarde
+                return null;
             }
             return {
                 IdAssociacao: nu.IdNotificacaoUtilizador,

@@ -25,7 +25,6 @@
                     <thead class="table-light">
                         <tr>
                             <th>ID</th>
-                            <th>ID Recipiente</th>
                             <th>Mensagem</th>
                             <th>Data Notificação</th>
                             <th>Hora Notificação</th>
@@ -41,7 +40,6 @@
                         </tr>
                         <tr v-for="notificacao in notificacoes" :key="notificacao.IdNotificacao">
                             <td>{{ notificacao.IdNotificacao }}</td>
-                            <td>{{ notificacao.IdRecipiente }}</td>
                             <td>{{ notificacao.Mensagem }}</td>
                             <td>{{ formatDate(notificacao.DataNotificacao) }}</td>
                             <td>{{ formatTime(notificacao.HoraNotificacao) }}</td>

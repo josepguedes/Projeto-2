@@ -9,7 +9,6 @@ const getAllDenuncias = async (req, res, next) => {
     const { idDenuncia, page = 1, limit = 10 } = req.query;
     const where = {};
 
-    // Validate idDenuncia format if provided
     if (idDenuncia) {
       if (!Number.isInteger(Number(idDenuncia)) || Number(idDenuncia) <= 0) {
         throw new ErrorHandler(
@@ -20,7 +19,6 @@ const getAllDenuncias = async (req, res, next) => {
       where.IdDenuncia = { [Op.like]: `%${idDenuncia}%` };
     }
 
-    // Validate page number
     if (isNaN(page) || page < 1) {
       throw new ErrorHandler(
         400,
@@ -28,7 +26,6 @@ const getAllDenuncias = async (req, res, next) => {
       );
     }
 
-    // Validate limit number
     if (isNaN(limit) || limit < 1 || limit > 100) {
       throw new ErrorHandler(
         400,
@@ -36,7 +33,6 @@ const getAllDenuncias = async (req, res, next) => {
       );
     }
 
-    // Try to fetch denuncias
     const denuncias = await Denuncia.findAndCountAll({
       where,
       order: [["DataDenuncia", "DESC"]],
@@ -46,7 +42,6 @@ const getAllDenuncias = async (req, res, next) => {
       throw new ErrorHandler(500, "Erro ao buscar denúncias no banco de dados");
     });
 
-    // Check if there are any denuncias
     if (denuncias.count === 0) {
       return res.status(204).json({
         message: "Nenhuma denúncia encontrada",
@@ -57,7 +52,6 @@ const getAllDenuncias = async (req, res, next) => {
       });
     }
 
-    // Validate if requested page exists
     const totalPages = Math.ceil(denuncias.count / limit);
     if (page > totalPages) {
       throw new ErrorHandler(
@@ -66,7 +60,6 @@ const getAllDenuncias = async (req, res, next) => {
       );
     }
 
-    // Add HATEOAS links
     try {
       denuncias.rows.forEach((denuncia) => {
         denuncia.links = [
@@ -89,7 +82,6 @@ const getAllDenuncias = async (req, res, next) => {
       });
     } catch (error) {
       console.error("Erro ao adicionar links HATEOAS:", error);
-      // Continue without links if there's an error
     }
 
     return res.status(200).json({
@@ -129,12 +121,10 @@ const createDenuncia = async (req, res, next) => {
   try {
     const { IdUtilizadorDenunciado, Motivo } = req.body;
 
-    // Validate required fields
     if (!IdUtilizadorDenunciado) {
       throw new ErrorHandler(400, "ID do utilizador denunciado é obrigatório");
     }
 
-    // Validate user ID format
     if (
       !Number.isInteger(Number(IdUtilizadorDenunciado)) ||
       IdUtilizadorDenunciado <= 0
@@ -142,7 +132,6 @@ const createDenuncia = async (req, res, next) => {
       throw new ErrorHandler(400, "ID do denunciado inválido");
     }
 
-    // Validate motivo
     if (!Motivo || typeof Motivo !== "string" || Motivo.trim().length === 0) {
       throw new ErrorHandler(400, "Motivo da denúncia é obrigatório");
     }
@@ -154,7 +143,6 @@ const createDenuncia = async (req, res, next) => {
       );
     }
 
-    // Create denuncia
     const newDenuncia = await Denuncia.create({
       IdUtilizadorDenunciado,
       Motivo,
@@ -175,18 +163,15 @@ const deleteDenuncia = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // 2. Validate ID format
     if (!id || isNaN(id) || Number(id) <= 0) {
       throw new ErrorHandler(400, "ID da denúncia inválido");
     }
 
-    // 3. Find the denuncia
     const denuncia = await Denuncia.findByPk(id);
     if (!denuncia) {
       throw new ErrorHandler(404, "Denúncia não encontrada");
     }
 
-    // 4. Authorization check - only admin can delete denuncias
     if (req.user.Funcao !== "admin") {
       throw new ErrorHandler(
         403,
@@ -194,7 +179,6 @@ const deleteDenuncia = async (req, res, next) => {
       );
     }
 
-    // 5. Delete the denuncia
     await denuncia.destroy().catch((error) => {
       throw new ErrorHandler(500, "Erro ao eliminar a denúncia");
     });
@@ -202,13 +186,6 @@ const deleteDenuncia = async (req, res, next) => {
       message: "Denúncia eliminada com sucesso",
     });
   } catch (err) {
-    // 7. Error handling
-    console.error("Error in deleteDenuncia:", err);
-
-    // Handle specific database errors
-    if (err.name === "SequelizeDatabaseError") {
-      return next(new ErrorHandler(500, "Erro na base de dados"));
-    }
 
     if (err.name === "SequelizeConnectionError") {
       return next(new ErrorHandler(503, "Erro de conexão com a base de dados"));

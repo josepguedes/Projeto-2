@@ -1,6 +1,6 @@
 const db = require("../models/db.js");
 const Mensagem = db.Mensagem;
-const UtilizadorBloqueio = db.UtilizadorBloqueio; // Adicionar esta linha
+const UtilizadorBloqueio = db.UtilizadorBloqueio;
 const { Op } = require("sequelize");
 const { ErrorHandler } = require("../utils/error.js");
 
@@ -17,7 +17,7 @@ const getMensagensChat = async (req, res, next) => {
       );
     }
 
-    // Check if user is trying to access their own conversations
+    // Verificar se o utilizador autenticado está tentando acessar suas próprias conversas
     if (authenticatedUserId != idRemetente) {
       return res.status(403).json({
         message:
@@ -142,33 +142,27 @@ const getMensagensChat = async (req, res, next) => {
       data: mensagens.rows,
     });
   } catch (err) {
-    // Log do erro no servidor
     console.error("Erro em getMensagensChat:", err);
 
-    // Se já for um ErrorHandler, passa adiante
     if (err instanceof ErrorHandler) {
       return next(err);
     }
 
-    // Erro genérico para outros casos
     next(new ErrorHandler(500, "Erro interno do servidor ao buscar mensagens"));
   }
 };
 
-// Send a new message
+// Enviar uma nova mensagem
 const createMensagem = async (req, res, next) => {
   try {
     const { IdRemetente, IdDestinatario, Conteudo } = req.body;
 
-    // Verify authenticated user
     const authenticatedUserId = req.user.IdUtilizador;
 
-    // Check if any required field is missing
     if (!IdRemetente || !IdDestinatario || !Conteudo) {
       throw new ErrorHandler(400, "Todos os campos são obrigatórios");
     }
 
-    // Check if user is trying to send message as someone else
     if (authenticatedUserId != IdRemetente) {
       return res.status(403).json({
         message:
@@ -188,7 +182,7 @@ const createMensagem = async (req, res, next) => {
       throw new ErrorHandler(400, "Conteúdo da mensagem é obrigatório");
     }
 
-    // Validate if IDs are valid numbers
+
     if (isNaN(IdRemetente)) {
       throw new ErrorHandler(400, "ID do remetente deve ser um número válido");
     }
