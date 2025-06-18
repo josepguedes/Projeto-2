@@ -51,9 +51,6 @@
                                 </span>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary me-2" @click="handleEdit(anuncio)">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
                                 <button class="btn btn-sm btn-outline-danger" @click="handleDelete(anuncio)">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -149,10 +146,6 @@ export default {
                 case 5: return 'badge bg-info text-dark';
                 default: return 'badge bg-light text-dark';
             }
-        },
-        handleEdit(anuncio) {
-            // Implementar lógica de edição (abrir modal, etc)
-            alert(`Editar anúncio #${anuncio.IdAnuncio}`);
         },
         async handleDelete(anuncio) {
             if (confirm(`Tem a certeza que deseja eliminar o anúncio "${anuncio.Nome}"?`)) {
