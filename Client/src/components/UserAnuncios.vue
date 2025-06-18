@@ -37,25 +37,21 @@
                         </div>
                     </div>
                     <div class="card-footer bg-white border-0">
-                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
-                            <button
-                                class="btn btn-outline-primary flex-fill d-flex align-items-center justify-content-center"
-                                @click="$emit('view-details', anuncio)">
-                                <i class="bi bi-eye me-1"></i>
-                                <span class="d-none d-md-inline">Ver Detalhes</span>
-                            </button>
-                            <button
-                                class="btn btn-outline-primary flex-fill d-flex align-items-center justify-content-center"
-                                @click="$emit('confirm-code', anuncio.IdAnuncio)">
-                                <span class="d-none d-md-inline">Confirmar Código</span>
-                            </button>
-                            <button
+                        <div class="actions mt-3 d-flex gap-2">
+                            <button v-if="anuncio.IdEstadoAnuncio === 1"
                                 class="btn btn-outline-secondary flex-fill d-flex align-items-center justify-content-center"
                                 @click="$emit('edit', anuncio)">
                                 <i class="bi bi-pencil me-1"></i>
                                 <span class="d-none d-md-inline">Editar</span>
                             </button>
-                            <button
+
+                            <button v-if="anuncio.IdEstadoAnuncio === 2"
+                                class="btn btn-outline-primary flex-fill d-flex align-items-center justify-content-center"
+                                @click="$emit('confirm-code', anuncio.IdAnuncio)">
+                                <span class="d-none d-md-inline">Confirmar Código</span>
+                            </button>
+
+                            <button v-if="anuncio.IdEstadoAnuncio === 1 || anuncio.IdEstadoAnuncio === 3"
                                 class="btn btn-outline-danger flex-fill d-flex align-items-center justify-content-center"
                                 @click="$emit('delete', anuncio.IdAnuncio)">
                                 <i class="bi bi-trash"></i>
@@ -72,7 +68,10 @@
 <script>
 export default {
     props: {
-        anuncios: Array,
+        anuncios: {
+            type: Array,
+            required: true
+        },
         loading: Boolean,
         error: String
     },
