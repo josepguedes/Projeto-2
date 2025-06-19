@@ -52,7 +52,7 @@ export default {
 
                 const response = await fetch(`http://localhost:3000/mensagens/conversations/${this.currentUserId}`, {
                     headers: {
-                        'Authorization': `Bearer ${token}` // Adicionar header de autorização
+                        'Authorization': `Bearer ${token}`
                     }
                 });
 
@@ -433,43 +433,60 @@ export default {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const currentUserId = payload.IdUtilizador;
 
-                // Primeiro, buscar o ID do bloqueio
-                const response = await fetch(`http://localhost:3000/bloqueios/utilizador?idBloqueador=${currentUserId}&idBloqueado=${this.selectedUser.id}`);
-                if (!response.ok) throw new Error('Erro ao verificar bloqueio');
-
-                const data = await response.json();
-
-                if (this.isUserBlocked) {
-                    // Desbloquear
-                    const bloqueio = data.data.find(b => b.IdBloqueado === this.selectedUser.id);
-                    if (!bloqueio) throw new Error('Bloqueio não encontrado');
-
-                    const deleteResponse = await fetch(`http://localhost:3000/bloqueios/utilizador/${bloqueio.IdUtilizadoresBloqueados}`, {
-                        method: 'DELETE'
+                
+                if (this.isBlockedByMe) {
+                    const checkResponse = await fetch(`http://localhost:3000/bloqueios/utilizador/check?idBloqueador=${currentUserId}&idBloqueado=${this.selectedUser.id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
                     });
-                    if (!deleteResponse.ok) throw new Error('Erro ao desbloquear utilizador');
 
-                    // Após desbloquear, atualizar status e buscar mensagens
-                    this.isUserBlocked = false;
-                    this.error = null;
-                    await this.fetchMessages();
+                    if (!checkResponse.ok) {
+                        throw new Error('Erro ao verificar o estado do bloqueio antes de desbloquear.');
+                    }
+                    
+                    const blockData = await checkResponse.json();
+                    if (!blockData.bloqueado || !blockData.data?.IdUtilizadoresBloqueados) {
+                        throw new Error('Não foi possível encontrar o bloqueio para remover.');
+                    }
+
+                    // Unblock the user using the retrieved block ID
+                    const deleteResponse = await fetch(`http://localhost:3000/bloqueios/utilizador/${blockData.data.IdUtilizadoresBloqueados}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!deleteResponse.ok) {
+                        throw new Error('Erro ao desbloquear utilizador');
+                    }
                 } else {
-                    // Bloquear
+                    // Block the user
                     const createResponse = await fetch('http://localhost:3000/bloqueios/utilizador', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
                         },
                         body: JSON.stringify({
                             IdBloqueador: currentUserId,
                             IdBloqueado: this.selectedUser.id
                         })
                     });
-                    if (!createResponse.ok) throw new Error('Erro ao bloquear utilizador');
 
-                    // Após bloquear, atualizar status
-                    await this.checkBlockStatus();
+                    if (!createResponse.ok) {
+                        const errorData = await createResponse.json();
+                        throw new Error(errorData.message || 'Erro ao bloquear utilizador');
+                    }
                 }
+
+                // After the operation, refresh the block status and messages
+                await this.checkBlockStatus();
+                if (!this.isUserBlocked) {
+                    await this.fetchMessages();
+                }
+
             } catch (error) {
                 console.error('Erro ao bloquear/desbloquear:', error);
                 alert(error.message);
