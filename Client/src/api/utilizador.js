@@ -22,6 +22,36 @@ export const utilizadorService = {
 
         return response.json();
     },
+    async login(email, password) {
+        try {
+            const response = await fetch("http://localhost:3000/utilizadores/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    Email: email,
+                    Password: password
+                })
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                this.error = data.message || data.error || "Falha no login.";
+                throw new Error(this.error);
+            }
+
+            sessionStorage.setItem("token", data.token);
+
+        } catch (err) {
+            this.error = "Erro ao tentar fazer login.";
+            console.log(err);
+            throw new Error(this.error);
+        }
+    },
+    async logout() {
+        sessionStorage.removeItem('token');
+    },
 
     async getUserDetails(userId) {
         const token = sessionStorage.getItem('token');
