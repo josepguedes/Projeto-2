@@ -25,11 +25,9 @@
                     <thead class="table-light">
                         <tr>
                             <th>ID</th>
-                            <th>ID Recipiente</th>
                             <th>Mensagem</th>
                             <th>Data Notificação</th>
                             <th>Hora Notificação</th>
-                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -41,18 +39,9 @@
                         </tr>
                         <tr v-for="notificacao in notificacoes" :key="notificacao.IdNotificacao">
                             <td>{{ notificacao.IdNotificacao }}</td>
-                            <td>{{ notificacao.IdRecipiente }}</td>
                             <td>{{ notificacao.Mensagem }}</td>
                             <td>{{ formatDate(notificacao.DataNotificacao) }}</td>
                             <td>{{ formatTime(notificacao.HoraNotificacao) }}</td>
-                            <td>
-                                <div class="btn-group">
-                                    <button class="btn btn-sm btn-outline-danger"
-                                        @click="deleteNotificacao(notificacao.IdNotificacao)">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -144,19 +133,6 @@ export default {
             if (!time) return 'Hora não definida';
             return time.substring(0, 5);
         },
-        async deleteNotificacao(id) {
-            try {
-                const confirmacao = confirm('Tem certeza que deseja eliminar esta notificação?\nClique OK para confirmar ou Cancelar para desistir.');
-
-                if (confirmacao) {
-                    await notificacoesService.deleteNotificacao(id);
-                    await this.fetchNotificacoes();
-                }
-            } catch (err) {
-                this.error = 'Erro ao deletar notificação';
-                console.error('Error:', err);
-            }
-        }
     },
     created() {
         // Recupera a página da URL se existir

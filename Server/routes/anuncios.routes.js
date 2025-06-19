@@ -11,10 +11,10 @@ router.get('/categoria/:categoryId', anunciosController.getAnunciosByCategory);
 router.get('/categoria', (req, res) => {
     res.status(400).json({ message: "ID da categoria é obrigatório" });
 });
-router.get('/reservas', (req, res) => {
-    res.status(400).json({ message: "ID da reserva é obrigatório" });
-});
-router.get('/all-reservas', (req, res, next) => autenticarJWT(req, res, next, true), anunciosController.getAllReservas);
+// router.get('/reservas', (req, res) => {
+//     res.status(400).json({ message: "ID da reserva é obrigatório" });
+// });
+router.get('/reservas', (req, res, next) => autenticarJWT(req, res, next, true), anunciosController.getAllReservas);
 router.get('/', anunciosController.getAllAnuncios);
 router.get('/utilizador/:userId', anunciosController.getAnunciosByUser);
 router.get('/:id', anunciosController.getAnuncioById);

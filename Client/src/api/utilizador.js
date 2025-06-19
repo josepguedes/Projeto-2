@@ -111,5 +111,5 @@ export const utilizadorService = {
             console.error('Error:', error);
             throw error;
         }
-    }
+    },
 };

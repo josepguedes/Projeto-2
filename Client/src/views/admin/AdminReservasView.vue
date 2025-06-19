@@ -17,7 +17,6 @@
                             <th>Vendedor</th>
                             <th>Data Reserva</th>
                             <th>Estado</th>
-                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -49,11 +48,6 @@
                                 <span :class="getStatusClass(reserva.IdEstadoAnuncio)">
                                     {{ getStatusText(reserva.IdEstadoAnuncio) }}
                                 </span>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-danger" @click="handleDelete(reserva)">
-                                    <i class="bi bi-trash"></i>
-                                </button>
                             </td>
                         </tr>
                         <tr v-if="reservas.length === 0">
@@ -126,10 +120,7 @@ export default {
                 query: { ...this.$route.query, page }
             });
         },
-        formatDate(date) {
-            if (!date) return 'N/A';
-            return new Date(date).toLocaleDateString('pt-PT');
-        },
+
         getStatusClass(status) {
             const classes = {
                 1: 'badge bg-success',
@@ -139,33 +130,23 @@ export default {
                 5: 'badge bg-info text-dark',
                 6: 'badge bg-primary'
             };
-            return classes[status] || 'badge bg-secondary';
+            return classes[status] || 'badge bg-light text-dark';
         },
         getStatusText(status) {
             const texts = {
-                1: 'Disponível',
+                1: 'Ativo',
                 2: 'Reservado',
-                3: 'Expirado',
+                3: 'Finalizado',
                 4: 'Cancelado',
-                5: 'Concluído',
-                6: 'Por Pagar'
+                5: 'Pagamento Pendente',
+                6: 'Concluído'
             };
             return texts[status] || 'Desconhecido';
         },
-        async handleDelete(reserva) {
-            if (confirm(`Tem certeza que deseja cancelar a reserva do anúncio "${reserva.Nome}"?`)) {
-                try {
-                    await anunciosService.updateAnuncio(reserva.IdAnuncio, {
-                        IdEstadoAnuncio: 1,
-                        IdUtilizadorReserva: null,
-                        DataReserva: null,
-                        CodigoVerificacao: null
-                    });
-                    this.fetchReservas(this.currentPage);
-                } catch (err) {
-                    alert('Erro ao cancelar reserva.');
-                }
-            }
+
+        formatDate(date) {
+            if (!date) return 'N/A';
+            return new Date(date).toLocaleDateString('pt-PT');
         },
         async fetchLoggedUserDetails() {
             try {

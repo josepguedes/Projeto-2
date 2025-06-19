@@ -934,23 +934,14 @@ const getAllReservas = async (req, res, next) => {
     let result;
     try {
       result = await Anuncio.findAndCountAll({
-        where: { IdUtilizadorReserva: { [Op.ne]: null } },
+        where: {
+          IdUtilizadorReserva: { [Op.ne]: null },
+          IdEstadoAnuncio: { [Op.in]: [2, 3, 6] } // <-- só estes estados
+        },
         include: [
-          {
-            model: db.Utilizador,
-            as: "utilizador",
-            attributes: ["Nome", "ImagemPerfil"],
-          },
-          {
-            model: db.Utilizador,
-            as: "reservador",
-            attributes: ["Nome", "ImagemPerfil"],
-          },
-          {
-            model: db.EstadoAnuncio,
-            as: "estado",
-            attributes: ["EstadoAnuncio"],
-          },
+          { model: db.Utilizador, as: "utilizador", attributes: ["Nome", "ImagemPerfil"] },
+          { model: db.Utilizador, as: "reservador", attributes: ["Nome", "ImagemPerfil"] },
+          { model: db.EstadoAnuncio, as: "estado", attributes: ["EstadoAnuncio"] },
         ],
         order: [["DataReserva", "DESC"]],
         limit: Math.min(+limit || 10, 100),
