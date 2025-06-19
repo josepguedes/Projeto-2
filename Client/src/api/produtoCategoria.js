@@ -22,10 +22,12 @@ export const produtoCategoriaService = {
     },
 
     async createCategoria(categoria) {
-        const response = await fetch(`${API_URL}/produto-categorias`, {
+        const token = sessionStorage.getItem('token');
+        const response = await fetch(`${API_URL}/categorias`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(categoria)
         });
@@ -38,8 +40,12 @@ export const produtoCategoriaService = {
     },
 
     async deleteCategoria(id) {
-        const response = await fetch(`${API_URL}/produto-categorias/${id}`, {
-            method: 'DELETE'
+        const token = sessionStorage.getItem('token');
+        const response = await fetch(`${API_URL}/categorias/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            }
         });
 
         if (!response.ok) {
