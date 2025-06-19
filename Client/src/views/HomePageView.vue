@@ -6,9 +6,9 @@
         <h1 class="display-4 mb-4 title">Encontre Produtos Próximos</h1>
         <div class="search-bar mx-auto">
           <div class="input-group">
-            <input type="text" class="form-control" v-model="searchTerm" @keyup.enter="handleSearch"
-              placeholder="Pesquisar produtos...">
-            <button class="btn btn-primary" @click="handleSearch">
+            <input type="text" class="form-control" v-model.trim="searchTerm" @keyup.enter="handleSearch"
+              placeholder="Pesquisar produtos..." autocomplete="off" />
+            <button class="btn btn-primary" @click="handleSearch" :disabled="loading">
               <i class="bi bi-search"></i>
             </button>
           </div>
@@ -20,7 +20,7 @@
         <div class="row justify-content-center align-items-end g-3">
           <div class="col-md-3">
             <label for="filterCategoria" class="form-label mb-1">Categoria</label>
-            <select id="filterCategoria" v-model="filterCategoria" class="form-select">
+            <select id="filterCategoria" v-model="filterCategoria" class="form-select" :disabled="loading">
               <option value="" disabled>Selecione uma categoria</option>
               <option value="todas">Todas</option>
               <option v-for="cat in categorias" :key="cat.IdProdutoCategoria" :value="cat.IdProdutoCategoria">
@@ -31,14 +31,14 @@
           <div class="col-md-3">
             <label for="filterPreco" class="form-label mb-1">Preço Máximo (€)</label>
             <input id="filterPreco" type="number" min="0" v-model.number="filterPreco" class="form-control"
-              placeholder="Ex: 10">
+              placeholder="Ex: 10" :disabled="loading" />
           </div>
           <div class="col-md-3">
             <label for="filterData" class="form-label mb-1">Data de Recolha</label>
-            <input id="filterData" type="date" v-model="filterData" class="form-control">
+            <input id="filterData" type="date" v-model="filterData" class="form-control" :disabled="loading" />
           </div>
           <div class="col-md-2 d-grid">
-            <button class="btn btn-outline-primary filter" @click="aplicarFiltros">
+            <button class="btn btn-outline-primary filter" @click="aplicarFiltros" :disabled="loading">
               Filtrar
             </button>
           </div>
@@ -83,15 +83,16 @@
       <nav v-if="totalPages > 1" class="mt-4">
         <ul class="pagination justify-content-center">
           <li class="page-item" :class="{ disabled: currentPage === 1 }">
-            <button class="page-link" @click="goToPage(currentPage - 1)">
+            <button class="page-link" @click="goToPage(currentPage - 1)" :disabled="currentPage === 1 || loading">
               <i class="bi bi-chevron-left"></i>
             </button>
           </li>
           <li class="page-item" v-for="page in totalPages" :key="page" :class="{ active: page === currentPage }">
-            <button class="page-link" @click="goToPage(page)">{{ page }}</button>
+            <button class="page-link" @click="goToPage(page)" :disabled="loading">{{ page }}</button>
           </li>
           <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-            <button class="page-link" @click="goToPage(currentPage + 1)">
+            <button class="page-link" @click="goToPage(currentPage + 1)"
+              :disabled="currentPage === totalPages || loading">
               <i class="bi bi-chevron-right"></i>
             </button>
           </li>
@@ -123,24 +124,17 @@ export default {
       currentPage: 1,
       totalPages: 1,
       itemsPerPage: 12,
-      searchQuery: '',
-      selectedFilter: 'all',
-      sortOrder: 'desc'
+      _lastFetch: null
     };
   },
   methods: {
     async fetchCategorias() {
       try {
         const response = await produtoCategoriaService.getAllCategorias(1, 100);
-        if (response && response.data) {
-          this.categorias = response.data;
-        } else {
-          this.categorias = [];
-          console.warn("Categorias não carregadas ou resposta vazia.");
-        }
+        this.categorias = Array.isArray(response?.data) ? response.data : [];
       } catch (error) {
         console.error("Erro ao buscar categorias:", error);
-        this.categorias = []; // Garante que é um array em caso de erro
+        this.categorias = [];
       }
     },
     async fetchAnuncios(page = 1) {
@@ -148,22 +142,24 @@ export default {
         this.loading = true;
         this.error = null;
 
+        // Memoization para evitar requisições desnecessárias
+        if (
+          this._lastFetch &&
+          this._lastFetch.page === page &&
+          this._lastFetch.searchTerm === this.searchTerm &&
+          this._lastFetch.filterCategoria === this.filterCategoria &&
+          this._lastFetch.filterPreco === this.filterPreco &&
+          this._lastFetch.filterData === this.filterData
+        ) {
+          this.loading = false;
+          return;
+        }
+
         const filters = {};
-        if (this.searchTerm) {
-          filters.nome = this.searchTerm;
-        }
-
-        if (this.filterCategoria && this.filterCategoria !== 'todas') {
-          filters.categoria = this.filterCategoria;
-        }
-
-        if (this.filterPreco) {
-          filters.precoMax = this.filterPreco;
-        }
-
-        if (this.filterData) {
-          filters.dataRecolha = this.filterData;
-        }
+        if (this.searchTerm) filters.nome = this.searchTerm;
+        if (this.filterCategoria && this.filterCategoria !== 'todas') filters.categoria = this.filterCategoria;
+        if (this.filterPreco) filters.precoMax = this.filterPreco;
+        if (this.filterData) filters.dataRecolha = this.filterData;
 
         const response = await anunciosService.getAllAnuncios(
           page,
@@ -176,6 +172,16 @@ export default {
         this.currentPage = response.currentPage;
         this.totalPages = response.totalPages;
 
+        // Salva o último fetch para memoization
+        this._lastFetch = {
+          page,
+          searchTerm: this.searchTerm,
+          filterCategoria: this.filterCategoria,
+          filterPreco: this.filterPreco,
+          filterData: this.filterData
+        };
+
+        // Atualiza a query da URL
         if (String(this.$route.query.page) !== String(this.currentPage)) {
           this.$router.push({
             query: {
@@ -195,22 +201,6 @@ export default {
       this.currentPage = 1;
       this.fetchAnuncios(this.currentPage);
       this.updateRouteQueryComFiltros();
-    },
-    updateRouteQuery(key, value) {
-      const query = { ...this.$route.query };
-      if (value) {
-        query[key] = value;
-      } else {
-        delete query[key];
-      }
-
-      if (JSON.stringify(query) !== JSON.stringify(this.$route.query)) {
-        this.$router.push({ query }).catch(err => {
-          if (err.name !== 'NavigationDuplicated') {
-            console.error(err);
-          }
-        });
-      }
     },
     updateRouteQueryComFiltros() {
       const query = { ...this.$route.query, page: String(this.currentPage) };
@@ -234,10 +224,12 @@ export default {
     },
     goToPage(page) {
       if (page < 1 || page > this.totalPages) return;
+      if (page === this.currentPage) return;
       this.fetchAnuncios(page);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
     async handleSearch() {
+      if (this.loading) return;
       this.currentPage = 1;
       await this.fetchAnuncios(1);
     },
@@ -257,7 +249,7 @@ export default {
     },
   },
   async created() {
-    await this.fetchCategorias(); // Carrega as categorias primeiro
+    await this.fetchCategorias();
 
     // Recuperar filtros da URL
     this.searchTerm = this.$route.query.nome || "";
@@ -295,7 +287,6 @@ export default {
     }
   },
   watch: {
-    // Atualiza ao mudar a query da página
     '$route.query.page'(newPage) {
       const page = parseInt(newPage);
       if (page && !isNaN(page) && page !== this.currentPage) {
@@ -396,7 +387,6 @@ export default {
   border-color: #33A58C;
   transition: background 0.2s, color 0.2s;
 }
-
 
 @media (max-width: 768px) {
   .filter-section {
