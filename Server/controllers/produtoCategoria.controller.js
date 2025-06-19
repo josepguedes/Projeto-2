@@ -45,7 +45,10 @@ const createCategoria = async (req, res, next) => {
 
         res.status(201).json({
             message: 'Categoria criada com sucesso',
-            data: categoria
+            data: {
+                IdProdutoCategoria: categoria.IdProdutoCategoria,
+                NomeCategoria: categoria.NomeCategoria
+            }
         });
     } catch (err) {
         next(err);
