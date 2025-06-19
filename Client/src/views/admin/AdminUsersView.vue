@@ -52,11 +52,6 @@
                                         <i class="bi bi-eye"></i>
                                     </button>
 
-                                    <button class="btn btn-sm btn-danger" @click="handleDelete(user)"
-                                        title="Eliminar Utilizador">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-
                                     <button @click="handleBlockClick(user)"
                                         :class="['btn btn-sm', user.bloqueio ? 'btn-success' : 'btn-danger']"
                                         :title="user.bloqueio ? 'Desbloquear Utilizador' : 'Bloquear Utilizador'">
@@ -219,16 +214,6 @@ export default {
         },
         openUserDetails(user) {
             this.selectedUser = user;
-        },
-        async handleDelete(user) {
-            if (confirm(`Tem a certeza que deseja eliminar o utilizador "${user.Nome}"?`)) {
-                try {
-                    await utilizadorService.deleteUser(user.IdUtilizador);
-                    this.fetchUsers();
-                } catch (err) {
-                    alert('Erro ao eliminar utilizador.');
-                }
-            }
         },
         async fetchLoggedUserDetails() {
             try {

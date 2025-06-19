@@ -193,7 +193,7 @@ export const anunciosService = {
     }
   },
 
-  getUserAnuncios: async (userId, page = 1, limit = 6) => {
+  async getUserAnuncios(userId, page = 1, limit = 6) {
     const queryParams = new URLSearchParams({
       page,
       limit,
@@ -215,45 +215,75 @@ export const anunciosService = {
     return response.json();
   },
 
-    getReservasByUser: async (userId, page = 1, limit = 6) => {
-      const queryParams = new URLSearchParams({
-        page,
-        limit,
-      });
+  async getReservasByUser(userId, page = 1, limit = 6) {
+    const queryParams = new URLSearchParams({
+      page,
+      limit,
+    });
 
+    const response = await fetch(
+      `${API_URL}/anuncios/reservas/${userId}?${queryParams}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Erro ao buscar reservas do utilizador");
+    }
+    return response.json();
+  },
+
+  async confirmarCodigoEntrega(idAnuncio, codigo) {
+    const token = sessionStorage.getItem("token");
+    const response = await fetch(
+      `${API_URL}/anuncios/${idAnuncio}/confirmarCodigo`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ codigo }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Erro ao confirmar código de entrega");
+    }
+    return response.json();
+  },
+
+  async getAllReservas(page = 1, limit = 10) {
+    try {
+      const token = sessionStorage.getItem("token");
       const response = await fetch(
-        `${API_URL}/anuncios/reservas/${userId}?${queryParams}`,
+        `${API_URL}/anuncios/reservas?page=${page}&limit=${limit}`,
         {
-          method: "GET",
           headers: {
-            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
       );
-      if (!response.ok) {
-        throw new Error("Erro ao buscar reservas do utilizador");
-      }
-      return response.json();
-    },
-      confirmarCodigoEntrega: async (idAnuncio, codigo) => {
-        const token = sessionStorage.getItem("token");
-        const response = await fetch(
-          `${API_URL}/anuncios/${idAnuncio}/confirmarCodigo`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ codigo }),
-          }
-        );
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || "Erro ao confirmar código de entrega");
-        }
-        return response.json();
-      },
+      if (response.status === 404) {
+        return { data: [], totalPages: 1, currentPage: page, total: 0 };
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `Ocorreu um erro no servidor (${response.status})` }));
+        throw new Error(errorData.message || "Erro ao buscar reservas");
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("Erro ao buscar reservas:", error);
+      throw error;
+    }
+  }
 };
