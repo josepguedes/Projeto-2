@@ -114,21 +114,21 @@ const getAllAnuncios = async (req, res, next) => {
         { rel: "criar-anuncio", href: "/anuncios", method: "POST" },
         ...(page > 1
           ? [
-              {
-                rel: "pagina-anterior",
-                href: `/anuncios?limit=${limit}&page=${page - 1}`,
-                method: "GET",
-              },
-            ]
+            {
+              rel: "pagina-anterior",
+              href: `/anuncios?limit=${limit}&page=${page - 1}`,
+              method: "GET",
+            },
+          ]
           : []),
         ...(anuncios.count > page * limit
           ? [
-              {
-                rel: "proxima-pagina",
-                href: `/anuncios?limit=${limit}&page=${+page + 1}`,
-                method: "GET",
-              },
-            ]
+            {
+              rel: "proxima-pagina",
+              href: `/anuncios?limit=${limit}&page=${+page + 1}`,
+              method: "GET",
+            },
+          ]
           : []),
       ],
     });
@@ -329,19 +329,21 @@ const updateAnuncio = async (req, res, next) => {
           "Não pode reservar este anúncio pois foi bloqueado pelo vendedor"
         );
       }
+
     }
 
     if (req.file) {
       try {
-        if (anuncio.CloudinaryId) {
-          try {
-            await cloudinary.uploader.destroy(anuncio.CloudinaryId);
-          } catch (cloudErr) {
-            console.error(
-              "Erro ao remover imagem antiga do Cloudinary:",
-              cloudErr
-            );
+        if (req.body.ImagemAnuncio === null || req.body.ImagemAnuncio === "") {
+          if (anuncio.CloudinaryId) {
+            try {
+              await cloudinary.uploader.destroy(anuncio.CloudinaryId);
+            } catch (cloudErr) {
+              console.error("Erro ao remover imagem antiga do Cloudinary:", cloudErr);
+            }
           }
+          anuncio.ImagemAnuncio = null;
+          anuncio.CloudinaryId = null;
         }
 
         // Upload new image
@@ -368,7 +370,7 @@ const updateAnuncio = async (req, res, next) => {
       "IdEstadoAnuncio",
       "CodigoVerificacao",
       "IdUtilizadorReserva",
-      "DataReserva",
+      "DataReserva"
     ];
 
     const updateData = {};

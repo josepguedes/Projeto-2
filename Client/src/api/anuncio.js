@@ -161,47 +161,37 @@ export const anunciosService = {
     }
   },
 
-  async updateAnuncio(id, anuncioData) {
+  async updateAnuncio(id, anuncioData, isFormData = false) {
     try {
-        const token = sessionStorage.getItem("token");
-        if (!token) {
-            throw new Error("Token não encontrado");
-        }
+      const token = sessionStorage.getItem("token");
+      if (!token) throw new Error("Token não encontrado");
 
-        // Format dates properly
-        const formattedData = {
-            ...anuncioData,
-            DataRecolha: anuncioData.DataRecolha ? anuncioData.DataRecolha.substring(0, 10) : null,
-            DataValidade: anuncioData.DataValidade ? anuncioData.DataValidade.substring(0, 10) : null,
-            DataReserva: anuncioData.DataReserva ? anuncioData.DataReserva.substring(0, 10) : null,
-            // Ensure numeric fields are numbers
-            Preco: Number(anuncioData.Preco),
-            Quantidade: Number(anuncioData.Quantidade),
-            IdProdutoCategoria: Number(anuncioData.IdProdutoCategoria),
-            IdEstadoAnuncio: Number(anuncioData.IdEstadoAnuncio),
-            IdUtilizadorAnuncio: Number(anuncioData.IdUtilizadorAnuncio)
-        };
+      let options = {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: anuncioData
+      };
 
-        const response = await fetch(`${API_URL}/anuncios/${id}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify(formattedData)
-        });
+      if (!isFormData) {
+        options.headers["Content-Type"] = "application/json";
+        options.body = JSON.stringify(anuncioData);
+      }
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Erro ao atualizar anúncio");
-        }
+      const response = await fetch(`${API_URL}/anuncios/${id}`, options);
 
-        return response.json();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Erro ao atualizar anúncio");
+      }
+
+      return response.json();
     } catch (error) {
-        console.error("Erro em updateAnuncio:", error);
-        throw new Error(`Erro ao atualizar anúncio: ${error.message}`);
+      console.error("Erro em updateAnuncio:", error);
+      throw new Error(`Erro ao atualizar anúncio: ${error.message}`);
     }
-},
+  },
 
   getUserAnuncios: async (userId, page = 1, limit = 6) => {
     const queryParams = new URLSearchParams({
@@ -225,45 +215,45 @@ export const anunciosService = {
     return response.json();
   },
 
-  getReservasByUser: async (userId, page = 1, limit = 6) => {
-    const queryParams = new URLSearchParams({
-      page,
-      limit,
-    });
+    getReservasByUser: async (userId, page = 1, limit = 6) => {
+      const queryParams = new URLSearchParams({
+        page,
+        limit,
+      });
 
-    const response = await fetch(
-      `${API_URL}/anuncios/reservas/${userId}?${queryParams}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
+      const response = await fetch(
+        `${API_URL}/anuncios/reservas/${userId}?${queryParams}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Erro ao buscar reservas do utilizador");
       }
-    );
-    if (!response.ok) {
-      throw new Error("Erro ao buscar reservas do utilizador");
-    }
-    return response.json();
-  },
-  confirmarCodigoEntrega: async (idAnuncio, codigo) => {
-    const token = sessionStorage.getItem("token");
-    const response = await fetch(
-      `${API_URL}/anuncios/${idAnuncio}/confirmarCodigo`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ codigo }),
-      }
-    );
+      return response.json();
+    },
+      confirmarCodigoEntrega: async (idAnuncio, codigo) => {
+        const token = sessionStorage.getItem("token");
+        const response = await fetch(
+          `${API_URL}/anuncios/${idAnuncio}/confirmarCodigo`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ codigo }),
+          }
+        );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Erro ao confirmar código de entrega");
-    }
-    return response.json();
-  },
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Erro ao confirmar código de entrega");
+        }
+        return response.json();
+      },
 };

@@ -184,21 +184,40 @@ export default {
                 this.isSubmitting = true;
                 this.error = null;
 
-                const updateData = {
-                    Nome: this.formData.Nome,
-                    Descricao: this.formData.Descricao,
-                    LocalRecolha: this.formData.LocalRecolha,
-                    HorarioRecolha: this.formData.HorarioRecolha,
-                    Preco: Number(this.formData.Preco),
-                    DataRecolha: this.formData.DataRecolha,
-                    DataValidade: this.formData.DataValidade,
-                    Quantidade: Number(this.formData.Quantidade),
-                    IdProdutoCategoria: Number(this.formData.IdProdutoCategoria),
-                    IdEstadoAnuncio: this.anuncio.IdEstadoAnuncio,
-                    IdUtilizadorAnuncio: this.anuncio.IdUtilizadorAnuncio
-                };
+                // Se for um arquivo, usar FormData
+                if (this.formData.ImagemAnuncio instanceof File) {
+                    const formData = new FormData();
+                    formData.append("Nome", this.formData.Nome);
+                    formData.append("Descricao", this.formData.Descricao);
+                    formData.append("LocalRecolha", this.formData.LocalRecolha);
+                    formData.append("HorarioRecolha", this.formData.HorarioRecolha);
+                    formData.append("Preco", this.formData.Preco);
+                    formData.append("DataRecolha", this.formData.DataRecolha);
+                    formData.append("DataValidade", this.formData.DataValidade);
+                    formData.append("Quantidade", this.formData.Quantidade);
+                    formData.append("IdProdutoCategoria", this.formData.IdProdutoCategoria);
+                    formData.append("IdEstadoAnuncio", this.anuncio.IdEstadoAnuncio);
+                    formData.append("IdUtilizadorAnuncio", this.anuncio.IdUtilizadorAnuncio);
+                    formData.append("ImagemAnuncio", this.formData.ImagemAnuncio);
 
-                await anunciosService.updateAnuncio(this.anuncio.IdAnuncio, updateData);
+                    await anunciosService.updateAnuncio(this.anuncio.IdAnuncio, formData, true);
+                } else {
+                    // Sem imagem nova, envia JSON normal
+                    const updateData = {
+                        Nome: this.formData.Nome,
+                        Descricao: this.formData.Descricao,
+                        LocalRecolha: this.formData.LocalRecolha,
+                        HorarioRecolha: this.formData.HorarioRecolha,
+                        Preco: Number(this.formData.Preco),
+                        DataRecolha: this.formData.DataRecolha,
+                        DataValidade: this.formData.DataValidade,
+                        Quantidade: Number(this.formData.Quantidade),
+                        IdProdutoCategoria: Number(this.formData.IdProdutoCategoria),
+                        IdEstadoAnuncio: this.anuncio.IdEstadoAnuncio,
+                        IdUtilizadorAnuncio: this.anuncio.IdUtilizadorAnuncio
+                    };
+                    await anunciosService.updateAnuncio(this.anuncio.IdAnuncio, updateData);
+                }
                 this.$emit('updated');
                 this.$emit('close');
             } catch (error) {
