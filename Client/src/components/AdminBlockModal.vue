@@ -70,7 +70,8 @@ export default {
         return {
             blockType: 'permanent',
             endDate: '',
-            modal: null
+            modal: null,
+            isBlocking: false,
         };
     },
     methods: {
@@ -88,15 +89,17 @@ export default {
                 this.modal.hide();
             }
         },
-        handleSubmit() {
-            if (this.blockType === 'temporary' && !this.endDate) {
-                return;
+        async handleSubmit() {
+            if (this.isBlocking) return;
+            this.isBlocking = true;
+            try {
+                await this.blockUser(this.userId);
+                this.$emit('blocked');
+            } catch (error) {
+                this.$toast.error('Erro ao bloquear usuário');
+            } finally {
+                this.isBlocking = false;
             }
-
-            this.$emit('submit', {
-                blockType: this.blockType,
-                endDate: this.blockType === 'temporary' ? this.endDate : null
-            });
         }
     },
     computed: {

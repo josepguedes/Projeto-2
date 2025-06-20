@@ -28,7 +28,7 @@ describe('adminBloqueiosService.createBloqueio e deleteBloqueio', () => {
     expect(response.data).toHaveProperty('IdAdminBloqueados');
 
     // Elimina bloqueio criado
-    const deleteResult = await adminBloqueiosService.deleteBloqueio(67);
+    const deleteResult = await adminBloqueiosService.deleteBloqueio(69);
     expect(deleteResult.ok || deleteResult.status === 200).toBe(true);
   });
 
