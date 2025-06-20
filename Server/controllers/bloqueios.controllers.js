@@ -118,25 +118,23 @@ const getAllUtilizadorBloqueios = async (req, res, next) => {
         },
         ...(page > 1
           ? [
-              {
-                rel: "pagina-anterior",
-                href: `/bloqueios/utilizador?limit=${limit}&page=${page - 1}${
-                  idBloqueador ? `&idBloqueador=${idBloqueador}` : ""
+            {
+              rel: "pagina-anterior",
+              href: `/bloqueios/utilizador?limit=${limit}&page=${page - 1}${idBloqueador ? `&idBloqueador=${idBloqueador}` : ""
                 }${idBloqueado ? `&idBloqueado=${idBloqueado}` : ""}`,
-                method: "GET",
-              },
-            ]
+              method: "GET",
+            },
+          ]
           : []),
         ...(bloqueios.count > page * limit
           ? [
-              {
-                rel: "proxima-pagina",
-                href: `/bloqueios/utilizador?limit=${limit}&page=${+page + 1}${
-                  idBloqueador ? `&idBloqueador=${idBloqueador}` : ""
+            {
+              rel: "proxima-pagina",
+              href: `/bloqueios/utilizador?limit=${limit}&page=${+page + 1}${idBloqueador ? `&idBloqueador=${idBloqueador}` : ""
                 }${idBloqueado ? `&idBloqueado=${idBloqueado}` : ""}`,
-                method: "GET",
-              },
-            ]
+              method: "GET",
+            },
+          ]
           : []),
       ],
     });
@@ -378,81 +376,81 @@ const createUtilizadorBloqueio = async (req, res, next) => {
 
 // Remover um bloqueio entre utilizadores
 const deleteUtilizadorBloqueio = async (req, res, next) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        // 1. Validate if ID exists and is valid
-        if (!id) {
-            throw new ErrorHandler(400, "ID do bloqueio é obrigatório");
-        }
-
-        if (isNaN(id) || Number(id) <= 0) {
-            throw new ErrorHandler(400, "ID do bloqueio deve ser um número válido");
-        }
-
-        // 2. Find block
-        const bloqueio = await UtilizadorBloqueio.findByPk(id);
-        if (!bloqueio) {
-            throw new ErrorHandler(404, "Bloqueio não encontrado");
-        }
-
-        // 3. Check if user owns the block
-        if (req.user.IdUtilizador != bloqueio.IdBloqueador) {
-            return res.status(403).json({
-                message: "Não tem permissão para remover bloqueios de outros utilizadores"
-            });
-        }
-
-        // 4. Delete block
-        try {
-            await bloqueio.destroy();
-        } catch (deleteError) {
-            console.error("Erro ao deletar bloqueio:", deleteError);
-            throw new ErrorHandler(500, "Erro ao remover bloqueio");
-        }
-
-        // 5. Return success response with HATEOAS
-        return res.status(200).json({
-            message: "Bloqueio removido com sucesso",
-            links: [
-                {
-                    rel: "criar-bloqueio",
-                    href: `/bloqueios/utilizador`,
-                    method: "POST"
-                },
-                {
-                    rel: "listar-bloqueios",
-                    href: `/bloqueios/utilizador?idBloqueador=${req.user.IdUtilizador}`,
-                    method: "GET"
-                }
-            ]
-        });
-
-    } catch (err) {
-        console.error("Erro em deleteUtilizadorBloqueio:", err);
-
-        if (err instanceof ErrorHandler) {
-            return next(err);
-        }
-
-        if (err.name === 'SequelizeValidationError') {
-            return next(new ErrorHandler(400, "Erro de validação dos dados"));
-        }
-
-        if (err.name === 'SequelizeForeignKeyConstraintError') {
-            return next(new ErrorHandler(400, "Erro: O bloqueio não pode ser removido devido a dependências"));
-        }
-
-        if (err.name === 'SequelizeDatabaseError') {
-            return next(new ErrorHandler(500, "Erro de banco de dados"));
-        }
-
-        if (err.name === 'SequelizeConnectionError') {
-            return next(new ErrorHandler(503, "Erro de conexão com o banco de dados"));
-        }
-
-        next(new ErrorHandler(500, "Erro interno do servidor ao remover bloqueio"));
+    // 1. Validate if ID exists and is valid
+    if (!id) {
+      throw new ErrorHandler(400, "ID do bloqueio é obrigatório");
     }
+
+    if (isNaN(id) || Number(id) <= 0) {
+      throw new ErrorHandler(400, "ID do bloqueio deve ser um número válido");
+    }
+
+    // 2. Find block
+    const bloqueio = await UtilizadorBloqueio.findByPk(id);
+    if (!bloqueio) {
+      throw new ErrorHandler(404, "Bloqueio não encontrado");
+    }
+
+    // 3. Check if user owns the block
+    if (req.user.IdUtilizador != bloqueio.IdBloqueador) {
+      return res.status(403).json({
+        message: "Não tem permissão para remover bloqueios de outros utilizadores"
+      });
+    }
+
+    // 4. Delete block
+    try {
+      await bloqueio.destroy();
+    } catch (deleteError) {
+      console.error("Erro ao deletar bloqueio:", deleteError);
+      throw new ErrorHandler(500, "Erro ao remover bloqueio");
+    }
+
+    // 5. Return success response with HATEOAS
+    return res.status(200).json({
+      message: "Bloqueio removido com sucesso",
+      links: [
+        {
+          rel: "criar-bloqueio",
+          href: `/bloqueios/utilizador`,
+          method: "POST"
+        },
+        {
+          rel: "listar-bloqueios",
+          href: `/bloqueios/utilizador?idBloqueador=${req.user.IdUtilizador}`,
+          method: "GET"
+        }
+      ]
+    });
+
+  } catch (err) {
+    console.error("Erro em deleteUtilizadorBloqueio:", err);
+
+    if (err instanceof ErrorHandler) {
+      return next(err);
+    }
+
+    if (err.name === 'SequelizeValidationError') {
+      return next(new ErrorHandler(400, "Erro de validação dos dados"));
+    }
+
+    if (err.name === 'SequelizeForeignKeyConstraintError') {
+      return next(new ErrorHandler(400, "Erro: O bloqueio não pode ser removido devido a dependências"));
+    }
+
+    if (err.name === 'SequelizeDatabaseError') {
+      return next(new ErrorHandler(500, "Erro de banco de dados"));
+    }
+
+    if (err.name === 'SequelizeConnectionError') {
+      return next(new ErrorHandler(503, "Erro de conexão com o banco de dados"));
+    }
+
+    next(new ErrorHandler(500, "Erro interno do servidor ao remover bloqueio"));
+  }
 };
 
 // ================ BLOQUEIOS ADMINISTRATIVOS ================
@@ -502,10 +500,10 @@ const checkAdminBloqueio = async (req, res, next) => {
     return res.status(200).json({
       bloqueio: bloqueio,
       bloqueado: !!bloqueio,
-      message: bloqueio ? 
-        (bloqueio.DataFimBloqueio ? 
-          `Utilizador bloqueado até ${new Date(bloqueio.DataFimBloqueio).toLocaleDateString('pt-PT')}` : 
-          "Utilizador bloqueado permanentemente") : 
+      message: bloqueio ?
+        (bloqueio.DataFimBloqueio ?
+          `Utilizador bloqueado até ${new Date(bloqueio.DataFimBloqueio).toLocaleDateString('pt-PT')}` :
+          "Utilizador bloqueado permanentemente") :
         "Utilizador não está bloqueado"
     });
 

@@ -46,10 +46,16 @@ db.UtilizadorBloqueio = require("./utilizadoresBloqueios.model.js")(sequelize, S
 db.AdminBloqueio = require("./adminBloqueios.model.js")(sequelize, Sequelize.DataTypes);
 db.NotificacaoUtilizador = require('./notificacoesUtilizador.models.js')(sequelize, Sequelize.DataTypes);
 
+
 db.Anuncio.belongsTo(db.Utilizador, {
     foreignKey: 'IdUtilizadorAnuncio',
     as: 'utilizador',
     attributes: ['Nome', 'ImagemPerfil', 'Classificacao']
+});
+
+db.AdminBloqueio.belongsTo(db.Utilizador, {
+    foreignKey: 'IdBloqueado',
+    as: 'utilizadorBloqueado'
 });
 
 db.Anuncio.belongsTo(db.Utilizador, {
@@ -87,19 +93,19 @@ db.Utilizador.belongsToMany(db.Notificacao, {
     as: 'notificacoes'
 });
 
-db.NotificacaoUtilizador.belongsTo(db.Notificacao, { 
-    foreignKey: 'IdNotificacao', 
-    as: 'notificacao' 
+db.NotificacaoUtilizador.belongsTo(db.Notificacao, {
+    foreignKey: 'IdNotificacao',
+    as: 'notificacao'
 });
 
-db.NotificacaoUtilizador.belongsTo(db.Utilizador, { 
-    foreignKey: 'IdUtilizador', 
-    as: 'utilizador' 
+db.NotificacaoUtilizador.belongsTo(db.Utilizador, {
+    foreignKey: 'IdUtilizador',
+    as: 'utilizador'
 });
 
-db.Notificacao.belongsTo(db.Utilizador, { 
-    foreignKey: 'IdRecipiente', 
-    as: 'recipiente' 
+db.Notificacao.belongsTo(db.Utilizador, {
+    foreignKey: 'IdRecipiente',
+    as: 'recipiente'
 });
 
 db.ProdutoCategoria.hasMany(db.Anuncio, {

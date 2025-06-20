@@ -31,7 +31,7 @@
                                 <UserReservaCard :reserva="reserva" @payment-success="fetchReservas"
                                     @cancelar="handleCancelarReserva" />
                             </div>
-                        </div>«
+                        </div>
                     </div>
                 </div>
             </div>
@@ -87,7 +87,7 @@ export default {
                 this.loading = false;
             }
         },
-        // In Client/src/views/UserReservasView.vue
+        
         async handleCancelarReserva(reserva) {
             try {
                 if (!confirm('Tem certeza que deseja cancelar esta reserva?')) {
