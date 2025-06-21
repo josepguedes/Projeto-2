@@ -370,7 +370,8 @@ const updateAnuncio = async (req, res, next) => {
       "IdEstadoAnuncio",
       "CodigoVerificacao",
       "IdUtilizadorReserva",
-      "DataReserva"
+      "DataReserva",
+      "DataRecolha"
     ];
 
     const updateData = {};

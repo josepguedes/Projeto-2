@@ -91,4 +91,49 @@ export const notificacoesService = {
         }
         return response.json();
     },
+
+    async fetchMinhasNotificacoes() {
+        if (!this.currentUserId) {
+            this.error = "ID do utilizador não encontrado para buscar notificações.";
+            this.notificacoes = [];
+            return;
+        }
+        this.loading = true;
+        this.error = null;
+        try {
+            const response = await notificacoesService.getNotificacoesByUserId(this.currentUserId);
+            // Limita às 4 mais recentes
+            this.notificacoes = response.data
+                .slice(0, 4)
+                .map(n => ({
+                    IdAssociacao: n.IdAssociacao,
+                    Mensagem: n.Mensagem,
+                    DataRececaoPeloUtilizador: n.DataRececaoPeloUtilizador,
+                    NotificacaoLida: n.NotificacaoLida,
+                }));
+            // Marcar todas como lidas ao abrir
+            await notificacoesService.marcarTodasComoLidas();
+            window.dispatchEvent(new CustomEvent('notifications-updated'));
+        } catch (err) {
+            this.error = err.message || 'Erro ao carregar notificações';
+            this.notificacoes = [];
+        } finally {
+            this.loading = false;
+        }
+    },
+
+    async marcarTodasComoLidas() {
+        const token = sessionStorage.getItem('token');
+        const response = await fetch(`${API_URL}/notificacoes/marcar-todas-lidas`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Erro ao marcar notificações como lidas');
+        }
+        return response.json();
+    }
 };

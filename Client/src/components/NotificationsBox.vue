@@ -12,7 +12,7 @@
             <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
         </div>
         <div v-if="!loading && !error && notificacoes.length === 0" class="empty-state">
-            <i class="bi bi-bell-slash me-2"></i>Não tem notificações.
+            <i class="bi bi-bell-slash me-2"></i>Ainda não tem notificações.
         </div>
         <ul v-if="!loading && !error && notificacoes.length > 0" class="notifications-list">
             <li v-for="notificacao in notificacoes" :key="notificacao.IdAssociacao"
@@ -24,12 +24,6 @@
                     <small class="date-time">
                         Recebida em: {{ formatDateTime(notificacao.DataRececaoPeloUtilizador) }}
                     </small>
-                </div>
-                <div class="notification-actions ms-2">
-                    <button v-if="notificacao.Estado === 'não lida'" @click="marcarComoLida(notificacao.IdAssociacao)"
-                        class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-check2-circle me-1"></i>Marcar como lida
-                    </button>
                 </div>
             </li>
         </ul>
@@ -58,10 +52,15 @@ export default {
     watch: {
         isOpen(newVal) {
             if (newVal) {
+                document.addEventListener('click', this.handleClickOutside, true);
                 this.getUserIdFromToken();
                 if (this.currentUserId) {
-                    this.fetchMinhasNotificacoes();
-                    document.addEventListener('click', this.handleClickOutside, true);
+                    // Ao abrir, busca as notificações e depois marca como lidas.
+                    this.fetchMinhasNotificacoes().then(() => {
+                        if (this.notificacoes.some(n => n.Estado === 'não lida')) {
+                            this.markAllAsRead();
+                        }
+                    });
                 } else {
                     this.error = "Utilizador não autenticado.";
                     this.notificacoes = [];
@@ -112,17 +111,18 @@ export default {
                 this.loading = false;
             }
         },
-        async marcarComoLida(idAssociacao) {
+        async markAllAsRead() {
             try {
-                await notificacoesService.marcarEstadoNotificacao(idAssociacao, 'lida');
-                const index = this.notificacoes.findIndex(n => n.IdAssociacao === idAssociacao);
-                if (index !== -1) {
-                    this.notificacoes[index].Estado = 'lida';
-                }
-                window.dispatchEvent(new CustomEvent('notifications-updated'));
-            } catch (err) {
-                console.error('Erro ao marcar notificação como lida:', err);
-                alert(err.message || 'Não foi possível marcar a notificação como lida.');
+                await notificacoesService.marcarTodasComoLidas();
+                // Atualiza localmente o estado das notificações para 'lida'
+                this.notificacoes.forEach(n => {
+                    if (n.Estado === 'não lida') {
+                        n.Estado = 'lida';
+                    }
+                });
+                this.$emit('mark-read'); // Emite evento para a Navbar atualizar o contador
+            } catch (error) {
+                console.error('Erro ao marcar notificações como lidas:', error);
             }
         },
         formatDateTime(dateString) {

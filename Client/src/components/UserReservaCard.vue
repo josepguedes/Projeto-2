@@ -68,11 +68,8 @@
               <span class="fw-bold">Código de Entrega:</span>
               <span class="codigo">{{ reserva.CodigoVerificacao || 'N/A' }}</span>
             </div>
-            <button
-              v-if="canEvaluate"
-              class="btn btn-outline-primary"
-              @click="showEvaluationModal = true"
-            >Avaliar vendedor</button>
+            <button v-if="canEvaluate" class="btn btn-outline-primary" @click="showEvaluationModal = true">Avaliar
+              vendedor</button>
             <button v-if="reserva.IdEstadoAnuncio === 6" @click="handlePayment"
               class="payment-badge rounded-3 px-3 py-2 d-inline-flex align-items-center gap-2">
               <i class="bi bi-credit-card-fill text-success"></i>
@@ -105,14 +102,8 @@
       </div>
     </div>
   </div>
-    <CreateEvaluationModal
-    v-if="showEvaluationModal"
-    :show="showEvaluationModal"
-    :anuncio-id="reserva.IdAnuncio"
-    :vendedor-id="reserva.IdUtilizadorAnuncio"
-    @close="showEvaluationModal = false"
-    @evaluated="onEvaluated"
-  />
+  <CreateEvaluationModal v-if="showEvaluationModal" :show="showEvaluationModal" :anuncio-id="reserva.IdAnuncio"
+    :vendedor-id="reserva.IdUtilizadorAnuncio" @close="showEvaluationModal = false" @evaluated="onEvaluated" />
 </template>
 
 <script>
@@ -226,23 +217,23 @@ export default {
             // Aguarda 3 segundos e associa notificação de reserva confirmada
             setTimeout(async () => {
               try {
-                // Busca notificações do utilizador autenticado
-                const notificacoes = await notificacoesService.getNotificacoesUser();
-                // Verifica se já existe notificação de ID 2
-                const existeNotificacao2 = notificacoes.some(n => n.IdNotificacao === 2);
-                if (!existeNotificacao2) {
-                  // Associa notificação de ID 2 ao utilizador autenticado
-                  const token = sessionStorage.getItem('token');
+                const token = sessionStorage.getItem('token');
+                if (token) {
                   const payload = JSON.parse(atob(token.split('.')[1]));
+                  const userId = payload.IdUtilizador;
+
+                  // Associa a notificação de ID 2 a cada reserva bem-sucedida
                   await notificacoesService.associarNotificacaoAUtilizador({
-                    IdNotificacao: 2,
-                    IdUtilizador: payload.IdUtilizador
+                    IdNotificacao: 2, // ID da notificação de "reserva confirmada"
+                    IdUtilizador: userId
                   });
-                  // Opcional: emitir evento para atualizar notificações em tempo real
-                  window.dispatchEvent(new Event('notifications-updated'));
+
+                  // Emite evento para atualizar a UI de notificações
+                  window.dispatchEvent(new CustomEvent('notifications-updated'));
                 }
               } catch (e) {
-                // Silencia erro de notificação
+                // Silencia erro de notificação para não interromper o fluxo do utilizador
+                console.error("Erro ao associar notificação:", e);
               }
               window.location.reload();
             }, 3000);

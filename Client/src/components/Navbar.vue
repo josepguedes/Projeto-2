@@ -57,29 +57,24 @@ export default {
                 console.error('Error fetching user details:', error);
             }
         },
-        async updateUnreadNotifications() {
+        async markNotificationsAsRead() {
             try {
-                if (this.user?.IdUtilizador) {
-                    const details = await utilizadorService.getUserDetails(this.user.IdUtilizador);
-                    if (details) {
-                        this.userDetails = {
-                            ...this.userDetails,
-                            NotificacoesNaoLidas: details.NotificacoesNaoLidas
-                        };
-                    }
-                }
+                await notificacoesService.marcarTodasComoLidas();
+                this.userDetails.NotificacoesNaoLidas = 0; // Atualiza o estado local
             } catch (error) {
-                console.error('Erro ao atualizar notificações:', error);
+                console.error('Erro ao marcar notificações como lidas:', error);
             }
         },
         handleClickOutside(event) {
-            // Verifica se as notificações estão abertas
-            if (!this.isNotificationBoxOpen) return;
+            const navbar = this.$refs.navbar;
+            if (!navbar) {
+                console.warn('Navbar ref não está definido.');
+                return;
+            }
 
-            const notificationsBox = this.$el.querySelector('.notifications-wrapper');
-            const toggleButton = this.$el.querySelector('.notifications-toggle');
+            const notificationsBox = navbar.querySelector('.notifications-wrapper');
+            const toggleButton = navbar.querySelector('.notifications-toggle');
 
-            // Verifica se os elementos existem e se o clique foi fora deles
             if (notificationsBox && toggleButton) {
                 if (!notificationsBox.contains(event.target) && !toggleButton.contains(event.target)) {
                     this.closeNotificationBox();
@@ -132,13 +127,14 @@ export default {
         // Remover todos os listeners
         window.removeEventListener('auth-changed', this.checkAuth);
         window.removeEventListener('profile-updated', this.fetchUserDetails);
+        document.removeEventListener('click', this.handleClickOutside);
         window.removeEventListener('open-messages');
     }
 }
 </script>
 
 <template>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm" ref="navbar">
         <div class="container">
             <router-link class="navbar-brand text-primary font-weight-bold" :to="{ name: 'home' }">
                 FoodShare
@@ -150,17 +146,19 @@ export default {
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
-                    <!-- Show this when user is not authenticated -->
+                    <!-- Quando não autenticado -->
                     <li class="nav-item" v-if="!isAuthenticated">
                         <router-link class="nav-link" :to="{ name: 'login' }">Login</router-link>
                     </li>
 
-                    <!-- Show this when user is authenticated -->
+                    <!-- Quando autenticado -->
                     <template v-else>
                         <li class="nav-item dropdown">
                             <div class="d-flex align-items-center">
+                                <!-- Notificações -->
                                 <div class="notifications-wrapper">
-                                    <button class="btn btn-link nav-link me-2 position-relative notifications-toggle"
+                                    <button id="notification-icon-toggler"
+                                        class="btn btn-link nav-link me-2 position-relative notifications-toggle"
                                         @click="toggleNotificationBox" title="Notificações">
                                         <i class="bi bi-bell fs-5"></i>
                                         <span v-if="userDetails?.NotificacoesNaoLidas > 0"
@@ -170,11 +168,15 @@ export default {
                                         </span>
                                     </button>
                                     <NotificationsBox v-if="isNotificationBoxOpen" :isOpen="isNotificationBoxOpen"
-                                        @close="closeNotificationBox" />
+                                        @close="closeNotificationBox" @mark-read="markNotificationsAsRead" />
                                 </div>
+
+                                <!-- Mensagens -->
                                 <button class="btn btn-link nav-link me-3" @click="toggleMessagesSidebar">
                                     <i class="bi bi-chat-left fs-5"></i>
                                 </button>
+
+                                <!-- Menu Utilizador -->
                                 <div class="d-flex align-items-center cursor-pointer" data-bs-toggle="dropdown"
                                     role="button">
                                     <img :src="userDetails?.ImagemPerfil || 'https://via.placeholder.com/40'"
@@ -184,14 +186,14 @@ export default {
                                 </div>
 
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <!-- Profile link for all users -->
+                                    <!-- Link Perfil -->
                                     <li>
                                         <router-link class="dropdown-item" :to="{ name: 'profile' }">
                                             <i class="bi bi-person me-2"></i>Meu Perfil
                                         </router-link>
                                     </li>
 
-                                    <!-- Admin Menu - Only shown for admin users -->
+                                    <!-- Apenas para administradores -->
                                     <template v-if="isAdmin">
                                         <li>
                                             <router-link class="dropdown-item" :to="{ name: 'admin-utilizadores' }">
@@ -203,7 +205,7 @@ export default {
                                         </li>
                                     </template>
 
-                                    <!-- Logout for all users -->
+                                    <!-- Sair -->
                                     <li>
                                         <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
                                             <i class="bi bi-box-arrow-right me-2"></i>Sair
@@ -217,8 +219,11 @@ export default {
             </div>
         </div>
     </nav>
+
+    <!-- Barra lateral de mensagens -->
     <MessagesSidebar :isOpen="isMessageSidebarOpen" @close="closeMessagesSidebar" />
 </template>
+
 
 <style scoped>
 .navbar {
