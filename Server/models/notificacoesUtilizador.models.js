@@ -16,7 +16,12 @@ module.exports = (sequelize, DataTypes) => {
         DataRececao: {
             type: DataTypes.DATE,
             allowNull: true
-        }
+        },
+        NotificacaoLida: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
+        },
     }, {
         tableName: 'NotificacaoUtilizador',
         timestamps: false

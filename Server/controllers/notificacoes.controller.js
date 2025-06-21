@@ -73,7 +73,7 @@ const getAllNotificacoes = async (req, res, next) => {
 
     // Check if there are any notifications
     if (notificacoes.count === 0) {
-      return res.status(204).json({
+      return res.status(200).json({
         message: "Nenhuma notificação encontrada",
         totalPages: 0,
         currentPage: +page,
@@ -122,21 +122,21 @@ const getAllNotificacoes = async (req, res, next) => {
         { rel: "criar-notificacao", href: `/notificacoes`, method: "POST" },
         ...(page > 1
           ? [
-              {
-                rel: "pagina-anterior",
-                href: `/notificacoes?limit=${limit}&page=${page - 1}`,
-                method: "GET",
-              },
-            ]
+            {
+              rel: "pagina-anterior",
+              href: `/notificacoes?limit=${limit}&page=${page - 1}`,
+              method: "GET",
+            },
+          ]
           : []),
         ...(notificacoes.count > page * limit
           ? [
-              {
-                rel: "proxima-pagina",
-                href: `/notificacoes?limit=${limit}&page=${+page + 1}`,
-                method: "GET",
-              },
-            ]
+            {
+              rel: "proxima-pagina",
+              href: `/notificacoes?limit=${limit}&page=${+page + 1}`,
+              method: "GET",
+            },
+          ]
           : []),
       ],
     });
@@ -549,8 +549,10 @@ const getNotificacoesByUserId = async (req, res, next) => {
         }
         return {
           IdAssociacao: nu.IdNotificacaoUtilizador,
+          IdNotificacao: nu.IdNotificacao,
           Mensagem: nu.notificacao.Mensagem,
           DataRececaoPeloUtilizador: nu.DataRececao,
+          Estado: nu.NotificacaoLida ? 'lida' : 'não lida',
           HoraNotificacaoOriginal: nu.notificacao.HoraNotificacao,
           DataNotificacaoOriginal: nu.notificacao.DataNotificacao,
         };
@@ -559,7 +561,7 @@ const getNotificacoesByUserId = async (req, res, next) => {
 
     // 6. Return response
     if (formattedNotificacoes.length === 0) {
-      return res.status(204).json({
+      return res.status(200).json({
         message: "Nenhuma notificação encontrada",
         data: [],
       });
@@ -628,24 +630,12 @@ const associarNotificacaoAUtilizador = async (req, res, next) => {
       );
     }
 
-    const associacaoExistente = await db.NotificacaoUtilizador.findOne({
-      where: {
-        IdNotificacao: IdNotificacao,
-        IdUtilizador: IdUtilizador,
-      },
-    });
-
-    if (associacaoExistente) {
-      throw new ErrorHandler(
-        409,
-        "Esta notificação já está associada a este utilizador"
-      );
-    }
-
     const novaAssociacao = await db.NotificacaoUtilizador.create({
       IdNotificacao,
       IdUtilizador,
       DataRececao: new Date(),
+      NotificacaoLida: false
+
     });
 
     res.status(201).json({
@@ -685,6 +675,33 @@ const associarNotificacaoAUtilizador = async (req, res, next) => {
   }
 };
 
+const marcarTodasComoLidas = async (req, res, next) => {
+    try {
+        const userId = req.user?.IdUtilizador;
+
+        if (!userId) {
+            console.error("ID do utilizador não encontrado no token:", req.user);
+            return next(new ErrorHandler(400, "Utilizador não autenticado ou ID não encontrado no token."));
+        }
+
+        const [affectedRows] = await db.NotificacaoUtilizador.update(
+            { NotificacaoLida: true },
+            { where: { IdUtilizador: userId, NotificacaoLida: false } }
+        );
+
+        if (affectedRows === 0) {
+            console.warn(`Nenhuma notificação foi atualizada para o utilizador com ID ${userId}`);
+        }
+
+        res.status(200).json({
+            message: "Notificações marcadas como lidas.",
+            updatedCount: affectedRows,
+        });
+    } catch (err) {
+        console.error("Erro ao marcar notificações como lidas:", err);
+        next(err);
+    }
+};
 module.exports = {
   getAllNotificacoes,
   createNotificacao,
@@ -692,4 +709,5 @@ module.exports = {
   updateNotificacao,
   getNotificacoesByUserId,
   associarNotificacaoAUtilizador,
+  marcarTodasComoLidas
 };

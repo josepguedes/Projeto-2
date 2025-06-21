@@ -109,14 +109,14 @@ const loginUser = async (req, res, next) => {
                 await bloqueio.destroy();
             } else {
                 // Bloqueio ainda ativo
-                return res.status(403).json({ 
+                return res.status(403).json({
                     message: `Conta bloqueada até ${dataFim.toLocaleDateString('pt-PT')}`
                 });
             }
         } else if (bloqueio && !bloqueio.DataFimBloqueio) {
             // Bloqueio permanente
-            return res.status(403).json({ 
-                message: "Conta bloqueada permanentemente" 
+            return res.status(403).json({
+                message: "Conta bloqueada permanentemente"
             });
         }
 
@@ -187,7 +187,7 @@ const getAllUsers = async (req, res, next) => {
         // Verifica se o utilizador é administrador
         if (!req.user || req.user.Funcao !== 'admin') {
             throw new ErrorHandler(403, 'Acesso negado. Apenas administradores podem listar utilizadores.');
-        } 
+        }
 
         const utilizadores = await Utilizador.findAndCountAll({
             attributes: ['IdUtilizador', 'Nome', 'Email', 'Funcao', 'ImagemPerfil'],
@@ -219,13 +219,13 @@ const updateUser = async (req, res, next) => {
         const utilizadorId = req.params.id;
 
         // Verifica se o utilizador está autenticado
-        if (!req.headers.authorization) {  
+        if (!req.headers.authorization) {
             throw new ErrorHandler(401, "Utilizador não autenticado.");
         }
 
         // Verifica se o utilizador é o mesmo que está a ser atualizado
         // Permitir que apenas o próprio utilizador OU um admin atualize o perfil
-        if (utilizadorId !== req.user.IdUtilizador && req.user.Funcao !== 'admin') {
+        if (Number(utilizadorId) !== req.user.IdUtilizador && req.user.Funcao !== 'admin') {
             throw new ErrorHandler(403, `Acesso negado. Não pode atualizar outro utilizador. (Id autenticado: ${req.user.IdUtilizador}) ${utilizadorId}`);
         }
 
